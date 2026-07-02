@@ -1,0 +1,63 @@
+@import "tailwindcss";
+/* Fuente de marca (degrada a system-ui sin conexión) */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap");
+
+/* ============================================================
+   SERVIRED — Sistema de diseño
+   Navy profundo + lima/chartreuse + coral, según la marca.
+   ============================================================ */
+@theme {
+  /* Marca */
+  --color-navy-950: #071f38;
+  --color-navy-900: #0a2540;
+  --color-navy-800: #0f2a52;
+  --color-navy-700: #16305c;
+  --color-navy-600: #1b3a6b;
+
+  --color-brand-blue: #1b4da0;
+  --color-brand-blue-dark: #14315c;
+  --color-brand-blue-light: #2e6fb8;
+
+  --color-lime: #b7d80b;
+  --color-lime-dark: #9cbb08;
+  --color-coral: #f6a488;
+  --color-coral-dark: #ef8a66;
+  --color-brandred: #e11d29;
+
+  /* Neutros de UI */
+  --color-canvas: #f5f7fa;
+
+  /* Tipografía */
+  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+
+  /* Radios */
+  --radius-xl2: 1.25rem;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-navy-900);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Scrollbar sutil */
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+}

@@ -1,0 +1,102 @@
+// SERVIRED — esquema de base de datos
+// Marketplace de servicios: clientes <-> profesionales verificados
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Categorías de servicio (Plomería, Electricidad, Limpieza, etc.)
+model Category {
+  id            String           @id @default(cuid())
+  slug          String           @unique
+  name          String
+  icon          String // nombre de ícono / emoji para la UI
+  professionals Professional[]
+  requests      ServiceRequest[]
+
+  createdAt DateTime @default(now())
+}
+
+/// Solicitud de presupuesto publicada por un cliente
+model ServiceRequest {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  zone        String
+  budget      Int? // presupuesto estimado opcional (ARS)
+  contactName String
+  status      String   @default("abierta") // abierta | cerrada
+  createdAt   DateTime @default(now())
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+}
+
+/// Profesional / prestador de servicios
+model Professional {
+  id              String  @id @default(cuid())
+  name            String
+  headline        String // "Plomero", "Electricista", ...
+  bio             String?
+  avatarColor     String  @default("#1B4DA0") // color para el avatar generado
+  rating          Float   @default(0)
+  reviewsCount    Int     @default(0)
+  zone            String // "Zona Norte, CABA"
+  priceFrom       Int // precio "desde" en ARS
+  verified        Boolean @default(false)
+  featured        Boolean @default(false)
+  yearsExperience Int     @default(0)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  services Service[]
+  reviews  Review[]
+  photos   WorkPhoto[]
+
+  createdAt DateTime @default(now())
+}
+
+/// Servicio publicado por un profesional
+model Service {
+  id            String @id @default(cuid())
+  title         String
+  description   String
+  categoryLabel String // etiqueta libre: "Electricidad", "Redes", ...
+  priceFrom     Int
+  status        String @default("activo") // activo | pausado
+  requestsCount Int    @default(0)
+
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+/// Reseña verificada dejada por un cliente
+model Review {
+  id         String   @id @default(cuid())
+  authorName String
+  rating     Int
+  comment    String
+  serviceTag String? // servicio al que refiere la opinión
+  createdAt  DateTime @default(now())
+
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+}
+
+/// Foto de trabajo realizado
+model WorkPhoto {
+  id      String  @id @default(cuid())
+  color   String // color/gradiente placeholder
+  caption String?
+
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+}
