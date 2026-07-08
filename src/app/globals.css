@@ -1,38 +1,27 @@
-@import "tailwindcss";
 /* Fuente de marca (degrada a system-ui sin conexión) */
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
 
 /* ============================================================
-   SERVIRED — Sistema de diseño
-   Navy profundo + lima/chartreuse + coral, según la marca.
+   SERVIRED — Sistema de diseño simplificado
+   Dos colores:
+   - AZUL  (cliente: busca un servicio)
+   - VERDE (profesional: ofrece servicios)
    ============================================================ */
 @theme {
-  /* Marca */
-  --color-navy-950: #071f38;
-  --color-navy-900: #0a2540;
-  --color-navy-800: #0f2a52;
-  --color-navy-700: #16305c;
-  --color-navy-600: #1b3a6b;
+  /* Azul — lado cliente */
+  --color-cliente: #2563eb;
+  --color-cliente-dark: #1d4ed8;
+  --color-cliente-soft: #eff6ff;
 
-  --color-brand-blue: #1b4da0;
-  --color-brand-blue-dark: #14315c;
-  --color-brand-blue-light: #2e6fb8;
-
-  --color-lime: #b7d80b;
-  --color-lime-dark: #9cbb08;
-  --color-coral: #f6a488;
-  --color-coral-dark: #ef8a66;
-  --color-brandred: #e11d29;
-
-  /* Neutros de UI */
-  --color-canvas: #f5f7fa;
+  /* Verde — lado profesional */
+  --color-pro: #059669;
+  --color-pro-dark: #047857;
+  --color-pro-soft: #ecfdf5;
 
   /* Tipografía */
   --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
-
-  /* Radios */
-  --radius-xl2: 1.25rem;
 }
 
 @layer base {
@@ -40,24 +29,56 @@
     scroll-behavior: smooth;
   }
   body {
-    background-color: var(--color-canvas);
-    color: var(--color-navy-900);
+    background-color: #f8fafc;
+    color: #0f172a;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+
+  /* Sensación de app: sin destello gris al tocar en móvil */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* iOS hace zoom automático sobre campos con fuente menor a 16px.
+     !important + max(): le gana al text-sm de Tailwind sin achicar campos grandes. */
+  @media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: max(16px, 1em) !important;
+    }
+  }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+/* Carruseles horizontales sin barra de scroll visible */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
   }
-  /* Scrollbar sutil */
-  .scrollbar-thin::-webkit-scrollbar {
-    height: 8px;
-    width: 8px;
+}
+
+/* Animaciones del bottom sheet móvil */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
   }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 9999px;
+  to {
+    transform: translateY(0);
   }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@utility animate-sheet-up {
+  animation: sheet-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@utility animate-fade-in {
+  animation: fade-in 0.2s ease-out;
 }

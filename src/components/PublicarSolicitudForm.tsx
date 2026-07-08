@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CategoryItem } from "@/lib/types";
 import { Button } from "@/components/ui";
+
+type Categoria = { slug: string; name: string; icon: string };
 
 type Form = {
   title: string;
@@ -23,19 +24,11 @@ const empty: Form = {
   contactName: "",
 };
 
-export function PublicarSolicitudForm() {
+export function PublicarSolicitudForm({ categorias }: { categorias: Categoria[] }) {
   const router = useRouter();
-  const [categorias, setCategorias] = useState<CategoryItem[]>([]);
   const [form, setForm] = useState<Form>(empty);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/categorias")
-      .then((r) => r.json())
-      .then(setCategorias)
-      .catch(() => setCategorias([]));
-  }, []);
 
   function update<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -63,12 +56,12 @@ export function PublicarSolicitudForm() {
   }
 
   const inputCls =
-    "w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20";
+    "w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20";
 
   return (
     <form onSubmit={onSubmit} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
       <div>
-        <label className="mb-1 block text-sm font-medium text-navy-900">¿Qué necesitás?</label>
+        <label className="mb-1 block text-sm font-medium text-slate-900">¿Qué necesitás?</label>
         <input
           required
           value={form.title}
@@ -80,7 +73,7 @@ export function PublicarSolicitudForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-navy-900">Categoría</label>
+          <label className="mb-1 block text-sm font-medium text-slate-900">Categoría</label>
           <select
             value={form.categorySlug}
             onChange={(e) => update("categorySlug", e.target.value)}
@@ -95,7 +88,7 @@ export function PublicarSolicitudForm() {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-navy-900">Ubicación</label>
+          <label className="mb-1 block text-sm font-medium text-slate-900">Ubicación</label>
           <input
             required
             value={form.zone}
@@ -107,7 +100,7 @@ export function PublicarSolicitudForm() {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-navy-900">Descripción</label>
+        <label className="mb-1 block text-sm font-medium text-slate-900">Descripción</label>
         <textarea
           required
           rows={4}
@@ -120,7 +113,7 @@ export function PublicarSolicitudForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-navy-900">
+          <label className="mb-1 block text-sm font-medium text-slate-900">
             Presupuesto estimado <span className="text-slate-400">(opcional)</span>
           </label>
           <input
@@ -133,7 +126,7 @@ export function PublicarSolicitudForm() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-navy-900">Tu nombre</label>
+          <label className="mb-1 block text-sm font-medium text-slate-900">Tu nombre</label>
           <input
             required
             value={form.contactName}
@@ -145,17 +138,12 @@ export function PublicarSolicitudForm() {
       </div>
 
       {error && (
-        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-brandred">{error}</p>
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
       )}
 
-      <div className="flex items-center gap-3">
-        <Button type="submit" variant="primary" disabled={submitting} className="disabled:opacity-60">
-          {submitting ? "Publicando…" : "Publicar solicitud"}
-        </Button>
-        <span className="text-xs text-slate-400">
-          Recibirás presupuestos de profesionales cercanos.
-        </span>
-      </div>
+      <Button type="submit" variant="cliente" disabled={submitting} className="w-full disabled:opacity-60 sm:w-auto">
+        {submitting ? "Publicando…" : "Publicar solicitud"}
+      </Button>
     </form>
   );
 }

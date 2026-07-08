@@ -1,5 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Cubre los notch/safe-areas de iOS; el layout compensa con env(safe-area-inset-*)
+  viewportFit: "cover",
+  themeColor: "#ffffff",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -7,7 +15,7 @@ export const metadata: Metadata = {
     template: "%s · ServiRed",
   },
   description:
-    "Marketplace de servicios que conecta personas con profesionales verificados: plomería, electricidad, limpieza, jardinería y más. Pagos seguros y opiniones reales.",
+    "Marketplace de servicios que conecta personas con profesionales verificados: plomería, electricidad, limpieza, jardinería y más.",
 };
 
 export default function RootLayout({

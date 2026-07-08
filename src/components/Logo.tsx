@@ -1,23 +1,23 @@
 import Link from "next/link";
 
 export function Logo({
-  withTagline = false,
+  href = "/",
+  accent = "cliente",
   className = "",
-  light = false,
 }: {
-  withTagline?: boolean;
+  href?: string;
+  accent?: "cliente" | "pro";
   className?: string;
-  light?: boolean;
 }) {
   return (
-    <Link href="/" className={`inline-flex flex-col leading-none ${className}`}>
+    <Link href={href} className={`inline-flex items-baseline leading-none ${className}`}>
       <span className="text-2xl font-extrabold tracking-tight">
-        <span className={light ? "text-white" : "text-navy-900"}>SERVI</span>
-        <span className="text-brandred">RED</span>
+        <span className="text-slate-900">SERVI</span>
+        <span className={accent === "pro" ? "text-pro" : "text-cliente"}>RED</span>
       </span>
-      {withTagline && (
-        <span className={`mt-0.5 text-[10px] font-medium ${light ? "text-white/70" : "text-slate-500"}`}>
-          Conectamos servicios, generamos confianza.
+      {accent === "pro" && (
+        <span className="ml-1.5 rounded-md bg-pro px-1.5 py-0.5 text-[10px] font-bold text-white">
+          PRO
         </span>
       )}
     </Link>

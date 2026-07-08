@@ -1,15 +1,6 @@
-import { Suspense } from "react";
-import type { Metadata } from "next";
-import { BuscarClient } from "@/components/BuscarClient";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Explorar servicios",
-};
-
+// La búsqueda ahora vive en la portada.
 export default function BuscarPage() {
-  return (
-    <Suspense fallback={<div className="text-slate-500">Cargando…</div>}>
-      <BuscarClient />
-    </Suspense>
-  );
+  redirect("/");
 }

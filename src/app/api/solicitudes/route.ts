@@ -1,24 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/solicitudes?categoria=&estado=
-export async function GET(req: NextRequest) {
-  const sp = req.nextUrl.searchParams;
-  const categoria = sp.get("categoria")?.trim();
-  const estado = sp.get("estado")?.trim() ?? "abierta";
-
-  const requests = await prisma.serviceRequest.findMany({
-    where: {
-      ...(estado !== "todas" ? { status: estado } : {}),
-      ...(categoria ? { category: { slug: categoria } } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    include: { category: true },
-  });
-
-  return NextResponse.json(requests);
-}
-
 // POST /api/solicitudes — crea una nueva solicitud de presupuesto
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -52,8 +34,7 @@ export async function POST(req: NextRequest) {
     categoryId = cat?.id ?? null;
   }
 
-  const parsedBudget =
-    budget === "" || budget == null ? null : Number(budget);
+  const parsedBudget = budget === "" || budget == null ? null : Number(budget);
 
   const created = await prisma.serviceRequest.create({
     data: {
@@ -64,7 +45,6 @@ export async function POST(req: NextRequest) {
       contactName: (contactName as string).trim(),
       categoryId,
     },
-    include: { category: true },
   });
 
   return NextResponse.json(created, { status: 201 });

@@ -1,44 +1,30 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { prisma } from "@/lib/prisma";
 import { PublicarSolicitudForm } from "@/components/PublicarSolicitudForm";
-import { ShieldIcon, VerifiedIcon, HeadsetIcon } from "@/components/icons";
 
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Publicar solicitud" };
 
-const perks = [
-  { icon: VerifiedIcon, text: "Solo profesionales verificados ven tu solicitud." },
-  { icon: ShieldIcon, text: "Compará presupuestos y elegí con total tranquilidad." },
-  { icon: HeadsetIcon, text: "Soporte de ServiRed en cada paso." },
-];
+export default async function PublicarSolicitudPage() {
+  const categorias = await prisma.category.findMany({
+    orderBy: { createdAt: "asc" },
+    select: { slug: true, name: true, icon: true },
+  });
 
-export default function PublicarSolicitudPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <Link href="/" className="text-sm font-medium text-brand-blue hover:underline">
+        <Link href="/" className="text-sm font-medium text-cliente hover:underline">
           ← Volver al inicio
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-navy-900">Solicitá un servicio</h1>
+        <h1 className="mt-2 text-2xl font-bold text-slate-900">Solicitá un servicio</h1>
         <p className="mt-1 text-slate-500">
-          Contanos qué necesitás y recibí presupuestos de profesionales cercanos.
+          Contanos qué necesitás y los profesionales te contactan por mensaje.
         </p>
       </div>
 
-      <ul className="grid gap-3 sm:grid-cols-3">
-        {perks.map((p, i) => {
-          const Icon = p.icon;
-          return (
-            <li key={i} className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
-              <span className="text-brand-blue">
-                <Icon width={20} height={20} />
-              </span>
-              {p.text}
-            </li>
-          );
-        })}
-      </ul>
-
-      <PublicarSolicitudForm />
+      <PublicarSolicitudForm categorias={categorias} />
     </div>
   );
 }

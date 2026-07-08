@@ -12,11 +12,3 @@ export type ProCard = {
   featured: boolean;
   yearsExperience: number;
 };
-
-export type CategoryItem = {
-  id: string;
-  slug: string;
-  name: string;
-  icon: string;
-  count: number;
-};

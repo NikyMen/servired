@@ -43,7 +43,7 @@ model Professional {
   name            String
   headline        String // "Plomero", "Electricista", ...
   bio             String?
-  avatarColor     String  @default("#1B4DA0") // color para el avatar generado
+  avatarColor     String  @default("#059669") // color para el avatar generado
   rating          Float   @default(0)
   reviewsCount    Int     @default(0)
   zone            String // "Zona Norte, CABA"
@@ -55,9 +55,55 @@ model Professional {
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
-  services Service[]
-  reviews  Review[]
-  photos   WorkPhoto[]
+  services      Service[]
+  reviews       Review[]
+  bookings      Booking[]
+  conversations Conversation[]
+
+  createdAt DateTime @default(now())
+}
+
+/// Contratación: un cliente contrata a un profesional
+model Booking {
+  id         String  @id @default(cuid())
+  clientName String
+  note       String?
+  status     String  @default("solicitada") // solicitada | aceptada | completada | cancelada
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Conversación entre un cliente y un profesional
+model Conversation {
+  id         String @id @default(cuid())
+  clientName String
+
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([professionalId, clientName])
+}
+
+/// Mensaje dentro de una conversación
+model Message {
+  id     String @id @default(cuid())
+  sender String // cliente | profesional
+  text   String
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
@@ -75,6 +121,8 @@ model Service {
   professionalId String
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 
+  bookings Booking[]
+
   createdAt DateTime @default(now())
 }
 
@@ -86,16 +134,6 @@ model Review {
   comment    String
   serviceTag String? // servicio al que refiere la opinión
   createdAt  DateTime @default(now())
-
-  professionalId String
-  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
-}
-
-/// Foto de trabajo realizado
-model WorkPhoto {
-  id      String  @id @default(cuid())
-  color   String // color/gradiente placeholder
-  caption String?
 
   professionalId String
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
