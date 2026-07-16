@@ -10,6 +10,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Preinscripción: alguien deja sus datos para entrar cuando abramos.
+/// No la borra el seed: son contactos reales, no datos de demo.
+model Preregistration {
+  id    String @id @default(cuid())
+  name  String
+  email String @unique // evita duplicados si alguien manda el form dos veces
+  phone String
+  type  String @default("cliente") // cliente | profesional
+
+  createdAt DateTime @default(now())
+}
+
 /// Categorías de servicio (Plomería, Electricidad, Limpieza, etc.)
 model Category {
   id            String           @id @default(cuid())
