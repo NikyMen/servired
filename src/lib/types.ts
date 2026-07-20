@@ -1,3 +1,6 @@
+/** Los dos lados de la app: cliente busca (azul), pro ofrece (verde). */
+export type Mode = "cliente" | "pro";
+
 export type ProCard = {
   id: string;
   name: string;

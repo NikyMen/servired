@@ -10,6 +10,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Cuenta de usuario. `role` define con qué cara entra a la app:
+/// cliente (azul, contrata) o profesional (verde, ofrece).
+model User {
+  id           String @id @default(cuid())
+  email        String @unique
+  passwordHash String // scrypt: "salt:hash" (ver src/lib/auth.ts)
+  name         String
+  role         String @default("cliente") // cliente | profesional
+  avatarColor  String @default("#2563eb")
+
+  /// Perfil público. Solo lo tienen las cuentas con role = profesional.
+  professional Professional?
+
+  sessions      Session[]
+  conversations Conversation[]
+  bookings      Booking[]
+  requests      ServiceRequest[]
+
+  createdAt DateTime @default(now())
+}
+
+/// Sesión activa. El token vive en una cookie httpOnly; al salir se borra la fila.
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
 /// Preinscripción: alguien deja sus datos para entrar cuando abramos.
 /// No la borra el seed: son contactos reales, no datos de demo.
 model Preregistration {
@@ -41,9 +74,13 @@ model ServiceRequest {
   description String
   zone        String
   budget      Int? // presupuesto estimado opcional (ARS)
-  contactName String
+  contactName String // nombre mostrado; la identidad real es userId
   status      String   @default("abierta") // abierta | cerrada
   createdAt   DateTime @default(now())
+
+  /// Quién la publicó. Sin esto, un profesional no tendría a quién contestarle.
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
@@ -67,6 +104,10 @@ model Professional {
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
+  /// Cuenta dueña del perfil. Opcional: el seed puede crear perfiles sin cuenta.
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   services      Service[]
   reviews       Review[]
   bookings      Booking[]
@@ -78,9 +119,12 @@ model Professional {
 /// Contratación: un cliente contrata a un profesional
 model Booking {
   id         String  @id @default(cuid())
-  clientName String
+  clientName String // nombre mostrado; la identidad real es userId
   note       String?
   status     String  @default("solicitada") // solicitada | aceptada | completada | cancelada
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   serviceId String?
   service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
@@ -95,7 +139,10 @@ model Booking {
 /// Conversación entre un cliente y un profesional
 model Conversation {
   id         String @id @default(cuid())
-  clientName String
+  clientName String // nombre mostrado; la identidad real es userId
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   professionalId String
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
@@ -105,14 +152,21 @@ model Conversation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([professionalId, clientName])
+  /// Un solo hilo por par cliente-profesional (dos clientes homónimos ya no chocan).
+  @@unique([professionalId, userId])
 }
 
 /// Mensaje dentro de una conversación
 model Message {
   id     String @id @default(cuid())
   sender String // cliente | profesional
-  text   String
+  text   String @default("") // puede ir vacío si el mensaje es solo un adjunto
+
+  /// Adjunto opcional (imagen o PDF) servido desde /uploads.
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String? // image/jpeg | image/png | image/webp | application/pdf
+  attachmentSize Int? // bytes
 
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)

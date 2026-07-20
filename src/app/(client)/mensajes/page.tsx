@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { Chat } from "@/components/Chat";
-import { PRO_GREEN } from "@/lib/demo";
+import { requireUser } from "@/lib/auth";
+import { PRO_GREEN } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mensajes" };
 
 export default async function MensajesPage() {
+  const user = await requireUser("/mensajes");
+
+  // Solo los hilos propios: antes se listaban los de todo el mundo.
   const conversations = await prisma.conversation.findMany({
+    where: { userId: user.id },
     orderBy: { updatedAt: "desc" },
     include: {
       professional: true,
@@ -33,6 +38,10 @@ export default async function MensajesPage() {
             sender: m.sender,
             text: m.text,
             createdAt: m.createdAt.toISOString(),
+            attachmentUrl: m.attachmentUrl,
+            attachmentName: m.attachmentName,
+            attachmentType: m.attachmentType,
+            attachmentSize: m.attachmentSize,
           })),
         }))}
       />

@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 // POST /api/solicitudes — crea una nueva solicitud de presupuesto
 export async function POST(req: NextRequest) {
+  // Con sesión: la solicitud tiene que tener dueño para que le puedan contestar.
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Entrá para publicar una solicitud." }, { status: 401 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -43,6 +52,7 @@ export async function POST(req: NextRequest) {
       zone: (zone as string).trim(),
       budget: Number.isFinite(parsedBudget) ? (parsedBudget as number) : null,
       contactName: (contactName as string).trim(),
+      userId: user.id,
       categoryId,
     },
   });

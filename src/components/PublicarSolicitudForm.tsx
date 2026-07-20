@@ -44,6 +44,11 @@ export function PublicarSolicitudForm({ categorias }: { categorias: Categoria[] 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+      if (res.status === 401) {
+        // La solicitud necesita dueño: sin sesión, primero se entra y se vuelve acá.
+        router.push("/entrar?next=/publicar-solicitud");
+        return;
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "No pudimos publicar la solicitud.");

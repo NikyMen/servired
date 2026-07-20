@@ -13,11 +13,17 @@
   --color-cliente: #2563eb;
   --color-cliente-dark: #1d4ed8;
   --color-cliente-soft: #eff6ff;
+  /* Fondo de página del lado que busca */
+  --color-cliente-bg: #e8f0fe;
+  --color-cliente-bg2: #f4f8ff;
 
   /* Verde — lado profesional */
   --color-pro: #059669;
   --color-pro-dark: #047857;
   --color-pro-soft: #ecfdf5;
+  /* Fondo de página del lado que ofrece */
+  --color-pro-bg: #e4f6ed;
+  --color-pro-bg2: #f2fcf7;
 
   /* Tipografía */
   --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
@@ -33,6 +39,31 @@
     color: #0f172a;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* Fondo tintado según el lado en el que estás.
+     Va con :has() y un marcador que pone cada layout: así el color correcto
+     ya viene en el HTML del servidor y no hay parpadeo gris al cargar.
+     Fixed para que el degradé no se corte en páginas largas. */
+  body:has([data-modo="cliente"]) {
+    background-color: var(--color-cliente-bg);
+    background-image: linear-gradient(
+      170deg,
+      var(--color-cliente-bg) 0%,
+      var(--color-cliente-bg2) 45%,
+      #ffffff 100%
+    );
+    background-attachment: fixed;
+  }
+  body:has([data-modo="pro"]) {
+    background-color: var(--color-pro-bg);
+    background-image: linear-gradient(
+      170deg,
+      var(--color-pro-bg) 0%,
+      var(--color-pro-bg2) 45%,
+      #ffffff 100%
+    );
+    background-attachment: fixed;
   }
 
   /* Sensación de app: sin destello gris al tocar en móvil */
@@ -81,4 +112,309 @@
 }
 @utility animate-fade-in {
   animation: fade-in 0.2s ease-out;
+}
+
+/* ============================================================
+   Cambio de modo (busca <-> ofrece)
+   Una onda de color que nace EXACTAMENTE donde tocaste el interruptor
+   y se expande hasta tragarse la pantalla. El punto de origen llega por
+   --mode-x / --mode-y (lo setea ModeTransition con las coordenadas del
+   clic); si no hubo clic —cambio por URL, botón de atrás— cae en un
+   punto arriba a la derecha, que es donde vive el interruptor.
+
+   Coreografía (todas las capas duran los mismos 1.6s):
+     0-160ms      anillo de choque + chispas: el "toque" físico
+     0-640ms      el eco claro y la onda de color crecen desde el origen;
+                  el eco corre adelante y hace de borde luminoso
+     640-1090ms   tapado total: acá pasa el cambio de fondo, sin verse;
+                  la marca está nítida en el centro
+     1090-1600ms  la cortina se disuelve y descubre la página nueva
+
+   --mode-dir (1 / -1) ya no mueve la cortina: sólo le da deriva a la
+   marca y a las chispas, para que el conjunto insinúe hacia qué lado
+   de la app cruzaste.
+
+   Los keyframes traen su propio animation-timing-function, así que las
+   utilidades corren en `linear` y no vuelven a curvar cada tramo.
+   ============================================================ */
+
+/* Tonos y sentido, según a dónde vas. Los claros son la misma familia
+   que --color-cliente / --color-pro, un par de pasos más arriba. */
+.mode-skin-cliente {
+  --mode-core: var(--color-cliente);
+  --mode-deep: var(--color-cliente-dark);
+  --mode-glow: #60a5fa;
+  --mode-mist: #93c5fd;
+  --mode-dir: 1;
+}
+.mode-skin-pro {
+  --mode-core: var(--color-pro);
+  --mode-deep: var(--color-pro-dark);
+  --mode-glow: #34d399;
+  --mode-mist: #6ee7b7;
+  --mode-dir: -1;
+}
+
+/* La onda principal: un plano de color recortado por un clip-path circular
+   que crece desde el origen. El fondo no es plano: un gradiente radial
+   anclado al mismo punto hace que el color sea más profundo cerca de donde
+   tocaste, como si la tinta se diluyera al avanzar.
+   `rgb(from … / 0)` y no `transparent`: transparent es negro alfa 0 y
+   arrastra el degradé hacia el negro. */
+.mode-wave {
+  background: radial-gradient(
+    circle at var(--mode-x) var(--mode-y),
+    var(--mode-deep) 0%,
+    var(--mode-core) 34%,
+    var(--mode-glow) 120%
+  );
+}
+
+/* El eco: mismo recorte circular pero en el tono claro y corriendo
+   adelante de la onda. Lo que se ve es un aro luminoso de unos vmax de
+   ancho en el filo que avanza. */
+.mode-wave-echo {
+  background: radial-gradient(
+    circle at var(--mode-x) var(--mode-y),
+    var(--mode-mist) 0%,
+    var(--mode-glow) 60%
+  );
+}
+
+/* El anillo de choque: un aro fino que confirma el toque antes de que la
+   onda tome la pantalla. Es un elemento chico centrado en el origen con
+   translate(-50%,-50%); la animación sólo lo escala. */
+.mode-ring {
+  position: absolute;
+  left: var(--mode-x);
+  top: var(--mode-y);
+  width: 14vmax;
+  height: 14vmax;
+  margin: -7vmax 0 0 -7vmax;
+  border-radius: 50%;
+  border: 3px solid rgb(255 255 255 / 0.9);
+  box-shadow:
+    0 0 24px rgb(255 255 255 / 0.5),
+    inset 0 0 18px rgb(255 255 255 / 0.35);
+}
+
+/* Chispas que salen despedidas del punto de contacto. Cada una trae su
+   ángulo en --a; la deriva horizontal extra (--mode-dir) empuja el
+   conjunto hacia el lado al que cruzás. */
+.mode-spark {
+  position: absolute;
+  left: var(--mode-x);
+  top: var(--mode-y);
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 12px rgb(255 255 255 / 0.8);
+}
+
+/* Vidrio: desenfoca lo que quede atrás. Primero la página que dejás; al
+   disolverse el color, la nueva entra en foco sola. */
+@keyframes mode-veil {
+  0% {
+    opacity: 0;
+    -webkit-backdrop-filter: blur(0px) saturate(1);
+    backdrop-filter: blur(0px) saturate(1);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  34%,
+  68% {
+    opacity: 1;
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    backdrop-filter: blur(16px) saturate(1.3);
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  100% {
+    opacity: 0;
+    -webkit-backdrop-filter: blur(0px) saturate(1);
+    backdrop-filter: blur(0px) saturate(1);
+  }
+}
+
+/* El corazón: el círculo de color crece desde el punto del toque hasta
+   tragarse la pantalla, sostiene el tapado y se disuelve.
+
+   Los 150vmax de radio final salen del peor caso: la esquina más lejana
+   está a lo sumo a hypot(100vw, 100vh) <= 142vmax del origen; 150 deja
+   margen. En vmax y no en vw para que no se dispare en un celular
+   vertical.
+
+   La curva de entrada (0.22, 1, 0.36, 1) arranca explosiva y aterriza
+   suave: el 80% del área se cubre en la primera mitad del tramo. El
+   tapado total va de ~640ms a ~1090ms; ahí pasa el cambio de fondo. */
+@keyframes mode-wave {
+  0% {
+    opacity: 1;
+    clip-path: circle(0vmax at var(--mode-x) var(--mode-y));
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  40%,
+  68% {
+    opacity: 1;
+    clip-path: circle(150vmax at var(--mode-x) var(--mode-y));
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  100% {
+    opacity: 0;
+    clip-path: circle(150vmax at var(--mode-x) var(--mode-y));
+  }
+}
+
+/* El eco corre adelante de la onda (llega al radio final antes) y se
+   apaga apenas la onda lo alcanza: mientras crece, la diferencia entre
+   los dos radios es el aro claro que se ve avanzar. */
+@keyframes mode-wave-echo {
+  0% {
+    opacity: 0.9;
+    clip-path: circle(0vmax at var(--mode-x) var(--mode-y));
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  34% {
+    opacity: 0.7;
+    clip-path: circle(150vmax at var(--mode-x) var(--mode-y));
+    animation-timing-function: ease-out;
+  }
+  52%,
+  100% {
+    opacity: 0;
+    clip-path: circle(150vmax at var(--mode-x) var(--mode-y));
+  }
+}
+
+/* El anillo confirma el toque: expande rápido y muere antes de que la
+   onda tome protagonismo. Todo pasa en el primer cuarto. */
+@keyframes mode-ring {
+  0% {
+    opacity: 1;
+    scale: 0.08;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  22% {
+    opacity: 0.6;
+    scale: 1.6;
+  }
+  38%,
+  100% {
+    opacity: 0;
+    scale: 2.6;
+  }
+}
+
+/* Cada chispa vuela en su ángulo (--a) con una pizca de deriva hacia el
+   lado del cruce, se encoge y muere. Viven menos que el anillo. */
+@keyframes mode-spark {
+  0% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  30%,
+  100% {
+    opacity: 0;
+    translate: calc(cos(var(--a)) * 16vmax + var(--mode-dir) * 3vmax)
+      calc(sin(var(--a)) * -16vmax);
+    scale: 0.1;
+  }
+}
+
+/* La marca se arma desde el desenfoque y se deshace igual. Nítida entre los
+   ~960ms y los ~1360ms, que es justo cuando la pantalla está tapada.
+   Deriva un poco hacia el mismo lado que el disco: la trae y se la lleva. */
+@keyframes mode-badge {
+  0%,
+  20% {
+    opacity: 0;
+    filter: blur(16px);
+    translate: calc(var(--mode-dir) * -2rem) 12px;
+    scale: 0.92;
+    animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+  }
+  48%,
+  68% {
+    opacity: 1;
+    filter: blur(0px);
+    translate: 0 0;
+    scale: 1;
+    animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+  }
+  88%,
+  100% {
+    opacity: 0;
+    filter: blur(14px);
+    translate: calc(var(--mode-dir) * 2rem) -12px;
+    scale: 1.06;
+  }
+}
+
+/* La página entra desde abajo apenas se corre la cortina. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-mode-veil {
+  animation: mode-veil 1.6s linear forwards;
+}
+@utility animate-mode-wave {
+  animation: mode-wave 1.6s linear forwards;
+  will-change: clip-path, opacity;
+}
+@utility animate-mode-wave-echo {
+  animation: mode-wave-echo 1.6s linear forwards;
+  will-change: clip-path, opacity;
+}
+@utility animate-mode-ring {
+  animation: mode-ring 1.6s linear forwards;
+  will-change: scale, opacity;
+}
+@utility animate-mode-spark {
+  animation: mode-spark 1.6s linear forwards;
+  will-change: translate, opacity;
+}
+@utility animate-mode-badge {
+  animation: mode-badge 1.6s linear forwards;
+}
+@utility animate-page-in {
+  animation: page-in 0.4s ease-out;
+}
+
+/* Manchas de color que respiran detrás del panel del login. */
+@keyframes blob {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(24px, -18px) scale(1.08);
+  }
+  66% {
+    transform: translate(-18px, 14px) scale(0.95);
+  }
+}
+@utility animate-blob {
+  animation: blob 14s ease-in-out infinite;
+}
+
+/* Quien pidió menos movimiento no recibe barridos ni desplazamientos. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

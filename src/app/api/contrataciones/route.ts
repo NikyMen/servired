@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { DEMO_CLIENT_NAME } from "@/lib/demo";
+import { getSessionUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 // POST /api/contrataciones — el cliente contrata a un profesional
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Entrá para poder contratar." }, { status: 401 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -21,6 +28,9 @@ export async function POST(req: NextRequest) {
   if (!professional) {
     return NextResponse.json({ error: "El profesional no existe." }, { status: 404 });
   }
+  if (professional.userId === user.id) {
+    return NextResponse.json({ error: "No podés contratarte a vos mismo." }, { status: 422 });
+  }
 
   let service = null;
   if (typeof serviceId === "string" && serviceId) {
@@ -36,7 +46,8 @@ export async function POST(req: NextRequest) {
 
   const booking = await prisma.booking.create({
     data: {
-      clientName: DEMO_CLIENT_NAME,
+      clientName: user.name,
+      userId: user.id,
       professionalId,
       serviceId: service?.id ?? null,
       note: cleanNote,
@@ -45,10 +56,8 @@ export async function POST(req: NextRequest) {
 
   // La contratación abre (o retoma) la conversación con el profesional.
   const conversation = await prisma.conversation.upsert({
-    where: {
-      professionalId_clientName: { professionalId, clientName: DEMO_CLIENT_NAME },
-    },
-    create: { professionalId, clientName: DEMO_CLIENT_NAME },
+    where: { professionalId_userId: { professionalId, userId: user.id } },
+    create: { professionalId, userId: user.id, clientName: user.name },
     update: {},
   });
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getDemoPro } from "@/lib/demo";
+import { requirePro } from "@/lib/auth";
 import { formatARS } from "@/lib/format";
 import { Avatar, StatusPill } from "@/components/ui";
 import { BookingActions } from "@/components/BookingActions";
@@ -13,7 +13,9 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Panel del profesional" };
 
 export default async function ProPanelPage() {
-  const pro = await getDemoPro();
+  // El panel es el del profesional logueado, no uno fijo del seed.
+  const user = await requirePro("/pro");
+  const pro = await prisma.professional.findUnique({ where: { id: user.professionalId } });
   if (!pro) notFound();
 
   const [bookings, requests, services] = await Promise.all([
@@ -23,7 +25,8 @@ export default async function ProPanelPage() {
       include: { service: true },
     }),
     prisma.serviceRequest.findMany({
-      where: { status: "abierta" },
+      // Las propias no: no tiene sentido ofrecerse a responderse a uno mismo.
+      where: { status: "abierta", NOT: { userId: user.id } },
       orderBy: { createdAt: "desc" },
       include: { category: true },
     }),
@@ -119,7 +122,7 @@ export default async function ProPanelPage() {
                   {r.zone} · {r.contactName}
                 </span>
                 <ResponderSolicitud
-                  professionalId={pro.id}
+                  requestId={r.id}
                   clientName={r.contactName}
                   requestTitle={r.title}
                 />

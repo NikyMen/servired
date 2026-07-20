@@ -6,11 +6,11 @@ import { Button } from "@/components/ui";
 
 /** El profesional responde una solicitud abierta: crea la conversación y va a mensajes. */
 export function ResponderSolicitud({
-  professionalId,
+  requestId,
   clientName,
   requestTitle,
 }: {
-  professionalId: string;
+  requestId: string;
   clientName: string;
   requestTitle: string;
 }) {
@@ -26,11 +26,15 @@ export function ResponderSolicitud({
     setError(null);
     setSending(true);
     try {
-      const res = await fetch("/api/conversaciones", {
+      const res = await fetch(`/api/solicitudes/${requestId}/responder`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ professionalId, clientName, sender: "profesional", text }),
+        body: JSON.stringify({ text }),
       });
+      if (res.status === 401) {
+        router.push("/entrar?next=/pro");
+        return;
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "No pudimos enviar el mensaje.");

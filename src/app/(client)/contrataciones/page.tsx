@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
 import { formatARS } from "@/lib/format";
 import { Avatar, StatusPill } from "@/components/ui";
 import { BookingActions } from "@/components/BookingActions";
@@ -15,8 +16,11 @@ export default async function ContratacionesPage({
   searchParams: Promise<{ nueva?: string }>;
 }) {
   const { nueva } = await searchParams;
+  const user = await requireUser("/contrataciones");
 
+  // Solo las propias: antes listaba las contrataciones de todos.
   const bookings = await prisma.booking.findMany({
+    where: { userId: user.id },
     orderBy: { createdAt: "desc" },
     include: { professional: true, service: true },
   });

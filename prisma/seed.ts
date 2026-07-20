@@ -1,9 +1,36 @@
 import { PrismaClient } from "@prisma/client";
+import { hashPassword } from "../src/lib/password";
 
 const prisma = new PrismaClient();
 
-// Identidad demo del cliente (misma que en src/lib/demo.ts)
+// Cuenta demo del cliente
 const DEMO_CLIENT_NAME = "María G.";
+const DEMO_CLIENT_EMAIL = "maria@servired.test";
+
+/** Clave de todas las cuentas de demo. Son datos de prueba, no secretos. */
+const DEMO_PASSWORD = "servired123";
+
+function slug(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .trim();
+}
+
+/** Email de un profesional: "Carlos López" -> carlos@servired.test */
+function demoEmail(name: string): string {
+  return `${slug(name).split(/\s+/)[0]}@servired.test`;
+}
+
+/**
+ * Email de quien publica una solicitud: "Ana M." -> ana.m@servired.test
+ * Usa el nombre completo porque solo el primero choca: ya hay una "Ana Ferreyra".
+ */
+function clientEmail(name: string): string {
+  return `${slug(name).split(/\s+/).filter(Boolean).join(".")}@servired.test`;
+}
 
 const categories = [
   { slug: "hogar", name: "Hogar", icon: "🏠" },
@@ -225,6 +252,8 @@ const pros: ProSeed[] = [
 ];
 
 async function main() {
+  // El orden importa por las FKs: primero lo que apunta, después lo apuntado.
+  // Los usuarios van al final: profesionales, contrataciones y conversaciones los referencian.
   console.log("🌱 Limpiando base de datos...");
   await prisma.message.deleteMany();
   await prisma.conversation.deleteMany();
@@ -234,6 +263,20 @@ async function main() {
   await prisma.serviceRequest.deleteMany();
   await prisma.professional.deleteMany();
   await prisma.category.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.user.deleteMany();
+
+  console.log("🌱 Creando cuenta del cliente demo...");
+  const passwordHash = await hashPassword(DEMO_PASSWORD);
+  const clienteUser = await prisma.user.create({
+    data: {
+      email: DEMO_CLIENT_EMAIL,
+      passwordHash,
+      name: DEMO_CLIENT_NAME,
+      role: "cliente",
+      avatarColor: "#2563eb", // azul: busca servicios
+    },
+  });
 
   console.log("🌱 Creando categorías...");
   const categoryMap = new Map<string, string>();
@@ -247,6 +290,18 @@ async function main() {
   for (const p of pros) {
     const categoryId = categoryMap.get(p.categorySlug);
     if (!categoryId) throw new Error(`Categoría faltante: ${p.categorySlug}`);
+
+    // Cada profesional del seed tiene cuenta propia: se puede entrar como cualquiera.
+    // Va antes del perfil porque Professional es el que guarda la FK userId.
+    const proUser = await prisma.user.create({
+      data: {
+        email: demoEmail(p.name),
+        passwordHash,
+        name: p.name,
+        role: "profesional",
+        avatarColor: p.avatarColor,
+      },
+    });
 
     const created = await prisma.professional.create({
       data: {
@@ -262,6 +317,7 @@ async function main() {
         featured: p.featured,
         yearsExperience: p.yearsExperience,
         categoryId,
+        userId: proUser.id,
         services: {
           create: p.services.map((s) => ({
             title: s.title,
@@ -292,7 +348,19 @@ async function main() {
     { title: "Pintar dos habitaciones", description: "Necesito pintar dos dormitorios, paredes y techo. Color blanco.", categorySlug: "pintura", zone: "Palermo, CABA", budget: 35000, contactName: "Ana M." },
   ];
 
+  // Cada solicitud necesita un dueño real: es a quien le contesta el profesional
+  // cuando toca "Responder" en el panel.
   for (const r of requests) {
+    const autor = await prisma.user.create({
+      data: {
+        email: clientEmail(r.contactName),
+        passwordHash,
+        name: r.contactName,
+        role: "cliente",
+        avatarColor: "#2563eb",
+      },
+    });
+
     await prisma.serviceRequest.create({
       data: {
         title: r.title,
@@ -300,6 +368,7 @@ async function main() {
         zone: r.zone,
         budget: r.budget ?? null,
         contactName: r.contactName,
+        userId: autor.id,
         categoryId: categoryMap.get(r.categorySlug) ?? null,
       },
     });
@@ -313,6 +382,7 @@ async function main() {
   await prisma.booking.create({
     data: {
       clientName: DEMO_CLIENT_NAME,
+      userId: clienteUser.id,
       professionalId: electricista.id,
       serviceId: electricista.serviceIds.get("Colocación de luminarias") ?? null,
       note: "Son 3 plafones LED para living y pasillo.",
@@ -324,6 +394,7 @@ async function main() {
   await prisma.booking.create({
     data: {
       clientName: DEMO_CLIENT_NAME,
+      userId: clienteUser.id,
       professionalId: plomero.id,
       serviceId: plomero.serviceIds.get("Reparación de pérdidas") ?? null,
       status: "completada",
@@ -334,6 +405,7 @@ async function main() {
   const convo = await prisma.conversation.create({
     data: {
       clientName: DEMO_CLIENT_NAME,
+      userId: clienteUser.id,
       professionalId: electricista.id,
     },
   });
@@ -350,6 +422,12 @@ async function main() {
   console.log(
     `✅ Seed completo: ${categories.length} categorías, ${total} profesionales, ${requests.length} solicitudes, 2 contrataciones y 1 conversación.`
   );
+  console.log(`
+🔑 Cuentas de demo (clave para todas: ${DEMO_PASSWORD})
+   Cliente (azul, contrata):  ${DEMO_CLIENT_EMAIL}
+   Profesional (verde, ofrece): ${demoEmail("Martín Gómez")}   ← electricista, el del panel
+   El resto de los profesionales entran igual: ${pros.map((p) => demoEmail(p.name)).join(", ")}
+`);
 }
 
 main()

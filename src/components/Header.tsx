@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
+import { ModeSwitch } from "@/components/ModeSwitch";
+import { UserMenu } from "@/components/UserMenu";
+import type { SessionUser } from "@/lib/auth";
+import type { Mode } from "@/lib/types";
 
 const clientNav = [
   { href: "/", label: "Buscar" },
@@ -16,18 +20,23 @@ const proNav = [
   { href: "/pro/mensajes", label: "Mensajes" },
 ];
 
-export function Header({ mode }: { mode: "cliente" | "pro" }) {
+export function Header({ mode, user }: { mode: Mode; user: SessionUser | null }) {
   const pathname = usePathname();
   const nav = mode === "pro" ? proNav : clientNav;
   const activeCls =
     mode === "pro" ? "bg-pro-soft text-pro-dark" : "bg-cliente-soft text-cliente-dark";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
       {/* Franja de color según el modo */}
-      <div className={`h-1 ${mode === "pro" ? "bg-pro" : "bg-cliente"}`} />
+      <div className={`h-1 transition-colors ${mode === "pro" ? "bg-pro" : "bg-cliente"}`} />
       <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
-        <Logo accent={mode} href={mode === "pro" ? "/pro" : "/"} className="mr-4 shrink-0" />
+        <Logo
+          accent={mode}
+          href={mode === "pro" ? "/pro" : "/"}
+          compactOnMobile
+          className="shrink-0 md:mr-2"
+        />
 
         {/* En móvil la navegación vive en la barra inferior */}
         <nav className="hidden min-w-0 items-center gap-1 md:flex">
@@ -50,24 +59,11 @@ export function Header({ mode }: { mode: "cliente" | "pro" }) {
           })}
         </nav>
 
-        {/* Cambio de modo: el otro color siempre indica "el otro lado" */}
-        {mode === "pro" ? (
-          <Link
-            href="/"
-            className="ml-auto shrink-0 rounded-xl bg-cliente px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-cliente-dark"
-          >
-            <span className="md:hidden">Modo Cliente</span>
-            <span className="hidden md:inline">Buscar servicios</span>
-          </Link>
-        ) : (
-          <Link
-            href="/pro"
-            className="ml-auto shrink-0 rounded-xl bg-pro px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-pro-dark"
-          >
-            <span className="md:hidden">Modo Pro</span>
-            <span className="hidden md:inline">Ofrecé tus servicios</span>
-          </Link>
-        )}
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+          <ModeSwitch mode={mode} size="sm" className="sm:hidden" />
+          <ModeSwitch mode={mode} className="hidden sm:inline-flex" />
+          <UserMenu user={user} />
+        </div>
       </div>
     </header>
   );

@@ -23,6 +23,11 @@ export function ContratarBox({
   const [sending, setSending] = useState<"contratar" | "consultar" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  /** Sin sesión no se puede contratar: se manda a entrar y se vuelve al perfil. */
+  function pedirLogin() {
+    router.push(`/entrar?next=${encodeURIComponent(`/profesionales/${professionalId}`)}`);
+  }
+
   async function contratar() {
     setError(null);
     setSending("contratar");
@@ -32,6 +37,10 @@ export function ContratarBox({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ professionalId, serviceId: serviceId || null, note: text }),
       });
+      if (res.status === 401) {
+        pedirLogin();
+        return;
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "No pudimos crear la contratación.");
@@ -56,6 +65,10 @@ export function ContratarBox({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ professionalId, text }),
       });
+      if (res.status === 401) {
+        pedirLogin();
+        return;
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "No pudimos enviar el mensaje.");

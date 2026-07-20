@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ModeTransition } from "@/components/ModeTransition";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -25,7 +26,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        {/* Vive acá y no en cada layout: el layout raíz no se desmonta al
+            navegar, así que es el único que puede notar el cambio de modo. */}
+        <ModeTransition />
+        {children}
+      </body>
     </html>
   );
 }

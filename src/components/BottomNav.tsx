@@ -9,8 +9,8 @@ import {
   BriefcaseIcon,
   ChatIcon,
   GridIcon,
-  SwitchIcon,
 } from "@/components/icons";
+import type { Mode } from "@/lib/types";
 
 type Item = {
   href: string;
@@ -32,7 +32,7 @@ const proItems: Item[] = [
 ];
 
 /** Barra de pestañas inferior, solo móvil. En desktop navega el header. */
-export function BottomNav({ mode }: { mode: "cliente" | "pro" }) {
+export function BottomNav({ mode }: { mode: Mode }) {
   const pathname = usePathname();
 
   // En el perfil del profesional la reemplaza la barra fija de contratación.
@@ -40,9 +40,6 @@ export function BottomNav({ mode }: { mode: "cliente" | "pro" }) {
 
   const items = mode === "pro" ? proItems : clientItems;
   const activeColor = mode === "pro" ? "text-pro" : "text-cliente";
-  const switchHref = mode === "pro" ? "/" : "/pro";
-  const switchLabel = mode === "pro" ? "Cliente" : "Modo Pro";
-  const switchColor = mode === "pro" ? "text-cliente" : "text-pro";
 
   return (
     <nav
@@ -50,7 +47,8 @@ export function BottomNav({ mode }: { mode: "cliente" | "pro" }) {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className={`grid ${items.length === 2 ? "grid-cols-3" : "grid-cols-5"}`}>
+      {/* El cambio de modo ya no vive acá: lo hace el interruptor del header. */}
+      <div className={`grid ${items.length === 2 ? "grid-cols-2" : "grid-cols-4"}`}>
         {items.map((item) => {
           const active = item.exact
             ? pathname === item.href
@@ -70,15 +68,6 @@ export function BottomNav({ mode }: { mode: "cliente" | "pro" }) {
             </Link>
           );
         })}
-
-        {/* Cambio de modo: el color del otro lado siempre indica "el otro lado" */}
-        <Link
-          href={switchHref}
-          className={`flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${switchColor}`}
-        >
-          <SwitchIcon width={22} height={22} />
-          {switchLabel}
-        </Link>
       </div>
     </nav>
   );

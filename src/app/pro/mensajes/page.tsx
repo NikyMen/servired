@@ -1,20 +1,22 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getDemoPro, CLIENT_BLUE } from "@/lib/demo";
 import { Chat } from "@/components/Chat";
+import { requirePro } from "@/lib/auth";
+import { CLIENT_BLUE } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mensajes" };
 
 export default async function ProMensajesPage() {
-  const pro = await getDemoPro();
-  if (!pro) notFound();
+  const user = await requirePro("/pro/mensajes");
 
   const conversations = await prisma.conversation.findMany({
-    where: { professionalId: pro.id },
+    where: { professionalId: user.professionalId },
     orderBy: { updatedAt: "desc" },
-    include: { messages: { orderBy: { createdAt: "asc" } } },
+    include: {
+      user: { select: { avatarColor: true } },
+      messages: { orderBy: { createdAt: "asc" } },
+    },
   });
 
   return (
@@ -29,12 +31,16 @@ export default async function ProMensajesPage() {
         conversations={conversations.map((c) => ({
           id: c.id,
           withName: c.clientName,
-          withColor: CLIENT_BLUE,
+          withColor: c.user.avatarColor || CLIENT_BLUE,
           messages: c.messages.map((m) => ({
             id: m.id,
             sender: m.sender,
             text: m.text,
             createdAt: m.createdAt.toISOString(),
+            attachmentUrl: m.attachmentUrl,
+            attachmentName: m.attachmentName,
+            attachmentType: m.attachmentType,
+            attachmentSize: m.attachmentSize,
           })),
         }))}
       />

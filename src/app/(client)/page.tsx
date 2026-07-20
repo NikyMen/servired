@@ -2,36 +2,33 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { ProfessionalCard } from "@/components/ProfessionalCard";
-import { SearchIcon, MapPinIcon } from "@/components/icons";
+import { SearchBox } from "@/components/SearchBox";
+import { normalize, rankProfessionals } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
 
 type Search = { q?: string; categoria?: string; ubicacion?: string };
 
 async function getData({ q, categoria, ubicacion }: Search) {
+  // Categoría y ubicación filtran en la base; el texto libre se rankea en memoria
+  // (ver src/lib/search.ts: LIKE de SQLite no ignora acentos ni tolera typos).
   const where: Prisma.ProfessionalWhereInput = {};
   if (categoria) where.category = { slug: categoria };
-  if (ubicacion) where.zone = { contains: ubicacion };
-  if (q) {
-    where.OR = [
-      { name: { contains: q } },
-      { headline: { contains: q } },
-      { bio: { contains: q } },
-      { services: { some: { title: { contains: q } } } },
-      { category: { name: { contains: q } } },
-    ];
-  }
 
-  const [categories, pros] = await Promise.all([
+  const [categories, found] = await Promise.all([
     prisma.category.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.professional.findMany({
       where,
-      orderBy: [{ featured: "desc" }, { rating: "desc" }],
-      include: { category: true },
+      include: { category: true, services: { select: { title: true, description: true } } },
     }),
   ]);
 
-  return { categories, pros };
+  // La zona también se compara normalizada: "Núñez" tiene que encontrarse con "nunez".
+  const byZone = ubicacion?.trim()
+    ? found.filter((p) => normalize(p.zone).includes(normalize(ubicacion)))
+    : found;
+
+  return { categories, pros: rankProfessionals(byZone, q ?? "") };
 }
 
 function chipHref(params: Search, categoria: string) {
@@ -62,33 +59,11 @@ export default async function HomePage({
           Buscá profesionales verificados, contratá y coordiná por mensaje.
         </p>
 
-        <form action="/" className="mt-5 flex flex-col gap-2 rounded-xl bg-white p-2 md:flex-row">
-          <div className="flex flex-1 items-center gap-2 px-3">
-            <SearchIcon className="shrink-0 text-slate-400" width={18} height={18} />
-            <input
-              name="q"
-              defaultValue={params.q ?? ""}
-              placeholder="Plomería, electricidad, limpieza…"
-              className="w-full bg-transparent py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-            />
-          </div>
-          <div className="flex items-center gap-2 border-t border-slate-200 px-3 md:w-52 md:border-l md:border-t-0">
-            <MapPinIcon className="shrink-0 text-slate-400" width={18} height={18} />
-            <input
-              name="ubicacion"
-              defaultValue={params.ubicacion ?? ""}
-              placeholder="Ubicación"
-              className="w-full bg-transparent py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-            />
-          </div>
-          {params.categoria && <input type="hidden" name="categoria" value={params.categoria} />}
-          <button
-            type="submit"
-            className="rounded-lg bg-cliente px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cliente-dark"
-          >
-            Buscar
-          </button>
-        </form>
+        <SearchBox
+          defaultQuery={params.q ?? ""}
+          defaultZone={params.ubicacion ?? ""}
+          categoria={params.categoria}
+        />
       </section>
 
       {/* Categorías: carrusel horizontal en móvil, wrap en desktop */}
