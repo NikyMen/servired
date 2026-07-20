@@ -41,7 +41,9 @@ export function ModeSwitch({
     const r = e.currentTarget.getBoundingClientRect();
     window.dispatchEvent(
       new CustomEvent(MODE_SWITCH_EVENT, {
-        detail: { x: r.left + r.width / 2, y: r.top + r.height / 2 },
+        // `to` va en el detalle porque la onda arranca con el clic, antes de
+        // saber en qué ruta se termina aterrizando.
+        detail: { x: r.left + r.width / 2, y: r.top + r.height / 2, to: isPro ? "cliente" : "pro" },
       }),
     );
   };

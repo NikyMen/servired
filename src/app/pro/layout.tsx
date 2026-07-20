@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { AsistenteIA } from "@/components/AsistenteIA";
+import { MensajesFlotante } from "@/components/MensajesFlotante";
 import { getSessionUser } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Modo profesional" };
@@ -25,6 +26,8 @@ export default async function ProLayout({
       <Footer mode="pro" />
       <BottomNav mode="pro" />
       <AsistenteIA mode="pro" />
+      {/* Sólo con sesión: sin cuenta no hay bandeja a la que ir. */}
+      {user && <MensajesFlotante mode="pro" />}
     </div>
   );
 }

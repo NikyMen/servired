@@ -2,6 +2,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { AsistenteIA } from "@/components/AsistenteIA";
+import { MensajesFlotante } from "@/components/MensajesFlotante";
 import { getSessionUser } from "@/lib/auth";
 
 export default async function ClientLayout({
@@ -22,6 +23,8 @@ export default async function ClientLayout({
       <Footer mode="cliente" />
       <BottomNav mode="cliente" />
       <AsistenteIA mode="cliente" />
+      {/* Sólo con sesión: sin cuenta no hay bandeja a la que ir. */}
+      {user && <MensajesFlotante mode="cliente" />}
     </div>
   );
 }

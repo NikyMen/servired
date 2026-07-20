@@ -56,10 +56,20 @@ export function ModeTransition() {
       cuándo fue, para no usar un clic viejo si el modo cambió por URL. */
   const origin = useRef<{ x: number; y: number; at: number } | null>(null);
 
+  // El clic dispara la onda YA, sin esperar a que la navegación aterrice.
+  // Antes la cortina colgaba del cambio de pathname, y eso tenía un agujero:
+  // sin sesión de pro, "Ofrezco" rebota a /entrar, el modo nunca cambia y no
+  // se veía nada. La onda igual cuenta la intención ("quisiste cruzar"), y si
+  // hay que loguearse primero, aparece detrás de la cortina.
   useEffect(() => {
     const onSwitch = (e: Event) => {
-      const { x, y } = (e as CustomEvent<{ x: number; y: number }>).detail;
+      const { x, y, to } = (e as CustomEvent<{ x: number; y: number; to: Mode }>).detail;
       origin.current = { x, y, at: Date.now() };
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      // `previous` se adelanta al destino: cuando el pathname cambie de verdad,
+      // el efecto de abajo no encuentra diferencia y no encima otra cortina.
+      previous.current = to;
+      setPlaying(to);
     };
     window.addEventListener(MODE_SWITCH_EVENT, onSwitch);
     return () => window.removeEventListener(MODE_SWITCH_EVENT, onSwitch);
@@ -76,6 +86,14 @@ export function ModeTransition() {
       return;
     }
     if (previous.current === mode) return;
+
+    // Si hay una onda de clic en el aire, este cambio de ruta es su aterrizaje
+    // (o su rebote a /entrar): se registra el modo real y no se encima otra
+    // cortina arriba de la que está sonando.
+    if (origin.current && Date.now() - origin.current.at < DURACION_MS + ESPERA_MS) {
+      previous.current = mode;
+      return;
+    }
 
     // Quien pidió menos movimiento salta directo, sin cortina.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
