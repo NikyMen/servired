@@ -17,10 +17,17 @@
     "seed": "tsx prisma/seed.ts"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "prisma", "esbuild", "sharp"]
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild",
+      "sharp"
+    ]
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
+    "mongodb": "^6.21.0",
     "next": "15.1.6",
     "react": "19.0.0",
     "react-dom": "19.0.0"
