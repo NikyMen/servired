@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { FacebookIcon, InstagramIcon } from "@/components/icons";
 import { Logo } from "@/components/Logo";
 import { PreinscripcionForm } from "@/components/PreinscripcionForm";
+import { FACEBOOK_URL, INSTAGRAM_URL } from "@/lib/links";
 
 export const metadata: Metadata = {
   title: "Preinscripción",
@@ -9,19 +11,66 @@ export const metadata: Metadata = {
 
 export default function LandingPreinscripcionPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white px-4 py-8 sm:py-14">
-      <div className="mx-auto max-w-3xl">
-        <Logo href="/" accent="cliente" height={42} />
-        <section className="mt-10 text-center sm:mt-16">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-cliente">Próximamente</p>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            ServiRed llega a tu zona
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-slate-600">
-            Preinscribite gratis y te avisamos cuando abramos. Podés buscar servicios o sumar tu oficio a la red.
-          </p>
+    <main className="landing-shell relative min-h-screen overflow-hidden px-4 py-5 sm:px-6 sm:py-8">
+      <div className="landing-orb landing-orb-one" aria-hidden />
+      <div className="landing-orb landing-orb-two" aria-hidden />
+      <div className="relative mx-auto max-w-5xl">
+        <header className="glass-nav flex items-center justify-between rounded-2xl px-4 py-3 sm:px-5">
+          <Logo href="/" accent="cliente" height={40} />
+          <span className="hidden rounded-full border border-white/60 bg-white/35 px-3 py-1.5 text-xs font-semibold text-cliente-dark backdrop-blur sm:inline-flex">
+            Muy pronto en tu zona
+          </span>
+        </header>
+
+        <section className="mt-10 grid items-center gap-10 lg:mt-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+          <div className="text-center lg:text-left">
+            <p className="inline-flex rounded-full border border-blue-200/70 bg-blue-100/50 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-cliente-dark backdrop-blur">
+              Preinscripción abierta
+            </p>
+            <h1 className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-950 sm:text-6xl">
+              Servicios reales. <span className="text-cliente">Cerca tuyo.</span>
+            </h1>
+            <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg lg:mx-0">
+              Preinscribite gratis y te avisamos cuando ServiRed abra en tu zona. Podés buscar servicios o sumar tu oficio a la red.
+            </p>
+            <div className="mt-7 flex flex-wrap justify-center gap-3 text-sm text-slate-600 lg:justify-start">
+              <span className="glass-chip">✓ Profesionales verificados</span>
+              <span className="glass-chip">✓ Contacto directo</span>
+            </div>
+          </div>
+
+          <div className="mx-auto w-full max-w-xl">
+            <PreinscripcionForm />
+          </div>
         </section>
-        <div className="mx-auto mt-8 max-w-2xl sm:mt-10"><PreinscripcionForm /></div>
+
+        <section className="glass-panel mt-10 flex flex-col items-center justify-between gap-4 rounded-2xl px-5 py-4 sm:flex-row">
+          <p className="text-sm text-slate-600">Seguinos y enterate de las novedades.</p>
+          <div className="flex gap-2">
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="ServiRed en Instagram (se abre en una pestaña nueva)"
+              className="social-button text-[#E1306C]"
+            >
+              <InstagramIcon width={19} height={19} />
+              Instagram
+            </a>
+            <a
+              href={FACEBOOK_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="ServiRed en Facebook (se abre en una pestaña nueva)"
+              className="social-button text-[#1877F2]"
+            >
+              <FacebookIcon width={19} height={19} />
+              Facebook
+            </a>
+          </div>
+        </section>
+
+        <p className="py-6 text-center text-xs text-slate-500/80">© {new Date().getFullYear()} ServiRed · Hecho en Argentina</p>
       </div>
     </main>
   );

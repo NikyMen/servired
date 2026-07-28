@@ -8,6 +8,7 @@ type Row = {
   name: string;
   email: string;
   phone: string;
+  occupation: string | null;
   type: "cliente" | "profesional";
   createdAt: string;
 };
@@ -57,6 +58,8 @@ export function AdminPreinscriptions({ initialRows }: { initialRows: Row[] }) {
           className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20" />
         <input name="phone" required type="tel" placeholder="Teléfono"
           className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20" />
+        <input name="occupation" placeholder="Oficio / profesión (opcional)"
+          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20" />
         <select name="type" defaultValue="cliente"
           className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20">
           <option value="cliente">Busca servicios</option>
@@ -74,15 +77,16 @@ export function AdminPreinscriptions({ initialRows }: { initialRows: Row[] }) {
           <p className="p-8 text-center text-sm text-slate-500">Todavía no hay preinscripciones.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[650px] text-left text-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr><th className="px-5 py-3">Nombre</th><th className="px-5 py-3">Contacto</th><th className="px-5 py-3">Tipo</th><th className="px-5 py-3">Fecha</th></tr>
+                <tr><th className="px-5 py-3">Nombre</th><th className="px-5 py-3">Contacto</th><th className="px-5 py-3">Oficio / profesión</th><th className="px-5 py-3">Tipo</th><th className="px-5 py-3">Fecha</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {initialRows.map((row) => (
                   <tr key={row.id}>
                     <td className="px-5 py-3 font-medium text-slate-900">{row.name}</td>
                     <td className="px-5 py-3 text-slate-600"><div>{row.email}</div><div className="text-xs text-slate-400">{row.phone}</div></td>
+                    <td className="px-5 py-3 text-slate-600">{row.occupation || <span className="text-slate-400">—</span>}</td>
                     <td className="px-5 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${row.type === "profesional" ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"}`}>{row.type}</span></td>
                     <td className="px-5 py-3 text-slate-500">{dateFormatter.format(new Date(row.createdAt))}</td>
                   </tr>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { FacebookIcon } from "@/components/icons";
-import { FACEBOOK_URL } from "@/lib/links";
+import { FacebookIcon, InstagramIcon } from "@/components/icons";
+import { FACEBOOK_URL, INSTAGRAM_URL } from "@/lib/links";
 import type { Mode } from "@/lib/types";
 
 const clientLinks = [
@@ -52,14 +52,28 @@ export function Footer({ mode }: { mode: Mode }) {
 
         <div className="space-y-2">
           <p className="text-xs font-bold tracking-wide text-slate-400 uppercase">Seguinos</p>
-          <FacebookLink
-            className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors ${
-              isPro ? "hover:border-pro hover:text-pro" : "hover:border-cliente hover:text-cliente"
-            }`}
-          >
-            <FacebookIcon width={20} height={20} className="text-[#1877F2]" />
-            ServiRed en Facebook
-          </FacebookLink>
+          <div className="flex flex-wrap gap-2">
+            <FacebookLink
+              className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors ${
+                isPro ? "hover:border-pro hover:text-pro" : "hover:border-cliente hover:text-cliente"
+              }`}
+            >
+              <FacebookIcon width={20} height={20} className="text-[#1877F2]" />
+              Facebook
+            </FacebookLink>
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="ServiRed en Instagram (se abre en una pestaña nueva)"
+              className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors ${
+                isPro ? "hover:border-pro hover:text-pro" : "hover:border-cliente hover:text-cliente"
+              }`}
+            >
+              <InstagramIcon width={20} height={20} className="text-[#E1306C]" />
+              Instagram
+            </a>
+          </div>
           <p className="text-xs text-slate-400">
             Novedades, zonas nuevas y profesionales destacados.
           </p>

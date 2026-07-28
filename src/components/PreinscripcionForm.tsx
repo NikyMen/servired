@@ -9,10 +9,11 @@ type Form = {
   name: string;
   email: string;
   phone: string;
+  occupation: string;
   type: Tipo;
 };
 
-const empty: Form = { name: "", email: "", phone: "", type: "cliente" };
+const empty: Form = { name: "", email: "", phone: "", occupation: "", type: "cliente" };
 
 const opciones: { value: Tipo; title: string; desc: string }[] = [
   { value: "cliente", title: "Busco servicios", desc: "Necesito contratar profesionales" },
@@ -57,7 +58,7 @@ export function PreinscripcionForm() {
     acento === "pro"
       ? "focus:border-pro focus:ring-pro/20"
       : "focus:border-cliente focus:ring-cliente/20";
-  const inputCls = `w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 ${focusCls}`;
+  const inputCls = `glass-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:ring-2 ${focusCls}`;
 
   if (done) {
     const esPro = done === "profesional";
@@ -79,7 +80,7 @@ export function PreinscripcionForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+    <form onSubmit={onSubmit} className="glass-panel space-y-5 rounded-[2rem] p-6 sm:p-8">
       <fieldset>
         <legend className="mb-2 text-sm font-medium text-slate-900">¿Cómo querés usar ServiRed?</legend>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -169,6 +170,19 @@ export function PreinscripcionForm() {
         </div>
       </div>
 
+      <div>
+        <label htmlFor="pre-occupation" className="mb-1 block text-sm font-medium text-slate-900">
+          Oficio / profesión <span className="font-normal text-slate-400">(opcional)</span>
+        </label>
+        <input
+          id="pre-occupation"
+          value={form.occupation}
+          onChange={(e) => update("occupation", e.target.value)}
+          placeholder="Ej: Electricista, diseñadora, plomero..."
+          className={inputCls}
+        />
+      </div>
+
       {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
       <Button
@@ -181,7 +195,7 @@ export function PreinscripcionForm() {
       </Button>
 
       <p className="text-center text-xs text-slate-400">
-        Los tres campos son obligatorios. Usamos tus datos solo para avisarte del lanzamiento.
+        Usamos tus datos solo para avisarte del lanzamiento. El oficio / profesión es opcional.
       </p>
     </form>
   );

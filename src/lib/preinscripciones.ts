@@ -8,6 +8,7 @@ export type PreinscriptionInput = {
   name: string;
   email: string;
   phone: string;
+  occupation: string | null;
   type: PreinscriptionType;
 };
 
@@ -45,6 +46,7 @@ export function parsePreinscription(input: unknown):
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const phone = typeof body.phone === "string" ? normalizePhone(body.phone) : "";
+  const occupation = typeof body.occupation === "string" ? body.occupation.trim() || null : null;
   const type: PreinscriptionType = body.type === "profesional" ? "profesional" : "cliente";
   const errors: string[] = [];
 
@@ -54,7 +56,7 @@ export function parsePreinscription(input: unknown):
     errors.push("Ingresá un teléfono válido (mínimo 8 dígitos).");
   }
 
-  return errors.length ? { error: errors.join(" ") } : { data: { name, email, phone, type } };
+  return errors.length ? { error: errors.join(" ") } : { data: { name, email, phone, occupation, type } };
 }
 
 export function isDuplicatePreinscriptionError(error: unknown) {
@@ -78,14 +80,14 @@ export async function createPreinscription(data: PreinscriptionInput): Promise<P
 export async function listPreinscriptions(): Promise<Preinscription[]> {
   if (hasMongoStorage()) {
     const rows = await (await getMongoCollection()).find().sort({ createdAt: -1 }).toArray();
-    return rows.map(({ _id, name, email, phone, type, createdAt }) => ({
-      id: _id.toString(), name, email, phone, type, createdAt,
+    return rows.map(({ _id, name, email, phone, occupation, type, createdAt }) => ({
+      id: _id.toString(), name, email, phone, occupation: occupation ?? null, type, createdAt,
     }));
   }
 
   const rows = await prisma.preregistration.findMany({ orderBy: { createdAt: "desc" } });
   return rows.map((row) => ({
-    id: row.id, name: row.name, email: row.email, phone: row.phone,
+    id: row.id, name: row.name, email: row.email, phone: row.phone, occupation: row.occupation,
     type: row.type === "profesional" ? "profesional" : "cliente", createdAt: row.createdAt,
   }));
 }

@@ -79,7 +79,7 @@ export function Button({
     pro: "bg-gradient-to-r from-pro to-emerald-500 text-white hover:from-pro-dark hover:to-pro",
     outline: "border border-slate-300 bg-white text-slate-700 hover:border-cliente/40 hover:bg-cliente-soft",
   };
-  const cls = `servired-button inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${variants[variant]} ${className}`;
+  const cls = `servired-button inline-flex items-center justify-center gap-2 rounded-2xl border border-white/25 px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${variants[variant]} ${className}`;
 
   if (href) {
     return (

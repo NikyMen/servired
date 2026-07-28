@@ -465,7 +465,9 @@
 }
 
 .servired-button {
-  box-shadow: 0 10px 22px rgb(15 23 42 / 0.12);
+  box-shadow: 0 10px 22px rgb(15 23 42 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  backdrop-filter: blur(12px) saturate(1.15);
   transform: translateY(0);
 }
 
@@ -477,6 +479,91 @@
 .servired-button:active {
   box-shadow: 0 5px 12px rgb(15 23 42 / 0.12);
   transform: translateY(0) scale(0.98);
+}
+
+/* Landing pública: vidrio suave, fondo luminoso y controles legibles. */
+.landing-shell {
+  background:
+    radial-gradient(circle at 8% 8%, rgb(147 197 253 / 0.4), transparent 28%),
+    radial-gradient(circle at 92% 82%, rgb(167 243 208 / 0.34), transparent 30%),
+    linear-gradient(135deg, #eef6ff 0%, #f8fbff 48%, #effcf7 100%);
+}
+
+.landing-orb {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.landing-orb-one {
+  top: 12%;
+  left: -9rem;
+  width: 20rem;
+  height: 20rem;
+  background: rgb(96 165 250 / 0.16);
+  filter: blur(45px);
+}
+
+.landing-orb-two {
+  right: -8rem;
+  bottom: 8%;
+  width: 22rem;
+  height: 22rem;
+  background: rgb(52 211 153 / 0.13);
+  filter: blur(50px);
+}
+
+.glass-panel,
+.glass-nav {
+  border: 1px solid rgb(255 255 255 / 0.72);
+  background: rgb(255 255 255 / 0.58);
+  box-shadow: 0 24px 70px rgb(30 64 175 / 0.1), inset 0 1px 0 rgb(255 255 255 / 0.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.25);
+  backdrop-filter: blur(24px) saturate(1.25);
+}
+
+.glass-input {
+  border-color: rgb(148 163 184 / 0.42);
+  background: rgb(255 255 255 / 0.64);
+  box-shadow: inset 0 1px 2px rgb(15 23 42 / 0.04);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.glass-input:focus {
+  background: rgb(255 255 255 / 0.88);
+  box-shadow: 0 0 0 4px rgb(96 165 250 / 0.13), inset 0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+.glass-chip,
+.social-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgb(255 255 255 / 0.72);
+  background: rgb(255 255 255 / 0.5);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.glass-chip {
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+}
+
+.social-button {
+  border-radius: 0.85rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.social-button:hover {
+  background: rgb(255 255 255 / 0.82);
+  box-shadow: 0 8px 20px rgb(15 23 42 / 0.1);
+  transform: translateY(-2px);
 }
 
 @media (prefers-reduced-motion: reduce) {
