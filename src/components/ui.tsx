@@ -99,6 +99,7 @@ export function Button({
 export function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
     solicitada: "bg-cliente-soft text-cliente-dark ring-blue-200",
+    presupuestada: "bg-amber-50 text-amber-700 ring-amber-200",
     abierta: "bg-cliente-soft text-cliente-dark ring-blue-200",
     aceptada: "bg-pro-soft text-pro-dark ring-emerald-200",
     completada: "bg-pro-soft text-pro-dark ring-emerald-200",
@@ -108,9 +109,18 @@ export function StatusPill({ status }: { status: string }) {
     cerrada: "bg-slate-100 text-slate-500 ring-slate-200",
   };
   const cls = map[status.toLowerCase()] ?? "bg-slate-100 text-slate-600 ring-slate-200";
+  const labels: Record<string, string> = {
+    solicitada: "Pendiente",
+    presupuestada: "Presupuesto enviado",
+    aceptada: "Aceptada",
+    completada: "Completada",
+    cancelada: "Rechazada",
+    abierta: "Abierta",
+    cerrada: "Cerrada",
+  };
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ring-1 ring-inset ${cls}`}>
-      {status}
+      {labels[status.toLowerCase()] ?? status}
     </span>
   );
 }

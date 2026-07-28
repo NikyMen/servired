@@ -123,8 +123,9 @@ model Booking {
   clientName String // nombre mostrado; la identidad real es userId
   note       String?
   finalPrice Int? // monto acordado al cerrar el trabajo (ARS)
+  quotedPrice Int? // presupuesto que propone el profesional (ARS)
   workSummary String? // breve resumen del trabajo realizado
-  status     String  @default("solicitada") // solicitada | aceptada | completada | cancelada
+  status     String  @default("solicitada") // solicitada | presupuestada | aceptada | completada | cancelada
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -135,8 +136,22 @@ model Booking {
   professionalId String
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 
+  attachments ProposalAttachment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// Imagen adjunta a una propuesta enviada desde el perfil público.
+model ProposalAttachment {
+  id         String   @id @default(cuid())
+  url        String
+  name       String
+  type       String
+  size       Int?
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
 }
 
 /// Conversación entre un cliente y un profesional

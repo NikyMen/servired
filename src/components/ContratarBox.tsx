@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
-import { formatARS } from "@/lib/format";
+import { PaperclipIcon, XIcon } from "@/components/icons";
+import { formatBytes } from "@/lib/format";
 
 type ServiceOption = { id: string; title: string; priceFrom: number };
+type UploadedAttachment = { url: string; name: string; type: string; size: number };
 
+const MAX_FILES = 6;
+const MAX_BYTES = 8 * 1024 * 1024;
+
+/** Formulario de propuesta: el cliente explica el trabajo y el profesional cotiza. */
 export function ContratarBox({
   professionalId,
   services,
@@ -14,28 +20,72 @@ export function ContratarBox({
 }: {
   professionalId: string;
   services: ServiceOption[];
-  /** false: sin tarjeta ni título, para usar dentro del bottom sheet móvil. */
   frame?: boolean;
 }) {
   const router = useRouter();
+  const fileInput = useRef<HTMLInputElement>(null);
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const [text, setText] = useState("");
-  const [sending, setSending] = useState<"contratar" | "consultar" | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [sending, setSending] = useState<"propuesta" | "consultar" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  /** Sin sesión no se puede contratar: se manda a entrar y se vuelve al perfil. */
   function pedirLogin() {
     router.push(`/entrar?next=${encodeURIComponent(`/profesionales/${professionalId}`)}`);
   }
 
-  async function contratar() {
+  function addFiles(list: FileList | null) {
+    if (!list) return;
+    const incoming = Array.from(list);
+    if (files.length + incoming.length > MAX_FILES) {
+      setError(`Podés adjuntar hasta ${MAX_FILES} imágenes.`);
+      return;
+    }
+    const invalid = incoming.find((file) => !file.type.startsWith("image/") || file.size > MAX_BYTES);
+    if (invalid) {
+      setError("Solo se aceptan imágenes de hasta 8 MB cada una.");
+      return;
+    }
     setError(null);
-    setSending("contratar");
+    setFiles((current) => [...current, ...incoming]);
+  }
+
+  function removeFile(index: number) {
+    setFiles((current) => current.filter((_, i) => i !== index));
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
+  async function enviarPropuesta() {
+    setError(null);
+    if (text.trim().length < 5 && files.length === 0) {
+      setError("Contá qué necesitás o adjuntá una imagen del trabajo.");
+      return;
+    }
+    setSending("propuesta");
     try {
+      const attachments: UploadedAttachment[] = [];
+      for (const file of files) {
+        const form = new FormData();
+        form.append("file", file);
+        const upload = await fetch("/api/upload", { method: "POST", body: form });
+        const data = await upload.json().catch(() => ({}));
+        if (upload.status === 401) {
+          pedirLogin();
+          return;
+        }
+        if (!upload.ok) throw new Error(data.error ?? "No pudimos subir una imagen.");
+        attachments.push({ url: data.url, name: data.name, type: data.type, size: data.size });
+      }
+
       const res = await fetch("/api/contrataciones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ professionalId, serviceId: serviceId || null, note: text }),
+        body: JSON.stringify({
+          professionalId,
+          serviceId: serviceId || null,
+          note: text,
+          attachments,
+        }),
       });
       if (res.status === 401) {
         pedirLogin();
@@ -43,11 +93,12 @@ export function ContratarBox({
       }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "No pudimos crear la contratación.");
+        throw new Error(data.error ?? "No pudimos enviar la propuesta.");
       }
       router.push("/contrataciones?nueva=1");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ocurrió un error.");
+    } finally {
       setSending(null);
     }
   }
@@ -76,13 +127,14 @@ export function ContratarBox({
       router.push("/mensajes");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ocurrió un error.");
+    } finally {
       setSending(null);
     }
   }
 
   return (
     <div className={`space-y-3 ${frame ? "rounded-2xl border border-slate-200 bg-white p-5" : ""}`}>
-      {frame && <h2 className="font-bold text-slate-900">Contratar</h2>}
+      {frame && <h2 className="font-bold text-slate-900">Enviar propuesta</h2>}
 
       {services.length > 0 && (
         <select
@@ -91,9 +143,7 @@ export function ContratarBox({
           className="w-full cursor-pointer rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-cliente"
         >
           {services.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.title} — {formatARS(s.priceFrom)}
-            </option>
+            <option key={s.id} value={s.id}>{s.title}</option>
           ))}
         </select>
       )}
@@ -102,34 +152,52 @@ export function ContratarBox({
         rows={3}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Contale qué necesitás, cuándo y dónde (opcional para contratar)."
+        placeholder="Contale qué necesitás, cuándo y dónde. El profesional te envía un presupuesto."
         className="w-full resize-none rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20"
       />
+
+      <input
+        ref={fileInput}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        multiple
+        className="hidden"
+        onChange={(e) => addFiles(e.target.files)}
+      />
+      <button
+        type="button"
+        onClick={() => fileInput.current?.click()}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-cliente hover:bg-cliente-soft"
+      >
+        <PaperclipIcon width={17} height={17} />
+        Adjuntar imágenes ({files.length}/{MAX_FILES})
+      </button>
+
+      {files.length > 0 && (
+        <ul className="space-y-1.5">
+          {files.map((file, index) => (
+            <li key={`${file.name}-${index}`} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-xs">
+              <span className="min-w-0 flex-1 truncate text-slate-600">{file.name} · {formatBytes(file.size)}</span>
+              <button type="button" onClick={() => removeFile(index)} aria-label={`Quitar ${file.name}`} className="text-slate-400 hover:text-red-600">
+                <XIcon width={15} height={15} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
       <div className="flex flex-col gap-2">
-        <Button
-          variant="cliente"
-          onClick={contratar}
-          disabled={sending != null}
-          className="w-full disabled:opacity-60"
-        >
-          {sending === "contratar" ? "Enviando…" : "Contratar"}
+        <Button variant="cliente" onClick={enviarPropuesta} disabled={sending != null} className="w-full disabled:opacity-60">
+          {sending === "propuesta" ? "Enviando…" : "Enviar propuesta"}
         </Button>
-        <Button
-          variant="outline"
-          onClick={consultar}
-          disabled={sending != null}
-          className="w-full disabled:opacity-60"
-        >
+        <Button variant="outline" onClick={consultar} disabled={sending != null} className="w-full disabled:opacity-60">
           {sending === "consultar" ? "Enviando…" : "Solo consultar"}
         </Button>
       </div>
 
-      <p className="text-xs text-slate-400">
-        El profesional recibe tu pedido y te responde por mensajes.
-      </p>
+      <p className="text-xs text-slate-400">El profesional revisa tu pedido, puede rechazarlo o enviarte un presupuesto.</p>
     </div>
   );
 }

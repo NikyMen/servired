@@ -14,10 +14,11 @@ export const dynamic = "force-dynamic";
 const TRANSITIONS: Record<"cliente" | "profesional", Record<string, string[]>> = {
   cliente: {
     solicitada: ["cancelada"],
+    presupuestada: ["aceptada", "cancelada"],
     aceptada: ["cancelada"],
   },
   profesional: {
-    solicitada: ["aceptada", "cancelada"],
+    solicitada: ["presupuestada", "cancelada"],
     aceptada: ["completada", "cancelada"],
   },
 };
@@ -39,7 +40,7 @@ export async function PATCH(
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const { status, finalPrice, workSummary } = (body ?? {}) as Record<string, unknown>;
+  const { status, finalPrice, quotedPrice, workSummary } = (body ?? {}) as Record<string, unknown>;
   if (typeof status !== "string") {
     return NextResponse.json({ error: "Falta el estado." }, { status: 422 });
   }
@@ -70,7 +71,14 @@ export async function PATCH(
     );
   }
 
-  const data: { status: string; finalPrice?: number; workSummary?: string } = { status };
+  const data: { status: string; finalPrice?: number; quotedPrice?: number; workSummary?: string } = { status };
+  if (status === "presupuestada") {
+    const amount = Number(quotedPrice);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ error: "Ingresá un presupuesto válido." }, { status: 422 });
+    }
+    data.quotedPrice = Math.round(amount);
+  }
   if (status === "completada") {
     const amount = Number(finalPrice);
     const summary = typeof workSummary === "string" ? workSummary.trim() : "";

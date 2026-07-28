@@ -23,6 +23,13 @@ async function getData({ q, categoria, ubicacion }: Search) {
       where,
       include: {
         category: true,
+        _count: { select: { bookings: { where: { status: "completada" } } } },
+        bookings: {
+          where: { status: "completada" },
+          orderBy: { updatedAt: "desc" },
+          take: 1,
+          select: { finalPrice: true, service: { select: { priceFrom: true } } },
+        },
         services: {
           where: { status: "activo" },
           select: { title: true, description: true, categoryLabel: true },
@@ -163,7 +170,8 @@ export default async function HomePage({
                 rating: p.rating,
                 reviewsCount: p.reviewsCount,
                 zone: p.zone,
-                priceFrom: p.priceFrom,
+                lastWorkPrice: p.bookings[0]?.finalPrice ?? p.bookings[0]?.service?.priceFrom ?? null,
+                completedJobs: p._count.bookings,
                 verified: p.verified,
                 featured: p.featured,
                 yearsExperience: p.yearsExperience,

@@ -12,12 +12,14 @@ type Category = { slug: string; name: string; icon: string };
 export function RegisterForm({
   categories,
   next,
+  initialRole = "cliente",
 }: {
   categories: Category[];
   next?: string;
+  initialRole?: "cliente" | "profesional";
 }) {
   const [state, formAction] = useActionState<AuthState, FormData>(registerAction, undefined);
-  const [role, setRole] = useState<"cliente" | "profesional">("cliente");
+  const [role, setRole] = useState<"cliente" | "profesional">(initialRole);
 
   const isPro = role === "profesional";
   const tone: Mode = isPro ? "pro" : "cliente";

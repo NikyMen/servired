@@ -5,11 +5,7 @@ import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 
-/**
- * Acciones sobre una contratación según quién mira:
- * - cliente: cancelar mientras está solicitada
- * - profesional: aceptar / rechazar, y marcar completada
- */
+/** Acciones de una propuesta según el lado que la está viendo. */
 export function BookingActions({
   bookingId,
   status,
@@ -21,6 +17,8 @@ export function BookingActions({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [quoteOpen, setQuoteOpen] = useState(false);
+  const [quotedPrice, setQuotedPrice] = useState("");
   const [completeOpen, setCompleteOpen] = useState(false);
   const [finalPrice, setFinalPrice] = useState("");
   const [workSummary, setWorkSummary] = useState("");
@@ -37,13 +35,23 @@ export function BookingActions({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "No pudimos actualizar el trabajo.");
+        setError(data.error ?? "No pudimos actualizar la propuesta.");
         return;
       }
       router.refresh();
     } finally {
       setBusy(false);
     }
+  }
+
+  function quoteBooking(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const amount = Number(quotedPrice);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError("Ingresá un presupuesto válido.");
+      return;
+    }
+    void setStatus("presupuestada", { quotedPrice: Math.round(amount) });
   }
 
   function completeBooking(event: FormEvent<HTMLFormElement>) {
@@ -63,21 +71,60 @@ export function BookingActions({
   if (viewer === "cliente" && status === "solicitada") {
     return (
       <Button variant="outline" disabled={busy} onClick={() => setStatus("cancelada")} className="!py-1.5 !text-xs">
-        Cancelar
+        Cancelar pedido
       </Button>
     );
   }
 
-  if (viewer === "profesional" && status === "solicitada") {
+  if (viewer === "cliente" && status === "presupuestada") {
     return (
-      <div className="flex gap-2">
-        <Button variant="pro" disabled={busy} onClick={() => setStatus("aceptada")} className="!py-1.5 !text-xs">
-          Aceptar
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button variant="cliente" disabled={busy} onClick={() => setStatus("aceptada")} className="!py-1.5 !text-xs">
+          Aceptar propuesta
         </Button>
         <Button variant="outline" disabled={busy} onClick={() => setStatus("cancelada")} className="!py-1.5 !text-xs">
-          Rechazar
+          No aceptar
         </Button>
       </div>
+    );
+  }
+
+  if (viewer === "profesional" && status === "solicitada") {
+    if (!quoteOpen) {
+      return (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="pro" disabled={busy} onClick={() => setQuoteOpen(true)} className="!py-1.5 !text-xs">
+            Dar presupuesto
+          </Button>
+          <Button variant="outline" disabled={busy} onClick={() => setStatus("cancelada")} className="!py-1.5 !text-xs">
+            No puedo hacerlo
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <form onSubmit={quoteBooking} className="w-64 space-y-2 rounded-2xl border border-emerald-200 bg-pro-bg2 p-3">
+        <p className="text-xs font-semibold text-pro-dark">Tu presupuesto aproximado</p>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          value={quotedPrice}
+          onChange={(event) => setQuotedPrice(event.target.value)}
+          placeholder="Monto en ARS"
+          required
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-pro"
+        />
+        {error && <p className="text-xs text-red-600">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={() => setQuoteOpen(false)} className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-white">
+            Volver
+          </button>
+          <Button type="submit" variant="pro" disabled={busy} className="!px-3 !py-2 !text-xs">
+            {busy ? "Enviando…" : "Enviar presupuesto"}
+          </Button>
+        </div>
+      </form>
     );
   }
 

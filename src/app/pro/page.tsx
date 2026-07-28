@@ -22,7 +22,7 @@ export default async function ProPanelPage() {
     prisma.booking.findMany({
       where: { professionalId: pro.id },
       orderBy: { createdAt: "desc" },
-      include: { service: true },
+      include: { service: true, attachments: true },
     }),
     prisma.serviceRequest.findMany({
       // Las propias no: no tiene sentido ofrecerse a responderse a uno mismo.
@@ -57,12 +57,15 @@ export default async function ProPanelPage() {
         </div>
       </section>
 
-      {/* Contrataciones recibidas */}
+      {/* Propuestas recibidas */}
       <section className="space-y-3">
-        <h2 className="text-lg font-bold text-slate-900">Contrataciones</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900">Peticiones recibidas</h2>
+          <span className="text-sm text-slate-500">Revisá, rechazá o cotizá</span>
+        </div>
         {bookings.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-            Cuando un cliente te contrate, el pedido aparece acá.
+            Cuando alguien te envíe una propuesta, aparece acá con sus imágenes.
           </p>
         ) : (
           <ul className="space-y-3">
@@ -79,12 +82,21 @@ export default async function ProPanelPage() {
                     {b.clientName}
                     {b.note && <> · “{b.note}”</>}
                   </p>
-                  {(b.finalPrice ?? b.service?.priceFrom) != null && (
+                  {(b.finalPrice ?? b.quotedPrice) != null && (
                     <p className="text-sm font-semibold text-pro-dark">
-                      Monto del trabajo: {formatARS(b.finalPrice ?? b.service?.priceFrom ?? 0)}
+                      {b.finalPrice != null ? "Monto final" : "Presupuesto enviado"}: {formatARS(b.finalPrice ?? b.quotedPrice ?? 0)}
                     </p>
                   )}
                   {b.workSummary && <p className="text-xs text-slate-500">{b.workSummary}</p>}
+                  {b.attachments.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {b.attachments.map((attachment) => (
+                        <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer">
+                          <img src={attachment.url} alt={attachment.name} className="size-16 rounded-xl object-cover ring-1 ring-slate-200" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                   <p className="text-xs text-slate-400">
                     {new Date(b.createdAt).toLocaleDateString("es-AR")}
                   </p>

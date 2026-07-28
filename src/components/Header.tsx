@@ -5,17 +5,25 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { ModeSwitch } from "@/components/ModeSwitch";
 import { UserMenu } from "@/components/UserMenu";
+import { SearchIcon } from "@/components/icons";
 import type { SessionUser } from "@/lib/auth";
 import type { Mode } from "@/lib/types";
+import type { SVGProps } from "react";
 
-const clientNav = [
-  { href: "/", label: "Buscar" },
+type NavItem = {
+  href: string;
+  label: string;
+  icon?: (props: SVGProps<SVGSVGElement>) => React.JSX.Element;
+};
+
+const clientNav: NavItem[] = [
+  { href: "/", label: "Buscar", icon: SearchIcon },
   { href: "/solicitudes", label: "Solicitudes" },
-  { href: "/contrataciones", label: "Contrataciones" },
+  { href: "/contrataciones", label: "Propuestas" },
   { href: "/mensajes", label: "Mensajes" },
 ];
 
-const proNav = [
+const proNav: NavItem[] = [
   { href: "/pro", label: "Panel" },
   { href: "/pro/mensajes", label: "Mensajes" },
 ];
@@ -45,6 +53,7 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
               item.href === "/" || item.href === "/pro"
                 ? pathname === item.href
                 : pathname.startsWith(item.href);
+            const Icon = item.icon;
             return (
               <Link
                 key={item.href}
@@ -53,6 +62,7 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
                   active ? activeCls : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
+                {Icon && <Icon width={16} height={16} />}
                 {item.label}
               </Link>
             );
@@ -60,8 +70,8 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
-          <ModeSwitch mode={mode} size="sm" className="sm:hidden" />
-          <ModeSwitch mode={mode} className="hidden sm:inline-flex" />
+          <ModeSwitch mode={mode} user={user} size="sm" className="sm:hidden" />
+          <ModeSwitch mode={mode} user={user} className="hidden sm:inline-flex" />
           <UserMenu user={user} />
         </div>
       </div>

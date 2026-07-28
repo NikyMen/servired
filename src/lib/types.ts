@@ -10,7 +10,8 @@ export type ProCard = {
   rating: number;
   reviewsCount: number;
   zone: string;
-  priceFrom: number;
+  lastWorkPrice: number | null;
+  completedJobs: number;
   verified: boolean;
   featured: boolean;
   yearsExperience: number;

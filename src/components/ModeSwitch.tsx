@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { MODE_SWITCH_EVENT } from "@/components/ModeTransition";
 import type { Mode } from "@/lib/types";
+import type { SessionUser } from "@/lib/auth";
 
 /**
  * Interruptor para pasar de "busco" (azul) a "ofrezco" (verde).
@@ -14,15 +15,17 @@ import type { Mode } from "@/lib/types";
  */
 export function ModeSwitch({
   mode,
+  user,
   className = "",
   size = "md",
 }: {
   mode: Mode;
+  user: SessionUser | null;
   className?: string;
   size?: "sm" | "md";
 }) {
   const isPro = mode === "pro";
-  const target = isPro ? "/" : "/pro";
+  const target = isPro ? "/" : user?.role === "profesional" ? "/pro" : "/crear-cuenta?role=profesional";
 
   const track = size === "sm" ? "h-6 w-11" : "h-7 w-[52px]";
   const knob = size === "sm" ? "size-4" : "size-5";
@@ -63,7 +66,7 @@ export function ModeSwitch({
           isPro ? "text-slate-400" : "text-cliente"
         }`}
       >
-        Busco
+        Quiero contratar
       </span>
 
       <span
@@ -85,7 +88,7 @@ export function ModeSwitch({
           isPro ? "text-pro" : "text-slate-400"
         }`}
       >
-        Ofrezco
+        Ofrezco servicio
       </span>
     </Link>
   );

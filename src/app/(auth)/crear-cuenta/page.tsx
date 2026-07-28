@@ -10,9 +10,9 @@ export const metadata: Metadata = { title: "Crear cuenta" };
 export default async function CrearCuentaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; role?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, role } = await searchParams;
 
   const user = await getSessionUser();
   if (user) redirect(user.role === "profesional" ? "/pro" : "/");
@@ -22,5 +22,5 @@ export default async function CrearCuentaPage({
     select: { slug: true, name: true, icon: true },
   });
 
-  return <RegisterForm categories={categories} next={next} />;
+  return <RegisterForm categories={categories} next={next} initialRole={role === "profesional" ? "profesional" : "cliente"} />;
 }

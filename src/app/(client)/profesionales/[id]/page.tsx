@@ -86,11 +86,6 @@ export default async function ProfesionalPage({
               <span>{pro.yearsExperience} años de experiencia</span>
             </div>
           </div>
-          {/* En móvil el precio vive en la barra fija de contratación */}
-          <div className="hidden shrink-0 text-right lg:block">
-            <p className="text-sm text-slate-400">Precio publicado</p>
-            <p className="text-2xl font-bold text-slate-900">{formatARS(pro.priceFrom)}</p>
-          </div>
         </div>
         {pro.bio && <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600 sm:text-base">{pro.bio}</p>}
       </section>
@@ -107,7 +102,7 @@ export default async function ProfesionalPage({
                     <p className="font-medium text-slate-900">{s.title}</p>
                     <p className="text-sm text-slate-500">{s.description}</p>
                   </div>
-                  <p className="shrink-0 font-semibold text-slate-900">{formatARS(s.priceFrom)}</p>
+                  <p className="shrink-0 text-sm font-semibold text-pro-dark">Presupuesto a convenir</p>
                 </li>
               ))}
             </ul>
@@ -215,7 +210,6 @@ export default async function ProfesionalPage({
       <ContratarSheet
         professionalId={pro.id}
         proName={pro.name}
-        priceFrom={pro.priceFrom}
         services={pro.services.map((s) => ({
           id: s.id,
           title: s.title,

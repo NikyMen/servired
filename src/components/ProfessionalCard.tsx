@@ -33,10 +33,17 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
         </span>
       </div>
 
-      <p className="mt-2 flex items-center justify-between text-sm text-slate-500">
-        <span>Precio publicado</span>
-        <span className="font-semibold text-slate-900">{formatARS(pro.priceFrom)}</span>
-      </p>
+      <div className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-sm">
+        <p className="flex items-center justify-between text-slate-500">
+          <span>Último trabajo realizado</span>
+          <span className="font-semibold text-slate-900">
+            {pro.lastWorkPrice != null ? formatARS(pro.lastWorkPrice) : "A convenir"}
+          </span>
+        </p>
+        <p className="text-xs text-pro-dark">
+          {pro.completedJobs} {pro.completedJobs === 1 ? "trabajo realizado" : "trabajos realizados"} en ServiRed
+        </p>
+      </div>
     </Link>
   );
 }

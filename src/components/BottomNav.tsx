@@ -22,7 +22,7 @@ type Item = {
 const clientItems: Item[] = [
   { href: "/", label: "Buscar", icon: SearchIcon, exact: true },
   { href: "/solicitudes", label: "Solicitudes", icon: ClipboardIcon },
-  { href: "/contrataciones", label: "Contratos", icon: BriefcaseIcon },
+  { href: "/contrataciones", label: "Propuestas", icon: BriefcaseIcon },
   { href: "/mensajes", label: "Mensajes", icon: ChatIcon },
 ];
 

@@ -7,7 +7,7 @@ import type { Mode } from "@/lib/types";
 const clientLinks = [
   { href: "/", label: "Buscar profesionales" },
   { href: "/publicar-solicitud", label: "Publicar una solicitud" },
-  { href: "/contrataciones", label: "Mis contrataciones" },
+  { href: "/contrataciones", label: "Mis propuestas" },
   { href: "/mensajes", label: "Mensajes" },
 ];
 
