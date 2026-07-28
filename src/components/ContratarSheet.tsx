@@ -42,14 +42,14 @@ export function ContratarSheet({
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
         <div className="shrink-0">
-          <p className="text-xs text-slate-400">Desde</p>
+          <p className="text-xs text-slate-400">Precio publicado</p>
           <p className="text-lg font-bold leading-tight text-slate-900">
             {formatARS(priceFrom)}
           </p>
         </div>
         <button
           onClick={() => setOpen(true)}
-          className="min-h-[48px] flex-1 rounded-xl bg-cliente text-sm font-semibold text-white transition-all hover:bg-cliente-dark active:scale-[0.98]"
+          className="servired-button min-h-[48px] flex-1 rounded-2xl bg-gradient-to-r from-cliente to-blue-500 text-sm font-semibold text-white transition-all hover:from-cliente-dark hover:to-cliente active:scale-[0.98]"
         >
           Contratar
         </button>

@@ -397,6 +397,8 @@ async function main() {
       userId: clienteUser.id,
       professionalId: plomero.id,
       serviceId: plomero.serviceIds.get("Reparación de pérdidas") ?? null,
+      finalPrice: 22000,
+      workSummary: "Detectó la filtración debajo de la bacha y reemplazó la conexión dañada.",
       status: "completada",
     },
   });

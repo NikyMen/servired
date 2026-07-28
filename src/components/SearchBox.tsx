@@ -94,7 +94,7 @@ export function SearchBox({
   }
 
   return (
-    <form action="/" className="mt-5 flex flex-col gap-2 rounded-xl bg-white p-2 md:flex-row">
+    <form action="/" className="mt-5 flex flex-col gap-2 rounded-[1.25rem] bg-white p-2 shadow-2xl shadow-blue-950/20 md:flex-row">
       <div ref={boxRef} className="relative flex flex-1 items-center gap-2 px-3">
         <SearchIcon className="shrink-0 text-slate-400" width={18} height={18} />
         <input
@@ -106,7 +106,7 @@ export function SearchBox({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Plomería, se me tapó el inodoro, electricista…"
+          placeholder="¿Qué necesitás resolver? Ej: pérdida de agua"
           autoComplete="off"
           role="combobox"
           aria-expanded={visible}
@@ -162,7 +162,7 @@ export function SearchBox({
 
       <button
         type="submit"
-        className="rounded-lg bg-cliente px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cliente-dark"
+        className="servired-button rounded-2xl bg-gradient-to-r from-cliente to-blue-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:from-cliente-dark hover:to-cliente"
       >
         Buscar
       </button>

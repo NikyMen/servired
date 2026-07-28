@@ -8,7 +8,7 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
   return (
     <Link
       href={`/profesionales/${pro.id}`}
-      className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-4 transition-all hover:shadow-md active:scale-[0.99]"
+      className="group flex flex-col rounded-[1.5rem] border border-slate-200/80 bg-white/95 p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl active:scale-[0.99]"
     >
       <div className="flex items-center gap-3">
         <Avatar name={pro.name} color={pro.avatarColor} size={48} />
@@ -33,8 +33,9 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
         </span>
       </div>
 
-      <p className="mt-2 text-sm text-slate-600">
-        Desde <span className="font-semibold text-slate-900">{formatARS(pro.priceFrom)}</span>
+      <p className="mt-2 flex items-center justify-between text-sm text-slate-500">
+        <span>Precio publicado</span>
+        <span className="font-semibold text-slate-900">{formatARS(pro.priceFrom)}</span>
       </p>
     </Link>
   );

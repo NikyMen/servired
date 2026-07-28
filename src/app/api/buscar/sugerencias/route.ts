@@ -13,7 +13,10 @@ export async function GET(req: NextRequest) {
     prisma.professional.findMany({
       include: {
         category: { select: { slug: true, name: true } },
-        services: { select: { title: true, description: true } },
+        services: {
+          where: { status: "activo" },
+          select: { title: true, description: true, categoryLabel: true },
+        },
       },
     }),
     prisma.category.findMany({

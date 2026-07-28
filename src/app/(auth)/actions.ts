@@ -78,7 +78,7 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
 
     const parsed = Number(priceFromRaw);
     if (!Number.isFinite(parsed) || parsed < 0) {
-      return { error: "El precio desde tiene que ser un número.", field: "priceFrom" };
+      return { error: "El precio publicado tiene que ser un número.", field: "priceFrom" };
     }
     priceFrom = Math.round(parsed);
   }

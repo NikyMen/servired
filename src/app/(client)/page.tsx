@@ -3,11 +3,13 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { SearchBox } from "@/components/SearchBox";
+import { ParallaxCanvas } from "@/components/ParallaxCanvas";
 import { normalize, rankProfessionals } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
 
 type Search = { q?: string; categoria?: string; ubicacion?: string };
+const popularSearches = ["Pérdida de agua", "Luminarias LED", "Limpieza profunda"];
 
 async function getData({ q, categoria, ubicacion }: Search) {
   // Categoría y ubicación filtran en la base; el texto libre se rankea en memoria
@@ -19,13 +21,22 @@ async function getData({ q, categoria, ubicacion }: Search) {
     prisma.category.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.professional.findMany({
       where,
-      include: { category: true, services: { select: { title: true, description: true } } },
+      include: {
+        category: true,
+        services: {
+          where: { status: "activo" },
+          select: { title: true, description: true, categoryLabel: true },
+        },
+      },
     }),
   ]);
 
   // La zona también se compara normalizada: "Núñez" tiene que encontrarse con "nunez".
   const byZone = ubicacion?.trim()
-    ? found.filter((p) => normalize(p.zone).includes(normalize(ubicacion)))
+    ? found.filter((p) => {
+        const zone = normalize(p.zone);
+        return normalize(ubicacion).split(" ").every((term) => zone.includes(term));
+      })
     : found;
 
   return { categories, pros: rankProfessionals(byZone, q ?? "") };
@@ -51,19 +62,56 @@ export default async function HomePage({
   return (
     <div className="space-y-6">
       {/* Hero + buscador */}
-      <section className="rounded-2xl bg-cliente p-5 text-white sm:p-6 md:p-8">
-        <h1 className="text-2xl font-bold md:text-3xl">
-          ¿Qué servicio necesitás?
-        </h1>
-        <p className="mt-1 text-blue-100">
-          Buscá profesionales verificados, contratá y coordiná por mensaje.
-        </p>
+      <section className="parallax-hero relative min-h-[390px] rounded-[2rem] p-5 text-white sm:p-8 md:p-10">
+        <ParallaxCanvas />
+        <div className="parallax-content flex min-h-[350px] flex-col justify-between">
+          <div className="max-w-2xl">
+            <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.2em] text-blue-100 uppercase backdrop-blur">
+              ServiRed · servicios conectados
+            </span>
+            <h1 className="mt-5 max-w-xl text-3xl leading-tight font-bold tracking-tight sm:text-4xl md:text-5xl">
+              Encontrá a alguien que resuelva lo que necesitás.
+            </h1>
+            <p className="mt-3 max-w-lg text-sm leading-6 text-blue-100 sm:text-base">
+              Profesionales verificados, trabajos reales y contacto directo para coordinar sin vueltas.
+            </p>
+          </div>
 
-        <SearchBox
-          defaultQuery={params.q ?? ""}
-          defaultZone={params.ubicacion ?? ""}
-          categoria={params.categoria}
-        />
+          <div className="mt-8">
+            <SearchBox
+              defaultQuery={params.q ?? ""}
+              defaultZone={params.ubicacion ?? ""}
+              categoria={params.categoria}
+            />
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-blue-100">
+              <span className="font-semibold text-white">Probá con:</span>
+              {popularSearches.map((term) => (
+                <Link
+                  key={term}
+                  href={`/?q=${encodeURIComponent(term)}`}
+                  className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 transition hover:border-white/50 hover:bg-white/20"
+                >
+                  {term}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="parallax-content parallax-float absolute top-8 right-6 hidden w-44 rounded-2xl border border-white/20 bg-slate-950/20 p-4 shadow-2xl backdrop-blur-md lg:block">
+          <p className="text-2xl font-bold">+1.200</p>
+          <p className="mt-1 text-xs text-blue-100">servicios publicados</p>
+          <div className="mt-4 flex -space-x-2">
+            {["#38bdf8", "#34d399", "#fbbf24", "#f472b6"].map((color) => (
+              <span key={color} className="h-7 w-7 rounded-full border-2 border-blue-700" style={{ backgroundColor: color }} aria-hidden />
+            ))}
+          </div>
+        </div>
+
+        <div className="parallax-content parallax-float-slow absolute right-16 bottom-10 hidden rounded-2xl border border-white/20 bg-white/10 px-4 py-3 shadow-xl backdrop-blur-md lg:block">
+          <p className="text-xs text-blue-100">La búsqueda empieza acá</p>
+          <p className="mt-1 text-sm font-semibold">Describí tu necesidad</p>
+        </div>
       </section>
 
       {/* Categorías: carrusel horizontal en móvil, wrap en desktop */}

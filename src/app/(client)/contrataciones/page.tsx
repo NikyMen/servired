@@ -66,13 +66,16 @@ export default async function ContratacionesPage({
                 </p>
                 <p className="text-sm text-slate-500">
                   {b.professional.name} · {b.professional.headline}
-                  {b.service && (
-                    <> · desde <span className="font-medium text-slate-700">{formatARS(b.service.priceFrom)}</span></>
+                  {(b.finalPrice ?? b.service?.priceFrom) != null && (
+                    <> · <span className="font-medium text-slate-700">{formatARS(b.finalPrice ?? b.service?.priceFrom ?? 0)}</span></>
                   )}
                 </p>
                 <p className="text-xs text-slate-400">
                   Pedido el {new Date(b.createdAt).toLocaleDateString("es-AR")}
                 </p>
+                {b.status === "completada" && b.workSummary && (
+                  <p className="mt-1 text-xs text-pro-dark">{b.workSummary}</p>
+                )}
               </div>
               <div className="flex shrink-0 items-center gap-3">
                 <StatusPill status={b.status} />

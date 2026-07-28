@@ -92,7 +92,7 @@ export function ContratarBox({
         >
           {services.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.title} — desde {formatARS(s.priceFrom)}
+              {s.title} — {formatARS(s.priceFrom)}
             </option>
           ))}
         </select>

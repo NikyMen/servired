@@ -96,7 +96,7 @@ model Professional {
   rating          Float   @default(0)
   reviewsCount    Int     @default(0)
   zone            String // "Zona Norte, CABA"
-  priceFrom       Int // precio "desde" en ARS
+  priceFrom       Int // precio publicado en ARS
   verified        Boolean @default(false)
   featured        Boolean @default(false)
   yearsExperience Int     @default(0)
@@ -121,6 +121,8 @@ model Booking {
   id         String  @id @default(cuid())
   clientName String // nombre mostrado; la identidad real es userId
   note       String?
+  finalPrice Int? // monto acordado al cerrar el trabajo (ARS)
+  workSummary String? // breve resumen del trabajo realizado
   status     String  @default("solicitada") // solicitada | aceptada | completada | cancelada
 
   userId String

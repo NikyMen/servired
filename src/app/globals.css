@@ -418,3 +418,70 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Hero visual: el canvas aporta profundidad sin depender de una librería. */
+.parallax-hero {
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 82% 18%, rgb(56 189 248 / 0.28), transparent 30%),
+    linear-gradient(135deg, #0f2c68 0%, #1d4ed8 55%, #2563eb 100%);
+  box-shadow: 0 24px 60px rgb(37 99 235 / 0.2);
+}
+
+.parallax-hero::after {
+  position: absolute;
+  inset: auto -10% -48% 18%;
+  z-index: -1;
+  height: 70%;
+  border-radius: 999px;
+  background: rgb(125 211 252 / 0.18);
+  content: "";
+  filter: blur(60px);
+  transform: rotate(-9deg);
+}
+
+.parallax-content {
+  position: relative;
+  z-index: 1;
+}
+
+.parallax-float {
+  animation: parallax-float 7s ease-in-out infinite;
+}
+
+.parallax-float-slow {
+  animation: parallax-float 10s ease-in-out -2s infinite reverse;
+}
+
+@keyframes parallax-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -9px, 0);
+  }
+}
+
+.servired-button {
+  box-shadow: 0 10px 22px rgb(15 23 42 / 0.12);
+  transform: translateY(0);
+}
+
+.servired-button:hover {
+  box-shadow: 0 14px 28px rgb(15 23 42 / 0.18);
+  transform: translateY(-2px);
+}
+
+.servired-button:active {
+  box-shadow: 0 5px 12px rgb(15 23 42 / 0.12);
+  transform: translateY(0) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parallax-float,
+  .parallax-float-slow {
+    animation: none;
+  }
+}

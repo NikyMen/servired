@@ -156,7 +156,7 @@ export function RegisterForm({
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="priceFrom" className="text-sm font-medium text-slate-700">
-                  Precio desde
+                  Precio publicado
                 </label>
                 <input
                   id="priceFrom"

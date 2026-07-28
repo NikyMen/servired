@@ -17,7 +17,7 @@ export type SearchablePro = {
   verified: boolean;
   featured: boolean;
   category: { slug: string; name: string };
-  services: { title: string; description: string }[];
+  services: { title: string; description: string; categoryLabel?: string }[];
 };
 
 /**
@@ -62,7 +62,7 @@ const SYNONYMS: Record<string, string[]> = {
     "enchufe", "enchufes", "tablero", "tableros", "cortocircuito", "disyuntor",
     "termica", "termicas", "cableado", "cable", "cables", "lampara", "lamparas",
     "luminaria", "luminarias", "plafon", "plafones", "led", "instalacion",
-    "llave", "toma", "corriente", "medidor",
+    "instalar", "aire", "acondicionado", "ventilador", "llave", "toma", "corriente", "medidor",
   ],
   gasista: [
     "gasista", "gas", "garrafa", "estufa", "estufas", "calefon", "calefones",
@@ -213,6 +213,7 @@ const FIELD_WEIGHTS = {
   category: 5,
   headline: 4,
   service: 3.5,
+  serviceCategory: 2.5,
   name: 3,
   zone: 2,
   bio: 1.5,
@@ -236,6 +237,7 @@ function scorePro(pro: SearchablePro, query: ParsedQuery): number {
     consider(matchQuality(token, pro.bio ?? ""), FIELD_WEIGHTS.bio);
     for (const s of pro.services) {
       consider(matchQuality(token, s.title), FIELD_WEIGHTS.service);
+      consider(matchQuality(token, s.categoryLabel ?? ""), FIELD_WEIGHTS.serviceCategory);
       consider(matchQuality(token, s.description), FIELD_WEIGHTS.serviceDescription);
     }
 

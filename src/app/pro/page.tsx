@@ -79,6 +79,12 @@ export default async function ProPanelPage() {
                     {b.clientName}
                     {b.note && <> · “{b.note}”</>}
                   </p>
+                  {(b.finalPrice ?? b.service?.priceFrom) != null && (
+                    <p className="text-sm font-semibold text-pro-dark">
+                      Monto del trabajo: {formatARS(b.finalPrice ?? b.service?.priceFrom ?? 0)}
+                    </p>
+                  )}
+                  {b.workSummary && <p className="text-xs text-slate-500">{b.workSummary}</p>}
                   <p className="text-xs text-slate-400">
                     {new Date(b.createdAt).toLocaleDateString("es-AR")}
                   </p>

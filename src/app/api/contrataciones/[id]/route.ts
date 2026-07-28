@@ -39,7 +39,7 @@ export async function PATCH(
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const { status } = (body ?? {}) as Record<string, unknown>;
+  const { status, finalPrice, workSummary } = (body ?? {}) as Record<string, unknown>;
   if (typeof status !== "string") {
     return NextResponse.json({ error: "Falta el estado." }, { status: 422 });
   }
@@ -70,6 +70,20 @@ export async function PATCH(
     );
   }
 
-  const updated = await prisma.booking.update({ where: { id }, data: { status } });
+  const data: { status: string; finalPrice?: number; workSummary?: string } = { status };
+  if (status === "completada") {
+    const amount = Number(finalPrice);
+    const summary = typeof workSummary === "string" ? workSummary.trim() : "";
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ error: "Falta el monto final del trabajo." }, { status: 422 });
+    }
+    if (summary.length < 8) {
+      return NextResponse.json({ error: "Falta una breve explicación del trabajo." }, { status: 422 });
+    }
+    data.finalPrice = Math.round(amount);
+    data.workSummary = summary;
+  }
+
+  const updated = await prisma.booking.update({ where: { id }, data });
   return NextResponse.json(updated);
 }

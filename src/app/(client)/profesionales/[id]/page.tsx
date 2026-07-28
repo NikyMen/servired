@@ -17,6 +17,14 @@ async function getPro(id: string) {
       category: true,
       services: { where: { status: "activo" }, orderBy: { createdAt: "asc" } },
       reviews: { orderBy: { createdAt: "desc" } },
+      bookings: {
+        where: { status: "completada" },
+        orderBy: { updatedAt: "desc" },
+        include: {
+          user: { select: { name: true, avatarColor: true } },
+          service: { select: { title: true, description: true, priceFrom: true } },
+        },
+      },
     },
   });
 }
@@ -80,7 +88,7 @@ export default async function ProfesionalPage({
           </div>
           {/* En móvil el precio vive en la barra fija de contratación */}
           <div className="hidden shrink-0 text-right lg:block">
-            <p className="text-sm text-slate-400">Desde</p>
+            <p className="text-sm text-slate-400">Precio publicado</p>
             <p className="text-2xl font-bold text-slate-900">{formatARS(pro.priceFrom)}</p>
           </div>
         </div>
@@ -104,6 +112,54 @@ export default async function ProfesionalPage({
               ))}
             </ul>
           </section>
+
+          {/* Historial público de trabajos: conecta cliente, profesional y monto final. */}
+          {pro.bookings.length > 0 && (
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+              <div className="mb-4 flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold tracking-[0.16em] text-pro uppercase">Experiencia comprobable</p>
+                  <h2 className="mt-1 text-lg font-bold text-slate-900">Trabajos realizados</h2>
+                </div>
+                <span className="rounded-full bg-pro-soft px-2.5 py-1 text-xs font-semibold text-pro-dark">
+                  {pro.bookings.length} completado{pro.bookings.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {pro.bookings.map((booking) => {
+                  const amount = booking.finalPrice ?? booking.service?.priceFrom;
+                  return (
+                    <article key={booking.id} className="rounded-2xl border border-emerald-100 bg-pro-bg2 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-slate-900">
+                            {booking.service?.title ?? "Servicio personalizado"}
+                          </h3>
+                          <p className="mt-1 text-sm leading-5 text-slate-600">
+                            {booking.workSummary ?? booking.service?.description ?? "Trabajo coordinado por ServiRed."}
+                          </p>
+                        </div>
+                        {amount != null && (
+                          <div className="shrink-0 text-right">
+                            <p className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">Monto final</p>
+                            <p className="font-bold text-pro-dark">{formatARS(amount)}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-emerald-100 pt-3 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Avatar name={booking.user.name ?? booking.clientName} color={booking.user.avatarColor} size={22} />
+                          Contrató {booking.user.name ?? booking.clientName}
+                        </span>
+                        <span>·</span>
+                        <span>Realizó {pro.name}</span>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           {/* Opiniones */}
           <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
