@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// El sitio se sirve con dos caras desde el mismo proceso:
+// servired.ar sale al público en modo preinscripción, y cualquier otro dominio
+// (el de demo del cliente, y localhost en desarrollo) muestra la web completa.
+const HOSTS_SOLO_PREINSCRIPCION = new Set(["servired.ar", "www.servired.ar"]);
+
+function soloPreinscripcion(request: NextRequest) {
+  const host = request.headers.get("host") ?? request.nextUrl.host;
+  return HOSTS_SOLO_PREINSCRIPCION.has(host.split(":")[0].toLowerCase());
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (!soloPreinscripcion(request)) return NextResponse.next();
 
   // Durante el lanzamiento solo queda visible la landing y el formulario.
   if (
