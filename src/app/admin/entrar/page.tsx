@@ -12,10 +12,10 @@ export default function AdminLoginPage() {
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10">
+    <main className="min-h-screen px-4 py-10">
       <div className="mx-auto max-w-md">
         <Logo href="/" accent="cliente" height={38} />
-        <form action={formAction} className="mt-10 space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <form action={formAction} className="mt-10 glass glass-solid space-y-5 rounded-2xl p-6">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Administración</h1>
             <p className="mt-1 text-sm text-slate-500">Ingresá para ver las preinscripciones.</p>
@@ -23,12 +23,12 @@ export default function AdminLoginPage() {
           <div className="space-y-1.5">
             <label htmlFor="admin-email" className="text-sm font-medium text-slate-700">Email</label>
             <input id="admin-email" name="email" type="email" required autoComplete="username"
-              className="w-full rounded-xl border border-slate-300 px-3.5 py-3 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20" />
+              className="glass-field px-3.5 py-3 text-sm" />
           </div>
           <div className="space-y-1.5">
             <label htmlFor="admin-password" className="text-sm font-medium text-slate-700">Contraseña</label>
             <input id="admin-password" name="password" type="password" required autoComplete="current-password"
-              className="w-full rounded-xl border border-slate-300 px-3.5 py-3 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20" />
+              className="glass-field px-3.5 py-3 text-sm" />
           </div>
           {state?.error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{state.error}</p>}
           <button type="submit" disabled={pending}

@@ -11,7 +11,7 @@ export default async function AdminPage() {
   const serialized = rows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }));
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6">
+    <main className="min-h-screen px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
@@ -22,7 +22,7 @@ export default async function AdminPage() {
             </p>
           </div>
           <form action={logoutAdminAction}>
-            <button className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <button className="glass-btn glass-btn-ghost px-4 py-2.5 text-sm">
               Cerrar sesión
             </button>
           </form>

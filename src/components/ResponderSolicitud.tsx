@@ -60,7 +60,7 @@ export function ResponderSolicitud({
         rows={2}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        className="w-full resize-none rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-pro focus:ring-2 focus:ring-pro/20"
+        className="glass-field resize-none px-3 py-2 text-sm"
       />
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">

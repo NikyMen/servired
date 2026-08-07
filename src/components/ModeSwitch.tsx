@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { MODE_SWITCH_EVENT } from "@/components/ModeTransition";
 import type { Mode } from "@/lib/types";
-import type { SessionUser } from "@/lib/auth";
 
 /**
  * Interruptor para pasar de "busco" (azul) a "ofrezco" (verde).
@@ -12,41 +12,48 @@ import type { SessionUser } from "@/lib/auth";
  * y así funciona el clic del medio, "abrir en pestaña nueva" y el prefetch.
  * role="switch" + aria-checked para que un lector de pantalla lo cante como lo
  * que parece: un interruptor de dos posiciones.
+ *
+ * Visualmente es un control segmentado de vidrio: dos mitades y una píldora
+ * que se desliza debajo de la activa (ver .mode-switch en globals.css). La
+ * píldora se mueve APENAS tocás, sin esperar a que navegue: la navegación
+ * tarda cientos de milisegundos y un interruptor que se queda quieto ese rato
+ * se siente roto.
  */
 export function ModeSwitch({
   mode,
-  user,
   className = "",
-  size = "md",
 }: {
   mode: Mode;
-  user: SessionUser | null;
   className?: string;
-  size?: "sm" | "md";
 }) {
   const isPro = mode === "pro";
-  const target = isPro ? "/" : user?.role === "profesional" ? "/pro" : "/crear-cuenta?role=profesional";
+  // Cruzar de lado no pide cuenta: el panel profesional se puede mirar como
+  // invitado. Antes, sin sesión de pro, esto te desviaba a /crear-cuenta y el
+  // interruptor no cambiaba de modo, que era exactamente lo que prometía.
+  const target = isPro ? "/" : "/pro";
 
-  const track = size === "sm" ? "h-6 w-11" : "h-7 w-[52px]";
-  const knob = size === "sm" ? "size-4" : "size-5";
-  const knobOn = size === "sm" ? "translate-x-5" : "translate-x-6";
-  const label = size === "sm" ? "text-[10px]" : "text-xs";
+  // Dónde está la píldora. Arranca donde dice el modo real y se adelanta al
+  // clic; si la navegación se cancela (o volvés con el botón atrás), el
+  // efecto la devuelve a su lugar.
+  const [index, setIndex] = useState(isPro ? 1 : 0);
+  useEffect(() => setIndex(isPro ? 1 : 0), [isPro]);
+
+  // Un solo interruptor para todos los tamaños: en móvil se achica solo.
+  const pad = "px-2.5 py-1.5 text-[11px] sm:px-3 sm:py-2 sm:text-xs";
 
   /**
-   * Le avisa a ModeTransition desde dónde nace la onda. Se emite el centro
-   * del interruptor y no el punto exacto del clic: si tocaste el borde de la
-   * cápsula la onda igual sale "del switch", que es lo que se siente natural.
+   * Mueve la píldora y le avisa a ModeTransition que arranque el barrido.
    * Sólo clic primario sin modificadores: con Ctrl/⌘ o rueda se abre en otra
-   * pestaña y esta página no navega, así que no hay onda que anunciar.
+   * pestaña y esta página no navega, así que no hay nada que anunciar.
    */
-  const announceOrigin = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const anunciarCambio = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    const r = e.currentTarget.getBoundingClientRect();
+    setIndex(isPro ? 0 : 1);
     window.dispatchEvent(
       new CustomEvent(MODE_SWITCH_EVENT, {
-        // `to` va en el detalle porque la onda arranca con el clic, antes de
-        // saber en qué ruta se termina aterrizando.
-        detail: { x: r.left + r.width / 2, y: r.top + r.height / 2, to: isPro ? "cliente" : "pro" },
+        // `to` va en el detalle porque el barrido arranca con el clic, antes
+        // de saber en qué ruta se termina aterrizando.
+        detail: { to: isPro ? "cliente" : "pro" },
       }),
     );
   };
@@ -54,41 +61,29 @@ export function ModeSwitch({
   return (
     <Link
       href={target}
-      onClick={announceOrigin}
+      onClick={anunciarCambio}
       role="switch"
       aria-checked={isPro}
       aria-label={isPro ? "Cambiar a modo cliente: buscar servicios" : "Cambiar a modo profesional: ofrecer servicios"}
       title={isPro ? "Pasar a buscar servicios" : "Pasar a ofrecer servicios"}
-      className={`group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm transition-[box-shadow,scale] duration-150 hover:shadow-md active:scale-95 ${className}`}
+      data-side={index === 1 ? "pro" : "cliente"}
+      style={{ "--switch-i": index } as React.CSSProperties}
+      className={`mode-switch glass glass-thin ${className}`}
     >
+      <span className="mode-switch-pill" aria-hidden />
       <span
-        className={`${label} font-semibold transition-colors ${
-          isPro ? "text-slate-400" : "text-cliente"
+        className={`mode-switch-seg ${pad} font-semibold ${
+          index === 0 ? "text-white" : "text-slate-500"
         }`}
       >
-        Quiero contratar
+        Busco
       </span>
-
       <span
-        className={`relative ${track} shrink-0 rounded-full transition-colors duration-300 ${
-          isPro ? "bg-pro" : "bg-cliente"
+        className={`mode-switch-seg ${pad} font-semibold ${
+          index === 1 ? "text-white" : "text-slate-500"
         }`}
       >
-        {/* El scale-x del active es el "squash" clásico de los switch de iOS:
-            la perilla se estira apenas mientras el dedo está apoyado. */}
-        <span
-          className={`absolute top-1/2 left-1 ${knob} -translate-y-1/2 rounded-full bg-white shadow-md transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-active:scale-x-125 ${
-            isPro ? knobOn : "translate-x-0"
-          }`}
-        />
-      </span>
-
-      <span
-        className={`${label} font-semibold transition-colors ${
-          isPro ? "text-pro" : "text-slate-400"
-        }`}
-      >
-        Ofrezco servicio
+        Ofrezco
       </span>
     </Link>
   );

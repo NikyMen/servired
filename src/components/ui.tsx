@@ -59,27 +59,36 @@ export function Avatar({
   );
 }
 
-/** Botón reutilizable. Azul = acción de cliente, verde = acción de profesional. */
+/**
+ * Botón reutilizable.
+ *
+ * El color ya no se elige acá: `.glass-btn` se pinta con `--accent`, que lo
+ * define el `data-modo` del layout. O sea que en el lado cliente sale azul y
+ * en el profesional verde sin pasarle nada. `variant` sólo queda para forzar
+ * un lado contra el ambiente (p. ej. un CTA verde en una página azul) y para
+ * el secundario de vidrio.
+ */
 export function Button({
   children,
-  variant = "cliente",
+  variant = "accent",
   className = "",
   href,
   type = "button",
   ...props
 }: {
   children: React.ReactNode;
-  variant?: "cliente" | "pro" | "outline";
+  variant?: "accent" | "cliente" | "pro" | "outline";
   className?: string;
   href?: string;
   type?: "button" | "submit";
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const variants: Record<string, string> = {
-    cliente: "bg-gradient-to-r from-cliente to-blue-500 text-white hover:from-cliente-dark hover:to-cliente",
-    pro: "bg-gradient-to-r from-pro to-emerald-500 text-white hover:from-pro-dark hover:to-pro",
-    outline: "border border-slate-300 bg-white text-slate-700 hover:border-cliente/40 hover:bg-cliente-soft",
+    accent: "",
+    cliente: "[--accent-rgb:37_99_235] [--accent-dark:var(--color-cliente-dark)]",
+    pro: "[--accent-rgb:5_150_105] [--accent-dark:var(--color-pro-dark)]",
+    outline: "glass-btn-ghost",
   };
-  const cls = `servired-button inline-flex items-center justify-center gap-2 rounded-2xl border border-white/25 px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${variants[variant]} ${className}`;
+  const cls = `glass-btn px-4 py-2.5 text-sm ${variants[variant]} ${className}`;
 
   if (href) {
     return (
@@ -97,18 +106,24 @@ export function Button({
 
 /** Etiqueta de estado. */
 export function StatusPill({ status }: { status: string }) {
+  // Vidrio teñido: el color va en el fondo translúcido y en el aro, así la
+  // píldora sigue dejando pasar lo que tiene atrás como el resto de la app.
+  const blue = "bg-blue-500/12 text-cliente-dark ring-blue-400/30";
+  const green = "bg-emerald-500/12 text-pro-dark ring-emerald-400/30";
+  const amber = "bg-amber-400/15 text-amber-700 ring-amber-400/35";
+  const grey = "bg-slate-400/12 text-slate-500 ring-slate-400/25";
   const map: Record<string, string> = {
-    solicitada: "bg-cliente-soft text-cliente-dark ring-blue-200",
-    presupuestada: "bg-amber-50 text-amber-700 ring-amber-200",
-    abierta: "bg-cliente-soft text-cliente-dark ring-blue-200",
-    aceptada: "bg-pro-soft text-pro-dark ring-emerald-200",
-    completada: "bg-pro-soft text-pro-dark ring-emerald-200",
-    activo: "bg-pro-soft text-pro-dark ring-emerald-200",
-    pausado: "bg-amber-50 text-amber-700 ring-amber-200",
-    cancelada: "bg-slate-100 text-slate-500 ring-slate-200",
-    cerrada: "bg-slate-100 text-slate-500 ring-slate-200",
+    solicitada: blue,
+    presupuestada: amber,
+    abierta: blue,
+    aceptada: green,
+    completada: green,
+    activo: green,
+    pausado: amber,
+    cancelada: grey,
+    cerrada: grey,
   };
-  const cls = map[status.toLowerCase()] ?? "bg-slate-100 text-slate-600 ring-slate-200";
+  const cls = map[status.toLowerCase()] ?? grey;
   const labels: Record<string, string> = {
     solicitada: "Pendiente",
     presupuestada: "Presupuesto enviado",
@@ -119,7 +134,9 @@ export function StatusPill({ status }: { status: string }) {
     cerrada: "Cerrada",
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ring-1 ring-inset ${cls}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ring-1 ring-inset backdrop-blur-sm ${cls}`}
+    >
       {labels[status.toLowerCase()] ?? status}
     </span>
   );

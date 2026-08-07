@@ -1,61 +1,91 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requirePro } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
 import { formatARS } from "@/lib/format";
 import { Avatar, StatusPill } from "@/components/ui";
 import { BookingActions } from "@/components/BookingActions";
 import { ResponderSolicitud } from "@/components/ResponderSolicitud";
+import { InvitadoAviso } from "@/components/InvitadoAviso";
 import { MapPinIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Panel del profesional" };
 
 export default async function ProPanelPage() {
-  // El panel es el del profesional logueado, no uno fijo del seed.
-  const user = await requirePro("/pro");
-  const pro = await prisma.professional.findUnique({ where: { id: user.professionalId } });
-  if (!pro) notFound();
+  // El panel se puede mirar sin cuenta: se ve la estructura y el tablero de
+  // solicitudes abiertas, que es lo que hace que valga la pena darse de alta.
+  // Lo que NO se ve sin ser el dueño es su bandeja: pedidos recibidos y
+  // servicios salen vacíos, porque son de alguien.
+  const user = await getSessionUser();
+  const pro = user?.professionalId
+    ? await prisma.professional.findUnique({ where: { id: user.professionalId } })
+    : null;
 
   const [bookings, requests, services] = await Promise.all([
-    prisma.booking.findMany({
-      where: { professionalId: pro.id },
-      orderBy: { createdAt: "desc" },
-      include: { service: true, attachments: true },
-    }),
+    pro
+      ? prisma.booking.findMany({
+          where: { professionalId: pro.id },
+          orderBy: { createdAt: "desc" },
+          include: { service: true, attachments: true },
+        })
+      : [],
     prisma.serviceRequest.findMany({
       // Las propias no: no tiene sentido ofrecerse a responderse a uno mismo.
-      where: { status: "abierta", NOT: { userId: user.id } },
+      where: { status: "abierta", ...(user ? { NOT: { userId: user.id } } : {}) },
       orderBy: { createdAt: "desc" },
       include: { category: true },
     }),
-    prisma.service.findMany({
-      where: { professionalId: pro.id },
-      orderBy: { createdAt: "asc" },
-    }),
+    pro
+      ? prisma.service.findMany({
+          where: { professionalId: pro.id },
+          orderBy: { createdAt: "asc" },
+        })
+      : [],
   ]);
 
   const pendientes = bookings.filter((b) => b.status === "solicitada").length;
 
   return (
     <div className="space-y-8">
+      {!pro && (
+        <InvitadoAviso
+          accion={
+            user
+              ? "recibir pedidos necesitás un perfil profesional"
+              : "responder solicitudes y recibir pedidos"
+          }
+          next="/pro"
+        />
+      )}
+
       {/* Encabezado */}
-      <section className="flex items-center gap-4 rounded-2xl bg-pro p-6 text-white">
-        <Avatar name={pro.name} color="#047857" size={56} ring />
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold">{pro.name}</h1>
-          <p className="text-emerald-100">
-            {pro.headline} · {pro.zone}
+      {pro ? (
+        <section className="flex items-center gap-4 rounded-2xl bg-pro p-6 text-white">
+          <Avatar name={pro.name} color="#047857" size={56} ring />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold">{pro.name}</h1>
+            <p className="text-emerald-100">
+              {pro.headline} · {pro.zone}
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-3xl font-bold">{pendientes}</p>
+            <p className="text-sm text-emerald-100">
+              {pendientes === 1 ? "pedido nuevo" : "pedidos nuevos"}
+            </p>
+          </div>
+        </section>
+      ) : (
+        <section className="glass glass-solid rounded-2xl p-6">
+          <h1 className="text-xl font-bold text-slate-900">Panel del profesional</h1>
+          <p className="mt-1 text-slate-500">
+            Así se ve tu tablero cuando ofrecés servicios en ServiRed: los pedidos
+            que te llegan, las solicitudes abiertas de clientes y tu lista de
+            servicios.
           </p>
-        </div>
-        <div className="shrink-0 text-right">
-          <p className="text-3xl font-bold">{pendientes}</p>
-          <p className="text-sm text-emerald-100">
-            {pendientes === 1 ? "pedido nuevo" : "pedidos nuevos"}
-          </p>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Propuestas recibidas */}
       <section className="space-y-3">
@@ -64,15 +94,17 @@ export default async function ProPanelPage() {
           <span className="text-sm text-slate-500">Revisá, rechazá o cotizá</span>
         </div>
         {bookings.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-            Cuando alguien te envíe una propuesta, aparece acá con sus imágenes.
+          <p className="glass rounded-2xl border-dashed border-white/70 p-6 text-sm text-slate-500">
+            {pro
+              ? "Cuando alguien te envíe una propuesta, aparece acá con sus imágenes."
+              : "Acá aparecen los pedidos que te mandan los clientes, con las fotos que adjuntan."}
           </p>
         ) : (
           <ul className="space-y-3">
             {bookings.map((b) => (
               <li
                 key={b.id}
-                className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center"
+                className="glass glass-card flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center"
               >
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-slate-900">
@@ -119,10 +151,10 @@ export default async function ProPanelPage() {
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {requests.map((r) => (
-            <article key={r.id} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-4">
+            <article key={r.id} className="glass glass-card flex flex-col rounded-2xl p-4">
               <div className="flex items-center justify-between">
                 {r.category ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-pro-soft px-2.5 py-1 text-xs font-medium text-pro-dark">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-2.5 py-1 text-xs font-medium text-pro-dark ring-1 ring-emerald-400/25 ring-inset backdrop-blur-sm">
                     {r.category.icon} {r.category.name}
                   </span>
                 ) : (
@@ -134,7 +166,7 @@ export default async function ProPanelPage() {
               </div>
               <h3 className="mt-2 font-semibold text-slate-900">{r.title}</h3>
               <p className="mt-1 line-clamp-2 text-sm text-slate-500">{r.description}</p>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/60 pt-3">
                 <span className="flex items-center gap-1 text-xs text-slate-400">
                   <MapPinIcon width={14} height={14} />
                   {r.zone} · {r.contactName}
@@ -153,7 +185,14 @@ export default async function ProPanelPage() {
       {/* Mis servicios */}
       <section className="space-y-3">
         <h2 className="text-lg font-bold text-slate-900">Mis servicios</h2>
-        <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white">
+        {services.length === 0 ? (
+          <p className="glass rounded-2xl border-dashed border-white/70 p-6 text-sm text-slate-500">
+            {pro
+              ? "Todavía no publicaste servicios."
+              : "Acá va la lista de lo que ofrecés, con su precio desde y si está activo o en pausa."}
+          </p>
+        ) : (
+        <ul className="glass glass-solid divide-y divide-white/60 rounded-2xl">
           {services.map((s) => (
             <li key={s.id} className="flex items-center justify-between gap-4 p-4">
               <div className="min-w-0">
@@ -167,12 +206,15 @@ export default async function ProPanelPage() {
             </li>
           ))}
         </ul>
-        <p className="text-xs text-slate-400">
-          Tu perfil público:{" "}
-          <Link href={`/profesionales/${pro.id}`} className="font-medium text-pro hover:underline">
-            ver cómo te ven los clientes
-          </Link>
-        </p>
+        )}
+        {pro && (
+          <p className="text-xs text-slate-400">
+            Tu perfil público:{" "}
+            <Link href={`/profesionales/${pro.id}`} className="font-medium text-pro hover:underline">
+              ver cómo te ven los clientes
+            </Link>
+          </p>
+        )}
       </section>
     </div>
   );

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
 import { formatARS } from "@/lib/format";
 import { Avatar, StatusPill } from "@/components/ui";
 import { BookingActions } from "@/components/BookingActions";
+import { InvitadoAviso } from "@/components/InvitadoAviso";
 import { CheckCircleIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -16,18 +17,24 @@ export default async function ContratacionesPage({
   searchParams: Promise<{ nueva?: string }>;
 }) {
   const { nueva } = await searchParams;
-  const user = await requireUser("/contrataciones");
+  // Sin sesión la página se ve igual, sólo que vacía: las propuestas son de
+  // alguien, y un invitado todavía no es nadie.
+  const user = await getSessionUser();
 
-  const bookings = await prisma.booking.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-    include: { professional: true, service: true, attachments: true },
-  });
+  const bookings = user
+    ? await prisma.booking.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        include: { professional: true, service: true, attachments: true },
+      })
+    : [];
 
   return (
     <div className="space-y-6">
+      {!user && <InvitadoAviso accion="contratar y seguir tus propuestas" next="/contrataciones" />}
+
       {nueva && (
-        <div className="flex items-center gap-3 rounded-2xl border border-blue-200 bg-cliente-soft p-4 text-cliente-dark">
+        <div className="glass glass-thin flex items-center gap-3 rounded-2xl border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.1)] p-4 text-cliente-dark">
           <CheckCircleIcon width={22} height={22} />
           <p className="text-sm font-medium">¡Listo! Enviamos tu propuesta al profesional. Te va a responder con un presupuesto.</p>
         </div>
@@ -39,17 +46,19 @@ export default async function ContratacionesPage({
       </div>
 
       {bookings.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
-          <p className="text-lg font-semibold text-slate-900">Todavía no enviaste propuestas</p>
+        <div className="glass rounded-2xl border-dashed border-white/70 p-12 text-center">
+          <p className="text-lg font-semibold text-slate-900">
+            {user ? "Todavía no enviaste propuestas" : "Acá van a estar tus propuestas"}
+          </p>
           <p className="mt-1 text-slate-500">Buscá un profesional y contale qué necesitás desde su perfil.</p>
-          <Link href="/" className="mt-4 inline-block rounded-xl bg-cliente px-4 py-2.5 text-sm font-medium text-white hover:bg-cliente-dark">
+          <Link href="/" className="glass-btn mt-4 px-4 py-2.5 text-sm">
             Buscar profesionales
           </Link>
         </div>
       ) : (
         <ul className="space-y-3">
           {bookings.map((b) => (
-            <li key={b.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
+            <li key={b.id} className="glass glass-card flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center">
               <Avatar name={b.professional.name} color={b.professional.avatarColor} size={44} />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-slate-900">{b.service?.title ?? "Servicio a convenir"}</p>

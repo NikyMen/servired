@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { FacebookIcon, InstagramIcon } from "@/components/icons";
-import { FACEBOOK_URL, INSTAGRAM_URL } from "@/lib/links";
+import { FacebookIcon, InstagramIcon, TikTokIcon } from "@/components/icons";
+import { FACEBOOK_URL, INSTAGRAM_URL, TIKTOK_URL } from "@/lib/links";
 import type { Mode } from "@/lib/types";
 
 const clientLinks = [
@@ -22,7 +22,7 @@ export function Footer({ mode }: { mode: Mode }) {
   const links = isPro ? proLinks : clientLinks;
 
   return (
-    <footer className="mt-12 border-t border-slate-200 bg-white/70">
+    <footer className="glass-bar mt-12 border-t border-white/60">
       <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 pb-28 sm:grid-cols-2 md:grid-cols-3 md:pb-10">
         <div className="space-y-3">
           <Logo accent={mode} href={isPro ? "/pro" : "/"} />
@@ -53,11 +53,7 @@ export function Footer({ mode }: { mode: Mode }) {
         <div className="space-y-2">
           <p className="text-xs font-bold tracking-wide text-slate-400 uppercase">Seguinos</p>
           <div className="flex flex-wrap gap-2">
-            <FacebookLink
-              className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors ${
-                isPro ? "hover:border-pro hover:text-pro" : "hover:border-cliente hover:text-cliente"
-              }`}
-            >
+            <FacebookLink className="glass-chip px-3.5 py-2.5 text-sm font-medium text-slate-700">
               <FacebookIcon width={20} height={20} className="text-[#1877F2]" />
               Facebook
             </FacebookLink>
@@ -66,12 +62,20 @@ export function Footer({ mode }: { mode: Mode }) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="ServiRed en Instagram (se abre en una pestaña nueva)"
-              className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition-colors ${
-                isPro ? "hover:border-pro hover:text-pro" : "hover:border-cliente hover:text-cliente"
-              }`}
+              className="glass-chip px-3.5 py-2.5 text-sm font-medium text-slate-700"
             >
               <InstagramIcon width={20} height={20} className="text-[#E1306C]" />
               Instagram
+            </a>
+            <a
+              href={TIKTOK_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="ServiRed en TikTok (se abre en una pestaña nueva)"
+              className="glass-chip px-3.5 py-2.5 text-sm font-medium text-slate-700"
+            >
+              <TikTokIcon width={20} height={20} className="text-[#010101]" />
+              TikTok
             </a>
           </div>
           <p className="text-xs text-slate-400">
@@ -80,7 +84,7 @@ export function Footer({ mode }: { mode: Mode }) {
         </div>
       </div>
 
-      <div className="border-t border-slate-100">
+      <div className="border-t border-white/50">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-slate-400 sm:flex-row">
           <p>© {new Date().getFullYear()} ServiRed. Todos los derechos reservados.</p>
           <p>Hecho en Argentina 🇦🇷</p>

@@ -133,14 +133,14 @@ export function ContratarBox({
   }
 
   return (
-    <div className={`space-y-3 ${frame ? "rounded-2xl border border-slate-200 bg-white p-5" : ""}`}>
+    <div className={`space-y-3 ${frame ? "glass glass-solid rounded-2xl p-5" : ""}`}>
       {frame && <h2 className="font-bold text-slate-900">Enviar propuesta</h2>}
 
       {services.length > 0 && (
         <select
           value={serviceId}
           onChange={(e) => setServiceId(e.target.value)}
-          className="w-full cursor-pointer rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-cliente"
+          className="glass-field cursor-pointer px-3 py-2.5 text-sm"
         >
           {services.map((s) => (
             <option key={s.id} value={s.id}>{s.title}</option>
@@ -153,7 +153,7 @@ export function ContratarBox({
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Contale qué necesitás, cuándo y dónde. El profesional te envía un presupuesto."
-        className="w-full resize-none rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20"
+        className="glass-field resize-none px-3 py-2.5 text-sm"
       />
 
       <input
@@ -167,7 +167,7 @@ export function ContratarBox({
       <button
         type="button"
         onClick={() => fileInput.current?.click()}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-cliente hover:bg-cliente-soft"
+        className="glass flex w-full items-center justify-center gap-2 rounded-xl border-dashed border-white/70 px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-[rgb(var(--accent-rgb)/0.45)] hover:bg-white/70"
       >
         <PaperclipIcon width={17} height={17} />
         Adjuntar imágenes ({files.length}/{MAX_FILES})
@@ -176,7 +176,7 @@ export function ContratarBox({
       {files.length > 0 && (
         <ul className="space-y-1.5">
           {files.map((file, index) => (
-            <li key={`${file.name}-${index}`} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 text-xs">
+            <li key={`${file.name}-${index}`} className="glass glass-thin flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs">
               <span className="min-w-0 flex-1 truncate text-slate-600">{file.name} · {formatBytes(file.size)}</span>
               <button type="button" onClick={() => removeFile(index)} aria-label={`Quitar ${file.name}`} className="text-slate-400 hover:text-red-600">
                 <XIcon width={15} height={15} />

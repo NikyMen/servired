@@ -38,7 +38,7 @@ export function PasswordField({
           autoComplete={autoComplete}
           required
           placeholder="••••••••"
-          className={`w-full rounded-xl border border-slate-300 py-3 pr-12 pl-3.5 text-sm outline-none transition-colors focus:ring-2 ${focus}`}
+          className={`glass-field py-3 pr-12 pl-3.5 text-sm ${focus}`}
         />
         <button
           type="button"
@@ -64,7 +64,7 @@ export function FormError({ message }: { message?: string }) {
   return (
     <p
       role="alert"
-      className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700"
+      className="rounded-xl border border-red-300/50 bg-red-50/70 px-3.5 py-2.5 backdrop-blur-sm text-sm text-red-700"
     >
       {message}
     </p>
@@ -82,13 +82,16 @@ export function SubmitButton({
   pendingLabel?: string;
 }) {
   const { pending } = useFormStatus();
-  const bg = tone === "pro" ? "bg-pro hover:bg-pro-dark" : "bg-cliente hover:bg-cliente-dark";
+  const accent =
+    tone === "pro"
+      ? "[--accent-rgb:5_150_105] [--accent-dark:var(--color-pro-dark)]"
+      : "[--accent-rgb:37_99_235] [--accent-dark:var(--color-cliente-dark)]";
 
   return (
     <button
       type="submit"
       disabled={pending}
-      className={`w-full rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 ${bg}`}
+      className={`glass-btn w-full px-4 py-3 text-sm ${accent}`}
     >
       {pending ? pendingLabel : children}
     </button>

@@ -23,10 +23,7 @@ export function RegisterForm({
 
   const isPro = role === "profesional";
   const tone: Mode = isPro ? "pro" : "cliente";
-  const focus = isPro
-    ? "focus:border-pro focus:ring-pro/20"
-    : "focus:border-cliente focus:ring-cliente/20";
-  const field = `w-full rounded-xl border border-slate-300 px-3.5 py-3 text-sm outline-none transition-colors focus:ring-2 ${focus}`;
+  const field = "glass-field px-3.5 py-3 text-sm";
 
   return (
     <div>
@@ -109,7 +106,7 @@ export function RegisterForm({
 
         {/* Datos del perfil público. Solo los pide el que va a ofrecer servicios. */}
         {isPro && (
-          <div className="animate-fade-in space-y-4 rounded-2xl border border-pro/30 bg-pro-soft/60 p-4">
+          <div className="glass glass-thin animate-reveal-down space-y-4 rounded-2xl border-pro/30 bg-emerald-400/10 p-4">
             <p className="text-xs font-bold tracking-wide text-pro-dark uppercase">
               Tu perfil público
             </p>
@@ -205,8 +202,8 @@ function RoleCard({
 }) {
   const isPro = tone === "pro";
   const on = isPro
-    ? "border-pro bg-pro-soft ring-2 ring-pro/25"
-    : "border-cliente bg-cliente-soft ring-2 ring-cliente/25";
+    ? "border-pro/50 bg-emerald-500/12 ring-2 ring-pro/25"
+    : "border-cliente/50 bg-blue-500/12 ring-2 ring-cliente/25";
 
   return (
     <button
@@ -214,14 +211,14 @@ function RoleCard({
       onClick={onSelect}
       aria-pressed={selected}
       className={`rounded-2xl border p-3.5 text-left transition-all ${
-        selected ? on : "border-slate-200 bg-white hover:border-slate-300"
+        selected ? on : "glass hover:bg-white/72"
       }`}
     >
       <span
         className={`inline-flex size-9 items-center justify-center rounded-xl transition-colors ${
           selected
             ? `text-white ${isPro ? "bg-pro" : "bg-cliente"}`
-            : "bg-slate-100 text-slate-400"
+            : "bg-white/60 text-slate-400"
         }`}
       >
         {icon}

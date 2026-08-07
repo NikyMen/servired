@@ -80,7 +80,7 @@ export function PreinscripcionForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="glass-panel space-y-5 rounded-[2rem] p-6 sm:p-8">
+    <form onSubmit={onSubmit} className="glass glass-solid space-y-5 rounded-[2rem] p-6 sm:p-8">
       <fieldset>
         <legend className="mb-2 text-sm font-medium text-slate-900">¿Cómo querés usar ServiRed?</legend>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -95,7 +95,7 @@ export function PreinscripcionForm() {
                     ? color === "pro"
                       ? "border-pro bg-pro-soft"
                       : "border-cliente bg-cliente-soft"
-                    : "border-slate-200 bg-white hover:border-slate-300"
+                    : "glass hover:bg-white/72"
                 }`}
               >
                 <input

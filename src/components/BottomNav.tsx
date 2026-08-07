@@ -44,7 +44,7 @@ export function BottomNav({ mode }: { mode: Mode }) {
   return (
     <nav
       aria-label="Navegación principal"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden"
+      className="glass-bar fixed inset-x-0 bottom-0 z-40 border-t border-white/60 shadow-[0_-14px_36px_-24px_rgb(15_23_42_/_0.6)] md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {/* El cambio de modo ya no vive acá: lo hace el interruptor del header. */}
@@ -59,11 +59,21 @@ export function BottomNav({ mode }: { mode: Mode }) {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
+              className={`flex min-h-[58px] flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
                 active ? activeColor : "text-slate-500"
               }`}
             >
-              <Icon width={22} height={22} strokeWidth={active ? 2.2 : 1.8} />
+              {/* La pastilla de vidrio detrás del ícono es lo que marca la
+                  pestaña activa; el color solo no alcanza sobre vidrio. */}
+              <span
+                className={`inline-flex items-center justify-center rounded-full px-3.5 py-1 transition-all duration-200 ${
+                  active
+                    ? "bg-[rgb(var(--accent-rgb)/0.14)] shadow-[inset_0_1px_0_rgb(255_255_255/0.6)]"
+                    : ""
+                }`}
+              >
+                <Icon width={22} height={22} strokeWidth={active ? 2.2 : 1.8} />
+              </span>
               {item.label}
             </Link>
           );

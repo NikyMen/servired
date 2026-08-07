@@ -3,10 +3,16 @@
 @import "tailwindcss";
 
 /* ============================================================
-   SERVIRED — Sistema de diseño simplificado
+   SERVIRED — Sistema de diseño glass
    Dos colores:
    - AZUL  (cliente: busca un servicio)
    - VERDE (profesional: ofrece servicios)
+
+   Todo lo que sea "superficie" (tarjeta, barra, campo, hoja) es
+   vidrio: fondo semitransparente + backdrop-filter + un borde claro
+   arriba que simula el canto biselado. Para que el vidrio se lea como
+   vidrio hace falta que atrás pase algo, así que el fondo de página
+   no es plano: son manchas de color que se mueven despacio.
    ============================================================ */
 @theme {
   /* Azul — lado cliente */
@@ -30,40 +36,98 @@
     Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* ------------------------------------------------------------
+   Tokens del vidrio.
+   Los tres que importan: cuánto desenfoca, cuánto blanco lleva y
+   cuánto se ve el canto. Cambiar acá cambia toda la app.
+   --accent-* es el color del lado en el que estás; lo pisa el
+   bloque [data-modo] de más abajo, así el mismo componente sale
+   azul o verde sin una sola condición en el JSX.
+   ------------------------------------------------------------ */
+:root {
+  --glass-blur: 20px;
+  --glass-sat: 1.7;
+
+  /* Superficie base */
+  --glass-fill: 255 255 255;
+  --glass-fill-a: 0.55;
+  --glass-edge: 255 255 255;
+  --glass-edge-a: 0.65;
+
+  /* Sombras: una corta que apoya y una larga que despega del fondo */
+  --glass-shadow: 0 1px 2px rgb(15 23 42 / 0.04),
+    0 16px 40px -18px rgb(15 23 42 / 0.35);
+  --glass-shadow-lift: 0 2px 6px rgb(15 23 42 / 0.06),
+    0 28px 60px -22px rgb(15 23 42 / 0.42);
+
+  /* Acento del modo (por defecto, cliente) */
+  --accent: var(--color-cliente);
+  --accent-dark: var(--color-cliente-dark);
+  --accent-rgb: 37 99 235;
+  --accent-soft-rgb: 147 197 253;
+}
+
+/* El acento sigue al lado de la app. data-modo lo pone cada layout,
+   así el color correcto ya viene en el HTML del servidor. */
+[data-modo="pro"] {
+  --accent: var(--color-pro);
+  --accent-dark: var(--color-pro-dark);
+  --accent-rgb: 5 150 105;
+  --accent-soft-rgb: 110 231 183;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
   }
   body {
-    background-color: #f8fafc;
+    position: relative;
+    background-color: #eef3fb;
     color: #0f172a;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Fondo tintado según el lado en el que estás.
-     Va con :has() y un marcador que pone cada layout: así el color correcto
-     ya viene en el HTML del servidor y no hay parpadeo gris al cargar.
-     Fixed para que el degradé no se corte en páginas largas. */
+  /* El telón de fondo del vidrio.
+     Fixed y detrás de todo: son cuatro manchas de color difuminadas
+     que le dan al backdrop-filter algo interesante que refractar. Sin
+     esto el glass se ve gris y sucio. */
+  body::before {
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    background-color: #eef3fb;
+    background-image:
+      radial-gradient(
+        42rem 42rem at 8% -6%,
+        rgb(var(--accent-rgb) / 0.22),
+        transparent 62%
+      ),
+      radial-gradient(
+        34rem 34rem at 96% 4%,
+        rgb(var(--accent-soft-rgb) / 0.3),
+        transparent 60%
+      ),
+      radial-gradient(30rem 30rem at 80% 92%, rgb(196 181 253 / 0.24), transparent 62%),
+      radial-gradient(36rem 36rem at 14% 96%, rgb(125 211 252 / 0.2), transparent 60%);
+    content: "";
+    pointer-events: none;
+  }
+
+  /* El tinte del lado en el que estás, ahora encima del telón y muy
+     suave: el color lo pone el acento de las manchas, no una capa
+     opaca que mate el vidrio. */
   body:has([data-modo="cliente"]) {
-    background-color: var(--color-cliente-bg);
-    background-image: linear-gradient(
-      170deg,
-      var(--color-cliente-bg) 0%,
-      var(--color-cliente-bg2) 45%,
-      #ffffff 100%
-    );
-    background-attachment: fixed;
+    background-color: var(--color-cliente-bg2);
   }
   body:has([data-modo="pro"]) {
-    background-color: var(--color-pro-bg);
-    background-image: linear-gradient(
-      170deg,
-      var(--color-pro-bg) 0%,
-      var(--color-pro-bg2) 45%,
-      #ffffff 100%
-    );
-    background-attachment: fixed;
+    background-color: var(--color-pro-bg2);
+  }
+  /* El telón hereda el acento del contenido: sin esto las manchas
+     quedarían siempre azules porque body está por fuera del wrapper. */
+  body:has([data-modo="pro"])::before {
+    --accent-rgb: 5 150 105;
+    --accent-soft-rgb: 110 231 183;
   }
 
   /* Sensación de app: sin destello gris al tocar en móvil */
@@ -79,6 +143,280 @@
     textarea {
       font-size: max(16px, 1em) !important;
     }
+  }
+
+  /* Foco visible y del color del modo, en todo lo que se pueda tabular. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent-rgb) / 0.75);
+    outline-offset: 2px;
+  }
+}
+
+/* ============================================================
+   SUPERFICIES DE VIDRIO
+   Van en @layer components para que cualquier utilidad de Tailwind
+   puesta en el mismo elemento (bg-*, border-*, p-*) siga ganando.
+   ============================================================ */
+@layer components {
+  /* La base. Todo lo demás la extiende.
+     El ::before es el brillo especular: una franja clara arriba que
+     hace que el canto parezca biselado en vez de un borde plano. */
+  .glass {
+    position: relative;
+    border: 1px solid rgb(var(--glass-edge) / var(--glass-edge-a));
+    background-color: rgb(var(--glass-fill) / var(--glass-fill-a));
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgb(255 255 255 / 0.6);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+  }
+
+  .glass::before {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.5) 0%,
+      rgb(255 255 255 / 0.08) 26%,
+      transparent 60%
+    );
+    content: "";
+    pointer-events: none;
+  }
+
+  /* Lo que va dentro de un .glass y necesita quedar sobre el brillo. */
+  .glass > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Más sólido: para paneles grandes donde tiene que leerse texto largo. */
+  .glass-solid {
+    --glass-fill-a: 0.78;
+    --glass-blur: 26px;
+  }
+
+  /* Más liviano: chips, badges, cosas chicas apoyadas sobre color. */
+  .glass-thin {
+    --glass-fill-a: 0.38;
+    --glass-blur: 14px;
+    box-shadow: 0 6px 18px -10px rgb(15 23 42 / 0.35),
+      inset 0 1px 0 rgb(255 255 255 / 0.5);
+  }
+
+  /* Vidrio sobre fondo oscuro (hero, cortina): el relleno es blanco muy
+     bajo y el canto sube, porque sobre negro un borde tenue desaparece. */
+  .glass-dark {
+    --glass-fill: 255 255 255;
+    --glass-fill-a: 0.1;
+    --glass-edge-a: 0.28;
+    box-shadow: 0 20px 50px -20px rgb(2 6 23 / 0.7),
+      inset 0 1px 0 rgb(255 255 255 / 0.25);
+    color: #fff;
+  }
+
+  .glass-dark::before {
+    background: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.22) 0%,
+      rgb(255 255 255 / 0.04) 30%,
+      transparent 62%
+    );
+  }
+
+  /* Barras pegadas (header, bottom nav): más desenfoque, menos sombra.
+     Sin borde completo — sólo la línea del lado por el que pasa el
+     contenido, que es lo que da la sensación de lámina apoyada. */
+  .glass-bar {
+    background-color: rgb(255 255 255 / 0.62);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    backdrop-filter: blur(24px) saturate(1.8);
+  }
+
+  /* Tarjeta interactiva: se levanta al pasar por arriba y el canto se
+     tiñe del color del modo. La transición no toca el blur (carísimo). */
+  .glass-card {
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms ease, border-color 220ms ease;
+  }
+
+  .glass-card:hover {
+    border-color: rgb(var(--accent-rgb) / 0.4);
+    box-shadow: var(--glass-shadow-lift),
+      0 0 0 1px rgb(var(--accent-rgb) / 0.12),
+      inset 0 1px 0 rgb(255 255 255 / 0.7);
+    transform: translateY(-3px);
+  }
+
+  .glass-card:active {
+    transform: translateY(-1px) scale(0.995);
+  }
+
+  /* ---------------- Campos ---------------- */
+  .glass-field {
+    width: 100%;
+    border: 1px solid rgb(255 255 255 / 0.7);
+    border-radius: 0.9rem;
+    background-color: rgb(255 255 255 / 0.55);
+    box-shadow: inset 0 1px 2px rgb(15 23 42 / 0.05),
+      0 1px 0 rgb(255 255 255 / 0.5);
+    color: #0f172a;
+    outline: none;
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+    backdrop-filter: blur(12px) saturate(1.4);
+    transition: background-color 180ms ease, box-shadow 180ms ease,
+      border-color 180ms ease;
+  }
+
+  .glass-field::placeholder {
+    color: rgb(100 116 139 / 0.75);
+  }
+
+  .glass-field:hover {
+    background-color: rgb(255 255 255 / 0.68);
+  }
+
+  .glass-field:focus {
+    border-color: rgb(var(--accent-rgb) / 0.55);
+    background-color: rgb(255 255 255 / 0.9);
+    box-shadow: 0 0 0 4px rgb(var(--accent-rgb) / 0.16),
+      inset 0 1px 2px rgb(15 23 42 / 0.05);
+  }
+
+  /* select nativo dentro de un campo de vidrio */
+  select.glass-field {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, rgb(71 85 105) 50%),
+      linear-gradient(135deg, rgb(71 85 105) 50%, transparent 50%);
+    background-position: calc(100% - 18px) center, calc(100% - 12px) center;
+    background-repeat: no-repeat;
+    background-size: 6px 6px, 6px 6px;
+    padding-right: 2.25rem;
+  }
+
+  /* ---------------- Botones ---------------- */
+  /* Sólido con acento: el CTA. El degradé va del color del modo a una
+     versión más clara, y el inset de arriba lo hace ver abombado. */
+  .glass-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    overflow: hidden;
+    border: 1px solid rgb(255 255 255 / 0.28);
+    border-radius: 1rem;
+    background-image: linear-gradient(
+      160deg,
+      rgb(var(--accent-rgb) / 0.96),
+      var(--accent-dark)
+    );
+    box-shadow: 0 10px 24px -10px rgb(var(--accent-rgb) / 0.85),
+      inset 0 1px 0 rgb(255 255 255 / 0.35);
+    color: #fff;
+    font-weight: 600;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 160ms ease, filter 160ms ease;
+  }
+
+  .glass-btn:hover:not(:disabled) {
+    box-shadow: 0 16px 32px -12px rgb(var(--accent-rgb) / 0.95),
+      inset 0 1px 0 rgb(255 255 255 / 0.45);
+    filter: brightness(1.06);
+    transform: translateY(-2px);
+  }
+
+  .glass-btn:active:not(:disabled) {
+    box-shadow: 0 6px 14px -8px rgb(var(--accent-rgb) / 0.8);
+    transform: translateY(0) scale(0.985);
+  }
+
+  .glass-btn:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.25);
+    opacity: 0.6;
+    transform: none;
+  }
+
+  /* Un destello que cruza el botón al pasar el mouse. Es lo que le da
+     la lectura de "superficie pulida" y no de rectángulo de color. */
+  .glass-btn::after {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -60%;
+    width: 40%;
+    background: linear-gradient(
+      100deg,
+      transparent,
+      rgb(255 255 255 / 0.38),
+      transparent
+    );
+    content: "";
+    pointer-events: none;
+    transform: skewX(-18deg);
+    transition: left 620ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .glass-btn:hover::after {
+    left: 130%;
+  }
+
+  /* Secundario: vidrio de verdad, sin relleno de color. */
+  .glass-btn-ghost {
+    border: 1px solid rgb(255 255 255 / 0.7);
+    background-color: rgb(255 255 255 / 0.5);
+    background-image: none;
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgb(255 255 255 / 0.6);
+    color: #334155;
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    backdrop-filter: blur(16px) saturate(1.5);
+  }
+
+  .glass-btn-ghost:hover:not(:disabled) {
+    border-color: rgb(var(--accent-rgb) / 0.4);
+    background-color: rgb(255 255 255 / 0.72);
+    box-shadow: var(--glass-shadow-lift);
+    color: var(--accent-dark);
+    filter: none;
+  }
+
+  /* Chip / píldora de vidrio */
+  .glass-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid rgb(255 255 255 / 0.7);
+    border-radius: 999px;
+    background-color: rgb(255 255 255 / 0.5);
+    box-shadow: 0 6px 16px -10px rgb(15 23 42 / 0.4),
+      inset 0 1px 0 rgb(255 255 255 / 0.6);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
+    backdrop-filter: blur(14px) saturate(1.5);
+    transition: background-color 160ms ease, border-color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .glass-chip:hover {
+    border-color: rgb(var(--accent-rgb) / 0.35);
+    background-color: rgb(255 255 255 / 0.72);
+    transform: translateY(-1px);
+  }
+
+  /* Chip seleccionado: se llena del acento y deja de ser vidrio. */
+  .glass-chip-on {
+    border-color: transparent;
+    background-color: rgb(var(--accent-rgb) / 0.95);
+    box-shadow: 0 10px 22px -12px rgb(var(--accent-rgb) / 0.9),
+      inset 0 1px 0 rgb(255 255 255 / 0.3);
+    color: #fff;
+  }
+
+  .glass-chip-on:hover {
+    background-color: var(--accent-dark);
   }
 }
 
@@ -107,126 +445,141 @@
     opacity: 1;
   }
 }
+/* Entrada de bloques que aparecen dentro de un form (el panel de perfil
+   del registro): además de aparecer, se despliegan. */
+@keyframes reveal-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0 0 0 0);
+  }
+}
 @utility animate-sheet-up {
   animation: sheet-up 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 @utility animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }
+@utility animate-reveal-down {
+  animation: reveal-down 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
 
 /* ============================================================
    Cambio de modo (busca <-> ofrece)
-   Una onda de color que nace EXACTAMENTE donde tocaste el interruptor
-   y se expande hasta tragarse la pantalla. El punto de origen llega por
-   --mode-x / --mode-y (lo setea ModeTransition con las coordenadas del
-   clic); si no hubo clic —cambio por URL, botón de atrás— cae en un
-   punto arriba a la derecha, que es donde vive el interruptor.
 
-   Coreografía (todas las capas duran los mismos 1.6s):
-     0-160ms      anillo de choque + chispas: el "toque" físico
-     0-640ms      el eco claro y la onda de color crecen desde el origen;
-                  el eco corre adelante y hace de borde luminoso
-     640-1090ms   tapado total: acá pasa el cambio de fondo, sin verse;
-                  la marca está nítida en el centro
-     1090-1600ms  la cortina se disuelve y descubre la página nueva
+   Antes esto era una onda de color de 1,6 s que nacía en el clic. Era
+   larga y tapaba media navegación: para cuando terminaba, ya estabas
+   en la otra página hacía rato y el interruptor parecía trabado.
 
-   --mode-dir (1 / -1) ya no mueve la cortina: sólo le da deriva a la
-   marca y a las chispas, para que el conjunto insinúe hacia qué lado
-   de la app cruzaste.
+   Ahora es una lámina de vidrio esmerilado que barre la pantalla EN EL
+   SENTIDO en el que te movés: al lado que ofrece (verde, a la derecha
+   del interruptor) entra por la izquierda y sale por la derecha; al
+   lado que busca, al revés. Dura 820 ms, que es apenas más que lo que
+   tarda la navegación, y el sentido del barrido te dice a dónde fuiste
+   sin necesidad de leer nada.
 
-   Los keyframes traen su propio animation-timing-function, así que las
-   utilidades corren en `linear` y no vuelven a curvar cada tramo.
+   Coreografía:
+     0-280ms    la lámina entra desde el borde de origen y desenfoca
+     280-460ms  cubre: acá pasa el cambio de página, sin verse
+     460-820ms  sigue de largo y sale por el borde opuesto
+
+   --mode-dir (1 = vas a "ofrezco", -1 = vas a "busco") es lo único que
+   cambia el sentido; el resto de la geometría es igual para los dos.
    ============================================================ */
 
-/* Tonos y sentido, según a dónde vas. Los claros son la misma familia
-   que --color-cliente / --color-pro, un par de pasos más arriba. */
-.mode-skin-cliente {
-  --mode-core: var(--color-cliente);
-  --mode-deep: var(--color-cliente-dark);
-  --mode-glow: #60a5fa;
-  --mode-mist: #93c5fd;
-  --mode-dir: 1;
-}
-.mode-skin-pro {
-  --mode-core: var(--color-pro);
-  --mode-deep: var(--color-pro-dark);
-  --mode-glow: #34d399;
-  --mode-mist: #6ee7b7;
-  --mode-dir: -1;
-}
+/* En @layer components y no sueltas: una regla sin capa le gana a
+   CUALQUIER utilidad de Tailwind, y eso hacía que `hidden`, `absolute`
+   o `sm:inline-flex` puestas en el JSX no tuvieran efecto. */
+@layer components {
+  .mode-skin-cliente {
+    --mode-rgb: 37 99 235;
+    --mode-soft-rgb: 147 197 253;
+    --mode-deep: #1d4ed8;
+    --mode-dir: -1;
+  }
+  .mode-skin-pro {
+    --mode-rgb: 5 150 105;
+    --mode-soft-rgb: 110 231 183;
+    --mode-deep: #047857;
+    --mode-dir: 1;
+  }
 
-/* La onda principal: un plano de color recortado por un clip-path circular
-   que crece desde el origen. El fondo no es plano: un gradiente radial
-   anclado al mismo punto hace que el color sea más profundo cerca de donde
-   tocaste, como si la tinta se diluyera al avanzar.
-   `rgb(from … / 0)` y no `transparent`: transparent es negro alfa 0 y
-   arrastra el degradé hacia el negro. */
-.mode-wave {
-  background: radial-gradient(
-    circle at var(--mode-x) var(--mode-y),
-    var(--mode-deep) 0%,
-    var(--mode-core) 34%,
-    var(--mode-glow) 120%
-  );
-}
+  /* La lámina. Es más ancha que la pantalla (120vw) y va inclinada: el
+     filo que avanza es una diagonal, no una línea vertical, que es lo
+     que hace que se lea como un objeto pasando y no como un fundido. */
+  .mode-pane {
+    position: absolute;
+    top: -12%;
+    left: -10%;
+    width: 120vw;
+    height: 124%;
+    border-left: 1px solid rgb(255 255 255 / 0.55);
+    border-right: 1px solid rgb(255 255 255 / 0.55);
+    background: linear-gradient(
+      115deg,
+      rgb(var(--mode-rgb) / 0.9) 0%,
+      var(--mode-deep) 42%,
+      rgb(var(--mode-rgb) / 0.92) 72%,
+      rgb(var(--mode-soft-rgb) / 0.9) 100%
+    );
+    box-shadow: 0 0 90px 20px rgb(var(--mode-rgb) / 0.45);
+    transform: skewX(-8deg);
+  }
 
-/* El eco: mismo recorte circular pero en el tono claro y corriendo
-   adelante de la onda. Lo que se ve es un aro luminoso de unos vmax de
-   ancho en el filo que avanza. */
-.mode-wave-echo {
-  background: radial-gradient(
-    circle at var(--mode-x) var(--mode-y),
-    var(--mode-mist) 0%,
-    var(--mode-glow) 60%
-  );
-}
+  /* El filo luminoso del borde de ataque.
+     Va DENTRO de la lámina, no al lado: así viaja con ella sin una segunda
+     animación de posición que haya que mantener sincronizada, y hereda el
+     sesgo. Lo único que se anima acá es cuánto prende.
+     De qué lado se pega depende del sentido del barrido. */
+  .mode-edge {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 22vw;
+    filter: blur(14px);
+    pointer-events: none;
+  }
 
-/* El anillo de choque: un aro fino que confirma el toque antes de que la
-   onda tome la pantalla. Es un elemento chico centrado en el origen con
-   translate(-50%,-50%); la animación sólo lo escala. */
-.mode-ring {
-  position: absolute;
-  left: var(--mode-x);
-  top: var(--mode-y);
-  width: 14vmax;
-  height: 14vmax;
-  margin: -7vmax 0 0 -7vmax;
-  border-radius: 50%;
-  border: 3px solid rgb(255 255 255 / 0.9);
-  box-shadow:
-    0 0 24px rgb(255 255 255 / 0.5),
-    inset 0 0 18px rgb(255 255 255 / 0.35);
-}
+  .mode-skin-pro .mode-edge {
+    right: -3vw;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.75) 82%,
+      rgb(255 255 255 / 0.95) 100%
+    );
+  }
 
-/* Chispas que salen despedidas del punto de contacto. Cada una trae su
-   ángulo en --a; la deriva horizontal extra (--mode-dir) empuja el
-   conjunto hacia el lado al que cruzás. */
-.mode-spark {
-  position: absolute;
-  left: var(--mode-x);
-  top: var(--mode-y);
-  width: 10px;
-  height: 10px;
-  margin: -5px 0 0 -5px;
-  border-radius: 50%;
-  background: white;
-  box-shadow: 0 0 12px rgb(255 255 255 / 0.8);
-}
+  .mode-skin-cliente .mode-edge {
+    left: -3vw;
+    background: linear-gradient(
+      270deg,
+      transparent,
+      rgb(255 255 255 / 0.75) 82%,
+      rgb(255 255 255 / 0.95) 100%
+    );
+  }
 
-/* Vidrio: desenfoca lo que quede atrás. Primero la página que dejás; al
-   disolverse el color, la nueva entra en foco sola. */
-@keyframes mode-veil {
+}
+/* Vidrio esmerilado: desenfoca lo que quede atrás mientras la lámina
+   está en pantalla. Sin fondo propio — lo que borronea es la página. */
+@keyframes mode-frost {
   0% {
     opacity: 0;
     -webkit-backdrop-filter: blur(0px) saturate(1);
     backdrop-filter: blur(0px) saturate(1);
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
   }
-  34%,
-  68% {
+  32%,
+  58% {
     opacity: 1;
-    -webkit-backdrop-filter: blur(16px) saturate(1.3);
-    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(22px) saturate(1.5);
+    backdrop-filter: blur(22px) saturate(1.5);
     animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
   }
   100% {
@@ -236,123 +589,66 @@
   }
 }
 
-/* El corazón: el círculo de color crece desde el punto del toque hasta
-   tragarse la pantalla, sostiene el tapado y se disuelve.
-
-   Los 150vmax de radio final salen del peor caso: la esquina más lejana
-   está a lo sumo a hypot(100vw, 100vh) <= 142vmax del origen; 150 deja
-   margen. En vmax y no en vw para que no se dispare en un celular
-   vertical.
-
-   La curva de entrada (0.22, 1, 0.36, 1) arranca explosiva y aterriza
-   suave: el 80% del área se cubre en la primera mitad del tramo. El
-   tapado total va de ~640ms a ~1090ms; ahí pasa el cambio de fondo. */
-@keyframes mode-wave {
+/* El barrido. Entra desde el borde de origen, se planta un instante
+   (32%-58%: ahí ocurre el cambio de página) y sigue de largo.
+   Sólo transform: no toca layout, corre en el compositor. */
+@keyframes mode-sweep {
   0% {
-    opacity: 1;
-    clip-path: circle(0vmax at var(--mode-x) var(--mode-y));
+    transform: translate3d(calc(var(--mode-dir) * -118%), 0, 0) skewX(-8deg);
     animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
-  40%,
-  68% {
-    opacity: 1;
-    clip-path: circle(150vmax at var(--mode-x) var(--mode-y));
-    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  32%,
+  58% {
+    transform: translate3d(0, 0, 0) skewX(-8deg);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.35, 1);
   }
   100% {
-    opacity: 0;
-    clip-path: circle(150vmax at var(--mode-x) var(--mode-y));
+    transform: translate3d(calc(var(--mode-dir) * 118%), 0, 0) skewX(-8deg);
   }
 }
 
-/* El eco corre adelante de la onda (llega al radio final antes) y se
-   apaga apenas la onda lo alcanza: mientras crece, la diferencia entre
-   los dos radios es el aro claro que se ve avanzar. */
-@keyframes mode-wave-echo {
+/* El filo prende mientras la lámina corre y se apaga cuando se planta:
+   mientras hay movimiento se ve la luz empujando el vidrio; una vez
+   detenida, un filo encendido sólo delataría que es un rectángulo. */
+@keyframes mode-edge {
   0% {
-    opacity: 0.9;
-    clip-path: circle(0vmax at var(--mode-x) var(--mode-y));
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0;
   }
-  34% {
-    opacity: 0.7;
-    clip-path: circle(150vmax at var(--mode-x) var(--mode-y));
-    animation-timing-function: ease-out;
+  18%,
+  30% {
+    opacity: 1;
   }
-  52%,
+  44%,
   100% {
     opacity: 0;
-    clip-path: circle(150vmax at var(--mode-x) var(--mode-y));
   }
 }
 
-/* El anillo confirma el toque: expande rápido y muere antes de que la
-   onda tome protagonismo. Todo pasa en el primer cuarto. */
-@keyframes mode-ring {
+/* La marca viaja con la lámina, un poco más lento: ese desfasaje es lo
+   que da sensación de profundidad (parallax) entre las dos capas. */
+@keyframes mode-badge {
   0% {
-    opacity: 1;
-    scale: 0.08;
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  22% {
-    opacity: 0.6;
-    scale: 1.6;
-  }
-  38%,
-  100% {
     opacity: 0;
-    scale: 2.6;
-  }
-}
-
-/* Cada chispa vuela en su ángulo (--a) con una pizca de deriva hacia el
-   lado del cruce, se encoge y muere. Viven menos que el anillo. */
-@keyframes mode-spark {
-  0% {
-    opacity: 1;
-    translate: 0 0;
-    scale: 1;
+    filter: blur(10px);
+    transform: translate3d(calc(var(--mode-dir) * -40%), 0, 0) scale(0.94);
     animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
   30%,
-  100% {
-    opacity: 0;
-    translate: calc(cos(var(--a)) * 16vmax + var(--mode-dir) * 3vmax)
-      calc(sin(var(--a)) * -16vmax);
-    scale: 0.1;
-  }
-}
-
-/* La marca se arma desde el desenfoque y se deshace igual. Nítida entre los
-   ~960ms y los ~1360ms, que es justo cuando la pantalla está tapada.
-   Deriva un poco hacia el mismo lado que el disco: la trae y se la lleva. */
-@keyframes mode-badge {
-  0%,
-  20% {
-    opacity: 0;
-    filter: blur(16px);
-    translate: calc(var(--mode-dir) * -2rem) 12px;
-    scale: 0.92;
-    animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
-  }
-  48%,
-  68% {
+  56% {
     opacity: 1;
     filter: blur(0px);
-    translate: 0 0;
-    scale: 1;
-    animation-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
+    transform: translate3d(0, 0, 0) scale(1);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.35, 1);
   }
-  88%,
+  84%,
   100% {
     opacity: 0;
-    filter: blur(14px);
-    translate: calc(var(--mode-dir) * 2rem) -12px;
-    scale: 1.06;
+    filter: blur(10px);
+    transform: translate3d(calc(var(--mode-dir) * 40%), 0, 0) scale(1.04);
   }
 }
 
-/* La página entra desde abajo apenas se corre la cortina. */
+/* La página entra desde abajo apenas se despeja la lámina. */
 @keyframes page-in {
   from {
     opacity: 0;
@@ -364,33 +660,26 @@
   }
 }
 
-@utility animate-mode-veil {
-  animation: mode-veil 1.6s linear forwards;
+@utility animate-mode-frost {
+  animation: mode-frost 0.82s linear forwards;
 }
-@utility animate-mode-wave {
-  animation: mode-wave 1.6s linear forwards;
-  will-change: clip-path, opacity;
+@utility animate-mode-sweep {
+  animation: mode-sweep 0.82s linear forwards;
+  will-change: transform;
 }
-@utility animate-mode-wave-echo {
-  animation: mode-wave-echo 1.6s linear forwards;
-  will-change: clip-path, opacity;
-}
-@utility animate-mode-ring {
-  animation: mode-ring 1.6s linear forwards;
-  will-change: scale, opacity;
-}
-@utility animate-mode-spark {
-  animation: mode-spark 1.6s linear forwards;
-  will-change: translate, opacity;
+@utility animate-mode-edge {
+  animation: mode-edge 0.82s linear forwards;
+  will-change: opacity;
 }
 @utility animate-mode-badge {
-  animation: mode-badge 1.6s linear forwards;
+  animation: mode-badge 0.82s linear forwards;
+  will-change: transform, opacity;
 }
 @utility animate-page-in {
   animation: page-in 0.4s ease-out;
 }
 
-/* Manchas de color que respiran detrás del panel del login. */
+/* Manchas de color que respiran detrás de los paneles de vidrio. */
 @keyframes blob {
   0%,
   100% {
@@ -419,33 +708,159 @@
   }
 }
 
-/* Hero visual: el canvas aporta profundidad sin depender de una librería. */
-.parallax-hero {
-  isolation: isolate;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 82% 18%, rgb(56 189 248 / 0.28), transparent 30%),
-    linear-gradient(135deg, #0f2c68 0%, #1d4ed8 55%, #2563eb 100%);
-  box-shadow: 0 24px 60px rgb(37 99 235 / 0.2);
+/* ============================================================
+   HERO DE OFICIOS
+   El banner es una escena oscura: un soldador a la izquierda con el
+   arco prendido y un plomero a la derecha bajo una bacha. Manda la
+   foto de public/hero-soldador.jpg; si falta, <HeroFondo> monta la
+   escena dibujada en canvas (ver HeroFondo.tsx).
+
+   Acá va el encuadre de la foto y, sobre todo, el velo: los degradés
+   que garantizan que el texto blanco se lea sin borrar la imagen.
+   ============================================================ */
+/* En @layer components y no sueltas: una regla sin capa le gana a
+   CUALQUIER utilidad de Tailwind, y eso hacía que `hidden`, `absolute`
+   o `sm:inline-flex` puestas en el JSX no tuvieran efecto. */
+@layer components {
+  .hero-weld {
+    position: relative;
+    isolation: isolate;
+    background:
+      radial-gradient(60% 70% at 72% 62%, rgb(56 189 248 / 0.16), transparent 70%),
+      linear-gradient(165deg, #0b1220 0%, #111c31 45%, #0a1424 100%);
+    box-shadow: 0 30px 70px -30px rgb(2 6 23 / 0.85);
+  }
+
+  /* El recorte vive acá y no en .hero-weld a propósito.
+     Las capas de la escena (canvas, foto, velo, grano) tienen que quedar
+     dentro de las esquinas redondeadas, pero el CONTENIDO no: el desplegable
+     de sugerencias del buscador nace abajo de todo y con overflow:hidden en
+     el banner quedaba cortado por el borde. */
+  .hero-weld-scene {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    -webkit-mask-image:
+      linear-gradient(to right, transparent 0%, black 3%, black 97%, transparent 100%),
+      linear-gradient(to bottom, transparent 0%, black 4%, black 96%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, transparent 0%, black 3%, black 97%, transparent 100%),
+      linear-gradient(to bottom, transparent 0%, black 4%, black 96%, transparent 100%);
+    mask-composite: intersect;
+    pointer-events: none;
+  }
+
+  /* La foto. Es un <img> y no un background porque necesitamos saber si el
+     archivo existe (onError) para no dejar el canvas animando por gusto
+     debajo de una imagen opaca. */
+  .hero-weld-photo {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    /* En pantallas angostas entra menos ancho, así que el recorte se queda
+       con el soldador y el arco — la mitad que más cuenta. */
+    object-position: 32% center;
+  }
+
+  /* Desde tablet entran los dos oficios y la foto se centra. */
+  @media (min-width: 768px) {
+    .hero-weld-photo {
+      object-position: center;
+    }
+  }
+
+  /* Velo de legibilidad.
+     Tres capas, y ninguna es una franja pareja: la foto tiene a los dos
+     protagonistas en los costados y el arco brillante al medio, así que
+     oscurecer de lado a lado (como hacía antes) enterraba justo lo bueno.
+       1. Una elipse arriba a la izquierda, donde vive el título.
+       2. Un piso abajo, donde se apoya el buscador — ese sí bien opaco,
+          porque ahí hay campos de texto que tienen que leerse sí o sí.
+       3. Una viñeta floja que cierra el encuadre sin tocar el centro. */
+  .hero-weld-veil {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    background:
+      radial-gradient(
+        72% 78% at 2% 0%,
+        rgb(4 9 18 / 0.85) 0%,
+        rgb(4 9 18 / 0.5) 42%,
+        transparent 72%
+      ),
+      linear-gradient(
+        to top,
+        rgb(4 9 18 / 0.92) 0%,
+        rgb(4 9 18 / 0.62) 18%,
+        rgb(4 9 18 / 0.14) 38%,
+        transparent 56%
+      ),
+      radial-gradient(125% 105% at 50% 45%, transparent 45%, rgb(2 6 23 / 0.5) 100%);
+    pointer-events: none;
+  }
+
+  /* Grano fino: rompe el bandeado de los degradés y le saca el plástico
+     a la escena. Es un SVG de ruido embebido, no pesa nada. */
+  .hero-weld-grain {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    opacity: 0.16;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.5'/></svg>");
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  .hero-weld-content {
+    position: relative;
+    z-index: 4;
+  }
 }
 
-.parallax-hero::after {
-  position: absolute;
-  inset: auto -10% -48% 18%;
-  z-index: -1;
-  height: 70%;
-  border-radius: 999px;
-  background: rgb(125 211 252 / 0.18);
-  content: "";
-  filter: blur(60px);
-  transform: rotate(-9deg);
+/* El pulso del arco lamiendo el borde del banner: el mismo parpadeo
+   irregular que hace el canvas, pero afuera del recorte. */
+@keyframes arc-flicker {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  8% {
+    opacity: 0.95;
+  }
+  14% {
+    opacity: 0.35;
+  }
+  22% {
+    opacity: 0.85;
+  }
+  30% {
+    opacity: 0.5;
+  }
+  46% {
+    opacity: 1;
+  }
+  53% {
+    opacity: 0.42;
+  }
+  68% {
+    opacity: 0.78;
+  }
+  80% {
+    opacity: 0.45;
+  }
 }
 
-.parallax-content {
-  position: relative;
-  z-index: 1;
+.hero-arc-glow {
+  animation: arc-flicker 3.4s steps(1, end) infinite;
 }
 
+/* Flotación suave de las tarjetas colgadas del hero. */
 .parallax-float {
   animation: parallax-float 7s ease-in-out infinite;
 }
@@ -464,111 +879,83 @@
   }
 }
 
-.servired-button {
-  box-shadow: 0 10px 22px rgb(15 23 42 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.2);
-  -webkit-backdrop-filter: blur(12px) saturate(1.15);
-  backdrop-filter: blur(12px) saturate(1.15);
-  transform: translateY(0);
-}
-
-.servired-button:hover {
-  box-shadow: 0 14px 28px rgb(15 23 42 / 0.18);
-  transform: translateY(-2px);
-}
-
-.servired-button:active {
-  box-shadow: 0 5px 12px rgb(15 23 42 / 0.12);
-  transform: translateY(0) scale(0.98);
-}
-
-/* Landing pública: vidrio suave, fondo luminoso y controles legibles. */
-.landing-shell {
-  background:
-    radial-gradient(circle at 8% 8%, rgb(147 197 253 / 0.4), transparent 28%),
-    radial-gradient(circle at 92% 82%, rgb(167 243 208 / 0.34), transparent 30%),
-    linear-gradient(135deg, #eef6ff 0%, #f8fbff 48%, #effcf7 100%);
-}
-
-.landing-orb {
-  position: absolute;
-  border-radius: 999px;
-  pointer-events: none;
-}
-
-.landing-orb-one {
-  top: 12%;
-  left: -9rem;
-  width: 20rem;
-  height: 20rem;
-  background: rgb(96 165 250 / 0.16);
-  filter: blur(45px);
-}
-
-.landing-orb-two {
-  right: -8rem;
-  bottom: 8%;
-  width: 22rem;
-  height: 22rem;
-  background: rgb(52 211 153 / 0.13);
-  filter: blur(50px);
-}
-
-.glass-panel,
-.glass-nav {
-  border: 1px solid rgb(255 255 255 / 0.72);
-  background: rgb(255 255 255 / 0.58);
-  box-shadow: 0 24px 70px rgb(30 64 175 / 0.1), inset 0 1px 0 rgb(255 255 255 / 0.8);
-  -webkit-backdrop-filter: blur(24px) saturate(1.25);
-  backdrop-filter: blur(24px) saturate(1.25);
-}
-
-.glass-input {
-  border-color: rgb(148 163 184 / 0.42);
-  background: rgb(255 255 255 / 0.64);
-  box-shadow: inset 0 1px 2px rgb(15 23 42 / 0.04);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  transition: background-color 160ms ease, box-shadow 160ms ease;
-}
-
-.glass-input:focus {
-  background: rgb(255 255 255 / 0.88);
-  box-shadow: 0 0 0 4px rgb(96 165 250 / 0.13), inset 0 1px 2px rgb(15 23 42 / 0.04);
-}
-
-.glass-chip,
-.social-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: 1px solid rgb(255 255 255 / 0.72);
-  background: rgb(255 255 255 / 0.5);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-}
-
-.glass-chip {
-  border-radius: 999px;
-  padding: 0.55rem 0.85rem;
-}
-
-.social-button {
-  border-radius: 0.85rem;
-  padding: 0.6rem 0.85rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
-}
-
-.social-button:hover {
-  background: rgb(255 255 255 / 0.82);
-  box-shadow: 0 8px 20px rgb(15 23 42 / 0.1);
-  transform: translateY(-2px);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .parallax-float,
-  .parallax-float-slow {
+  .parallax-float-slow,
+  .hero-arc-glow {
     animation: none;
   }
+}
+
+/* ============================================================
+   INTERRUPTOR DE MODO
+   Control segmentado: dos mitades tocables y una píldora que se
+   desliza debajo de la activa. La píldora se mueve por --switch-i
+   (0 = busco, 1 = ofrezco), que el componente pone de forma
+   optimista apenas tocás, sin esperar a que navegue.
+   ============================================================ */
+/* En @layer components y no sueltas: una regla sin capa le gana a
+   CUALQUIER utilidad de Tailwind, y eso hacía que `hidden`, `absolute`
+   o `sm:inline-flex` puestas en el JSX no tuvieran efecto. */
+@layer components {
+  .mode-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 3px;
+    isolation: isolate;
+  }
+
+  /* La píldora. cubic-bezier con rebote corto: sale rápido y se acomoda,
+     que es lo que hace que el toque se sienta resuelto. */
+  .mode-switch-pill {
+    position: absolute;
+    z-index: 0;
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    width: calc((100% - 6px) / 2);
+    border-radius: 999px;
+    background-image: linear-gradient(
+      160deg,
+      rgb(var(--switch-rgb) / 0.95),
+      var(--switch-deep)
+    );
+    box-shadow: 0 6px 16px -6px rgb(var(--switch-rgb) / 0.9),
+      inset 0 1px 0 rgb(255 255 255 / 0.4);
+    transform: translate3d(calc(var(--switch-i) * 100%), 0, 0);
+    transition: transform 420ms cubic-bezier(0.34, 1.35, 0.5, 1),
+      background-image 260ms ease, box-shadow 260ms ease;
+  }
+
+  .mode-switch-seg {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    transition: color 260ms ease, opacity 260ms ease;
+  }
+
+  /* Al apretar, el control entero se hunde apenas: confirma el toque
+     aunque la navegación tarde. */
+  .mode-switch:active .mode-switch-pill {
+    transform: translate3d(calc(var(--switch-i) * 100%), 0, 0) scaleX(0.94);
+  }
+
+  /* Colores de la píldora según a qué lado apunta. */
+  .mode-switch[data-side="cliente"] {
+    --switch-rgb: 37 99 235;
+    --switch-deep: #1d4ed8;
+  }
+  .mode-switch[data-side="pro"] {
+    --switch-rgb: 5 150 105;
+    --switch-deep: #047857;
+  }
+
 }

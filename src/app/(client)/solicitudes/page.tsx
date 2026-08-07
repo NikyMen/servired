@@ -33,7 +33,7 @@ export default async function SolicitudesPage({
   return (
     <div className="space-y-6">
       {nueva && (
-        <div className="flex items-center gap-3 rounded-2xl border border-blue-200 bg-cliente-soft p-4 text-cliente-dark">
+        <div className="glass glass-thin flex items-center gap-3 rounded-2xl border-[rgb(var(--accent-rgb)/0.3)] bg-[rgb(var(--accent-rgb)/0.1)] p-4 text-cliente-dark">
           <CheckCircleIcon width={22} height={22} />
           <p className="text-sm font-medium">
             ¡Tu solicitud fue publicada! Los profesionales te van a contactar por mensajes.
@@ -58,10 +58,10 @@ export default async function SolicitudesPage({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {requests.map((r) => (
-          <article key={r.id} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5">
+          <article key={r.id} className="glass glass-card flex flex-col rounded-2xl p-5">
             <div className="flex items-center justify-between">
               {r.category ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-cliente-soft px-2.5 py-1 text-xs font-medium text-cliente-dark">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/12 px-2.5 py-1 text-xs font-medium text-cliente-dark ring-1 ring-blue-400/25 ring-inset backdrop-blur-sm">
                   <span>{r.category.icon}</span> {r.category.name}
                 </span>
               ) : (
@@ -73,7 +73,7 @@ export default async function SolicitudesPage({
             <h2 className="mt-3 font-semibold text-slate-900">{r.title}</h2>
             <p className="mt-1 line-clamp-3 text-sm text-slate-500">{r.description}</p>
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-sm text-slate-500">
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-white/60 pt-3 text-sm text-slate-500">
               <span className="flex items-center gap-1">
                 <MapPinIcon width={15} height={15} className="text-slate-400" />
                 {r.zone}

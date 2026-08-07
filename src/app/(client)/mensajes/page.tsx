@@ -1,27 +1,33 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { Chat } from "@/components/Chat";
-import { requireUser } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
+import { InvitadoAviso } from "@/components/InvitadoAviso";
 import { PRO_GREEN } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mensajes" };
 
 export default async function MensajesPage() {
-  const user = await requireUser("/mensajes");
+  const user = await getSessionUser();
 
-  // Solo los hilos propios: antes se listaban los de todo el mundo.
-  const conversations = await prisma.conversation.findMany({
-    where: { userId: user.id },
-    orderBy: { updatedAt: "desc" },
-    include: {
-      professional: true,
-      messages: { orderBy: { createdAt: "asc" } },
-    },
-  });
+  // Solo los hilos propios: antes se listaban los de todo el mundo. Un
+  // invitado no tiene ninguno, y ver la bandeja de otro sería una fuga.
+  const conversations = user
+    ? await prisma.conversation.findMany({
+        where: { userId: user.id },
+        orderBy: { updatedAt: "desc" },
+        include: {
+          professional: true,
+          messages: { orderBy: { createdAt: "asc" } },
+        },
+      })
+    : [];
 
   return (
     <div className="space-y-4">
+      {!user && <InvitadoAviso accion="escribirle a un profesional" next="/mensajes" />}
+
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Mensajes</h1>
         <p className="mt-1 text-slate-500">Coordiná los detalles con los profesionales.</p>

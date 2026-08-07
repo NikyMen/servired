@@ -1,7 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -85,23 +84,10 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   };
 });
 
-/**
- * Igual que getSessionUser pero corta el render y manda a /entrar.
- * `next` hace que después del login se vuelva a donde el usuario quería ir.
+/*
+ * Acá vivían requireUser() y requirePro(), que cortaban el render y mandaban
+ * a /entrar. Se fueron cuando la app pasó a poder recorrerse entera sin
+ * cuenta: ninguna página bloquea ya. Lo que sigue exigiendo sesión es
+ * ESCRIBIR, y eso lo resuelve cada route handler con getSessionUser() + 401,
+ * que es donde tiene que estar: el rol sale de la sesión, nunca del body.
  */
-export async function requireUser(next?: string): Promise<SessionUser> {
-  const user = await getSessionUser();
-  if (!user) {
-    redirect(next ? `/entrar?next=${encodeURIComponent(next)}` : "/entrar");
-  }
-  return user;
-}
-
-/** Exige una cuenta profesional con perfil público creado. */
-export async function requirePro(next?: string) {
-  const user = await requireUser(next);
-  if (user.role !== "profesional" || !user.professionalId) {
-    redirect("/");
-  }
-  return user as SessionUser & { professionalId: string };
-}

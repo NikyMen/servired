@@ -87,7 +87,7 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
           <div
             role="dialog"
             aria-label="Mensajes"
-            className="animate-sheet-up fixed inset-x-3 bottom-3 z-50 flex max-h-[85vh] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl md:inset-auto md:right-6 md:bottom-6 md:max-h-[80vh] md:w-[640px]"
+            className="glass glass-solid animate-sheet-up fixed inset-x-3 bottom-3 z-50 flex max-h-[85vh] flex-col overflow-hidden rounded-3xl md:inset-auto md:right-6 md:bottom-6 md:max-h-[80vh] md:w-[640px]"
           >
             <header className={`flex items-center gap-3 px-4 py-3.5 text-white ${accent}`}>
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/15">

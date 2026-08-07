@@ -35,7 +35,7 @@ export function LoginForm({ next }: { next?: string }) {
             autoComplete="email"
             required
             placeholder="vos@email.com"
-            className="w-full rounded-xl border border-slate-300 px-3.5 py-3 text-sm outline-none transition-colors focus:border-cliente focus:ring-2 focus:ring-cliente/20"
+            className="glass-field px-3.5 py-3 text-sm"
           />
         </div>
 
@@ -61,7 +61,7 @@ export function LoginForm({ next }: { next?: string }) {
 /** Atajo para probar la app sin crear cuenta. Los datos salen del seed. */
 function DemoHint() {
   return (
-    <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <div className="glass glass-thin mt-8 rounded-2xl p-4">
       <p className="text-xs font-bold tracking-wide text-slate-400 uppercase">
         Cuentas de prueba
       </p>

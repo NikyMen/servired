@@ -94,9 +94,14 @@ export function SearchBox({
   }
 
   return (
-    <form action="/" className="mt-5 flex flex-col gap-2 rounded-[1.25rem] bg-white p-2 shadow-2xl shadow-blue-950/20 md:flex-row">
+    // Vive sobre el hero oscuro del soldador, así que es vidrio oscuro:
+    // una lámina blanca acá cortaría la escena al medio.
+    <form
+      action="/"
+      className="glass glass-dark mt-5 flex flex-col gap-2 rounded-[1.25rem] p-2 md:flex-row"
+    >
       <div ref={boxRef} className="relative flex flex-1 items-center gap-2 px-3">
-        <SearchIcon className="shrink-0 text-slate-400" width={18} height={18} />
+        <SearchIcon className="shrink-0 text-white/55" width={18} height={18} />
         <input
           name="q"
           value={q}
@@ -112,14 +117,14 @@ export function SearchBox({
           aria-expanded={visible}
           aria-controls="sugerencias"
           aria-autocomplete="list"
-          className="w-full bg-transparent py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+          className="w-full bg-transparent py-2.5 text-sm text-white outline-none placeholder:text-white/55"
         />
 
         {visible && (
           <ul
             id="sugerencias"
             role="listbox"
-            className="animate-fade-in absolute top-full right-0 left-0 z-20 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+            className="glass glass-solid animate-fade-in absolute top-full right-0 left-0 z-20 mt-2 overflow-hidden rounded-xl py-1"
           >
             {suggestions.map((s, i) => (
               <li key={`${s.kind}-${s.label}`} role="option" aria-selected={i === highlighted}>
@@ -133,7 +138,7 @@ export function SearchBox({
                   }}
                   onMouseEnter={() => setHighlighted(i)}
                   className={`flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm transition-colors ${
-                    i === highlighted ? "bg-cliente-soft" : ""
+                    i === highlighted ? "bg-[rgb(var(--accent-rgb)/0.14)]" : ""
                   }`}
                 >
                   <span className="truncate text-slate-700">{s.label}</span>
@@ -147,23 +152,20 @@ export function SearchBox({
         )}
       </div>
 
-      <div className="flex items-center gap-2 border-t border-slate-200 px-3 md:w-52 md:border-t-0 md:border-l">
-        <MapPinIcon className="shrink-0 text-slate-400" width={18} height={18} />
+      <div className="flex items-center gap-2 border-t border-white/20 px-3 md:w-52 md:border-t-0 md:border-l">
+        <MapPinIcon className="shrink-0 text-white/55" width={18} height={18} />
         <input
           name="ubicacion"
           defaultValue={defaultZone}
           placeholder="Ubicación"
           autoComplete="off"
-          className="w-full bg-transparent py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+          className="w-full bg-transparent py-2.5 text-sm text-white outline-none placeholder:text-white/55"
         />
       </div>
 
       {categoria && <input type="hidden" name="categoria" value={categoria} />}
 
-      <button
-        type="submit"
-        className="servired-button rounded-2xl bg-gradient-to-r from-cliente to-blue-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:from-cliente-dark hover:to-cliente"
-      >
+      <button type="submit" className="glass-btn px-5 py-2.5 text-sm">
         Buscar
       </button>
     </form>

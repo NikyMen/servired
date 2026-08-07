@@ -29,9 +29,6 @@ export function AsistenteIA({ mode }: { mode: Mode }) {
   const accent = isPro ? "bg-pro" : "bg-cliente";
   const accentHover = isPro ? "hover:bg-pro-dark" : "hover:bg-cliente-dark";
   const accentText = isPro ? "text-pro" : "text-cliente";
-  const focusRing = isPro
-    ? "focus:border-pro focus:ring-pro/20"
-    : "focus:border-cliente focus:ring-cliente/20";
 
   // Seguir el final del hilo mientras escribe.
   useEffect(() => {
@@ -135,7 +132,7 @@ export function AsistenteIA({ mode }: { mode: Mode }) {
           <div
             role="dialog"
             aria-label="ServiRed IA"
-            className="animate-sheet-up fixed inset-x-3 bottom-3 z-50 flex max-h-[80vh] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl md:inset-auto md:right-6 md:bottom-6 md:h-[560px] md:w-[400px]"
+            className="glass glass-solid animate-sheet-up fixed inset-x-3 bottom-3 z-50 flex max-h-[80vh] flex-col overflow-hidden rounded-3xl md:inset-auto md:right-6 md:bottom-6 md:h-[560px] md:w-[400px]"
           >
             <header className={`flex items-center gap-3 px-4 py-3.5 text-white ${accent}`}>
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/15">
@@ -169,7 +166,7 @@ export function AsistenteIA({ mode }: { mode: Mode }) {
                       <button
                         key={s}
                         onClick={() => send(s)}
-                        className="block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-left text-sm text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                        className="glass block w-full rounded-xl px-3 py-2.5 text-left text-sm text-slate-600 transition-colors hover:bg-white/75"
                       >
                         {s}
                       </button>
@@ -213,7 +210,7 @@ export function AsistenteIA({ mode }: { mode: Mode }) {
                 e.preventDefault();
                 send(input);
               }}
-              className="flex items-center gap-2 border-t border-slate-100 p-3"
+              className="flex items-center gap-2 border-t border-white/60 p-3"
             >
               <input
                 ref={inputRef}
@@ -221,7 +218,7 @@ export function AsistenteIA({ mode }: { mode: Mode }) {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Escribí tu consulta…"
                 disabled={streaming}
-                className={`w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition-colors focus:ring-2 disabled:bg-slate-50 ${focusRing}`}
+                className="glass-field px-3.5 py-2.5 text-sm disabled:opacity-60"
               />
               <button
                 type="submit"

@@ -30,10 +30,7 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
 
   if (!user) {
     return (
-      <Link
-        href="/entrar"
-        className="shrink-0 rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-      >
+      <Link href="/entrar" className="glass-btn glass-btn-ghost shrink-0 px-3.5 py-2 text-sm">
         Entrar
       </Link>
     );
@@ -56,9 +53,9 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
       {open && (
         <div
           role="menu"
-          className="animate-fade-in absolute top-full right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg"
+          className="glass glass-solid animate-fade-in absolute top-full right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl"
         >
-          <div className="flex items-center gap-3 border-b border-slate-100 p-3">
+          <div className="flex items-center gap-3 border-b border-white/60 p-3">
             <Avatar name={user.name} color={user.avatarColor} size={40} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900">{user.name}</p>
@@ -76,7 +73,7 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
                 href={`/profesionales/${user.professionalId}`}
                 role="menuitem"
                 onClick={() => setOpen(false)}
-                className="block px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50"
+                className="block px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-white/70"
               >
                 Ver mi perfil público
               </Link>
@@ -85,13 +82,13 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
               href={isPro ? "/pro/mensajes" : "/mensajes"}
               role="menuitem"
               onClick={() => setOpen(false)}
-              className="block px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50"
+              className="block px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-white/70"
             >
               Mensajes
             </Link>
           </div>
 
-          <form action={logoutAction} className="border-t border-slate-100">
+          <form action={logoutAction} className="border-t border-white/60">
             <button
               type="submit"
               role="menuitem"

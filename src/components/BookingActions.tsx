@@ -113,11 +113,11 @@ export function BookingActions({
           onChange={(event) => setQuotedPrice(event.target.value)}
           placeholder="Monto en ARS"
           required
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-pro"
+          className="glass-field px-3 py-2 text-sm"
         />
         {error && <p className="text-xs text-red-600">{error}</p>}
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={() => setQuoteOpen(false)} className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-white">
+          <button type="button" onClick={() => setQuoteOpen(false)} className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-colors hover:bg-white/70">
             Volver
           </button>
           <Button type="submit" variant="pro" disabled={busy} className="!px-3 !py-2 !text-xs">
@@ -146,7 +146,7 @@ export function BookingActions({
               onChange={(event) => setFinalPrice(event.target.value)}
               placeholder="Monto final"
               required
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-pro"
+              className="glass-field px-3 py-2 text-sm"
             />
             <textarea
               rows={2}
@@ -154,11 +154,11 @@ export function BookingActions({
               onChange={(event) => setWorkSummary(event.target.value)}
               placeholder="Qué hiciste y cómo quedó"
               required
-              className="w-full resize-none rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-pro"
+              className="glass-field resize-none px-3 py-2 text-sm"
             />
             {error && <p className="text-xs text-red-600">{error}</p>}
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setCompleteOpen(false)} className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-white">
+              <button type="button" onClick={() => setCompleteOpen(false)} className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-colors hover:bg-white/70">
                 Volver
               </button>
               <Button type="submit" variant="pro" disabled={busy} className="!px-3 !py-2 !text-xs">

@@ -53,9 +53,6 @@ export function Chat({
 
   const isPro = viewer === "profesional";
   const bubbleOwn = isPro ? "bg-pro text-white" : "bg-cliente text-white";
-  const focusRing = isPro
-    ? "focus:border-pro focus:ring-pro/20"
-    : "focus:border-cliente focus:ring-cliente/20";
   const sendBtn = isPro ? "bg-pro hover:bg-pro-dark" : "bg-cliente hover:bg-cliente-dark";
 
   const selected = conversations.find((c) => c.id === selectedId) ?? conversations[0] ?? null;
@@ -183,7 +180,7 @@ export function Chat({
 
   if (conversations.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+      <div className="glass rounded-2xl border-dashed border-white/70 p-12 text-center">
         <p className="text-lg font-semibold text-slate-900">Sin mensajes todavía</p>
         <p className="mt-1 text-slate-500">
           {isPro
@@ -195,10 +192,10 @@ export function Chat({
   }
 
   return (
-    <div className="grid min-h-[480px] grid-cols-1 overflow-hidden rounded-2xl border border-slate-200 bg-white md:grid-cols-[260px_1fr]">
+    <div className="glass glass-solid grid min-h-[480px] grid-cols-1 overflow-hidden rounded-2xl md:grid-cols-[260px_1fr]">
       {/* Lista de conversaciones */}
       <aside
-        className={`${threadOpen ? "hidden md:block" : ""} divide-y divide-slate-100 md:border-r md:border-slate-200`}
+        className={`${threadOpen ? "hidden md:block" : ""} divide-y divide-white/60 md:border-r md:border-white/60`}
       >
         {conversations.map((c) => {
           const list = byId[c.id] ?? c.messages;
@@ -213,8 +210,8 @@ export function Chat({
                 setError(null);
               }}
               className={`flex min-h-[60px] w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
-                active ? (isPro ? "md:bg-pro-soft" : "md:bg-cliente-soft") : ""
-              } hover:bg-slate-50`}
+                active ? "md:bg-[rgb(var(--accent-rgb)/0.12)]" : ""
+              } hover:bg-white/60`}
             >
               <Avatar name={c.withName} color={c.withColor} size={42} />
               <span className="min-w-0 flex-1">
@@ -241,11 +238,11 @@ export function Chat({
       <section className={`${threadOpen ? "flex" : "hidden md:flex"} min-w-0 flex-col`}>
         {selected && (
           <>
-            <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-3 sm:px-4">
+            <div className="flex items-center gap-2 border-b border-white/60 px-3 py-3 sm:px-4">
               <button
                 onClick={() => setThreadOpen(false)}
                 aria-label="Volver a conversaciones"
-                className="-ml-1 rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 md:hidden"
+                className="-ml-1 rounded-full p-1.5 text-slate-500 transition-colors hover:bg-white/70 md:hidden"
               >
                 <ChevronLeftIcon width={22} height={22} />
               </button>
@@ -291,7 +288,7 @@ export function Chat({
 
             {/* Adjunto elegido, antes de mandarlo */}
             {file && (
-              <div className="animate-fade-in mx-3 mb-2 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-2">
+              <div className="glass glass-thin animate-fade-in mx-3 mb-2 flex items-center gap-3 rounded-xl p-2">
                 {preview ? (
                   <img
                     src={preview}
@@ -299,7 +296,7 @@ export function Chat({
                     className="size-12 shrink-0 rounded-lg object-cover"
                   />
                 ) : (
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-white text-slate-400">
+                  <span className="glass glass-thin flex size-12 shrink-0 items-center justify-center rounded-lg text-slate-400">
                     <FileIcon width={22} height={22} />
                   </span>
                 )}
@@ -324,7 +321,7 @@ export function Chat({
                 e.preventDefault();
                 send();
               }}
-              className="flex items-center gap-2 border-t border-slate-100 p-3"
+              className="flex items-center gap-2 border-t border-white/60 p-3"
             >
               <input
                 ref={fileInput}
@@ -350,7 +347,7 @@ export function Chat({
                 onClick={() => fileInput.current?.click()}
                 aria-label="Adjuntar imagen o PDF"
                 title="Adjuntar imagen o PDF"
-                className="shrink-0 rounded-xl p-2.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                className="shrink-0 rounded-xl p-2.5 text-slate-400 transition-colors hover:bg-white/70 hover:text-slate-600"
               >
                 <PaperclipIcon width={20} height={20} />
               </button>
@@ -358,7 +355,7 @@ export function Chat({
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Escribí un mensaje…"
-                className={`w-full min-w-0 rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:ring-2 ${focusRing}`}
+                className="glass-field min-w-0 px-3 py-2.5 text-sm"
               />
               <button
                 type="submit"
@@ -401,12 +398,12 @@ function Attachment({ message: m, own }: { message: ChatMessage; own: boolean })
       target="_blank"
       rel="noopener noreferrer"
       className={`mb-1.5 flex items-center gap-2.5 rounded-xl p-2 transition-colors ${
-        own ? "bg-white/15 hover:bg-white/25" : "bg-white hover:bg-slate-50"
+        own ? "bg-white/15 hover:bg-white/25" : "bg-white/55 hover:bg-white/75"
       }`}
     >
       <span
         className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
-          own ? "bg-white/20" : "bg-slate-100 text-slate-500"
+          own ? "bg-white/20" : "bg-white/60 text-slate-500"
         }`}
       >
         <FileIcon width={18} height={18} />

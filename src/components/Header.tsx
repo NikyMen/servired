@@ -31,13 +31,17 @@ const proNav: NavItem[] = [
 export function Header({ mode, user }: { mode: Mode; user: SessionUser | null }) {
   const pathname = usePathname();
   const nav = mode === "pro" ? proNav : clientNav;
-  const activeCls =
-    mode === "pro" ? "bg-pro-soft text-pro-dark" : "bg-cliente-soft text-cliente-dark";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-      {/* Franja de color según el modo */}
-      <div className={`h-1 transition-colors ${mode === "pro" ? "bg-pro" : "bg-cliente"}`} />
+    // glass-bar y no glass: una barra pegada no lleva borde completo ni
+    // sombra larga, sólo la línea del lado por el que pasa el contenido.
+    <header className="glass-bar sticky top-0 z-30 border-b border-white/50 shadow-[0_10px_30px_-24px_rgb(15_23_42_/_0.6)]">
+      {/* Filo de color del modo: se desvanece a los costados para que no
+          parezca una regla apoyada sobre el vidrio. */}
+      <div
+        className="h-[3px] bg-[linear-gradient(90deg,transparent,rgb(var(--accent-rgb)/0.9),rgb(var(--accent-rgb)/0.35),transparent)]"
+        aria-hidden
+      />
       <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
         <Logo
           accent={mode}
@@ -58,8 +62,14 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-                  active ? activeCls : "text-slate-600 hover:bg-slate-100"
+                aria-current={active ? "page" : undefined}
+                // El inactivo no es vidrio: si todos los ítems fueran una
+                // superficie, la barra sería una pila de rectángulos y no se
+                // vería cuál está activo.
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+                  active
+                    ? "glass-chip glass-chip-on"
+                    : "text-slate-600 hover:bg-white/60"
                 }`}
               >
                 {Icon && <Icon width={16} height={16} />}
@@ -70,8 +80,10 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
-          <ModeSwitch mode={mode} user={user} size="sm" className="sm:hidden" />
-          <ModeSwitch mode={mode} user={user} className="hidden sm:inline-flex" />
+          {/* Uno solo: antes había dos (uno por breakpoint) y se veían los dos
+              juntos, porque .mode-switch estaba fuera de @layer y le ganaba al
+              `hidden` de Tailwind. Ahora achica con clases responsive. */}
+          <ModeSwitch mode={mode} />
           <UserMenu user={user} />
         </div>
       </div>

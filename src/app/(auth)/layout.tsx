@@ -12,7 +12,7 @@ import { FACEBOOK_URL } from "@/lib/links";
  */
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-screen bg-white lg:grid-cols-[1.05fr_1fr]">
+    <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* Panel de marca */}
       <aside className="relative isolate overflow-hidden bg-slate-900 px-6 py-10 text-white lg:px-12 lg:py-14">
         {/* Manchas de color: azul y verde, los dos lados conviviendo. */}
@@ -103,8 +103,8 @@ function PathCard({
   const isPro = tone === "pro";
   return (
     <div
-      className={`rounded-2xl border p-4 backdrop-blur-sm ${
-        isPro ? "border-pro/40 bg-pro/10" : "border-cliente/40 bg-cliente/10"
+      className={`glass glass-dark rounded-2xl p-4 ${
+        isPro ? "border-pro/45 bg-pro/15" : "border-cliente/45 bg-cliente/15"
       }`}
     >
       <span

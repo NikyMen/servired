@@ -30,12 +30,12 @@ export function ContratarSheet({
   return (
     <>
       <div
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 pt-3 backdrop-blur lg:hidden"
+        className="glass-bar fixed inset-x-0 bottom-0 z-40 border-t border-white/60 px-4 pt-3 lg:hidden"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
         <button
           onClick={() => setOpen(true)}
-          className="servired-button min-h-[48px] w-full rounded-2xl bg-gradient-to-r from-cliente to-blue-500 text-sm font-semibold text-white transition-all hover:from-cliente-dark hover:to-cliente active:scale-[0.98]"
+          className="glass-btn min-h-[48px] w-full text-sm"
         >
           Enviar propuesta
         </button>
@@ -45,7 +45,7 @@ export function ContratarSheet({
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
           <div className="animate-fade-in absolute inset-0 bg-slate-900/50" onClick={() => setOpen(false)} />
           <div
-            className="animate-sheet-up absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl bg-white p-4"
+            className="glass glass-solid animate-sheet-up absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-3xl p-4"
             style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300" aria-hidden />

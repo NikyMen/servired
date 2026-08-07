@@ -2,10 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Mode } from "@/lib/types";
 
-/**
- * Símbolo de ServiRed: el nudo. Va sobre un círculo blanco porque el archivo
- * es un JPG recortado sin transparencia, y así queda prolijo sobre cualquier fondo.
- */
+/** Símbolo de ServiRed con fondo transparente. */
 export function LogoMark({ size = 32, className = "" }: { size?: number; className?: string }) {
   return (
     <Image
@@ -14,7 +11,7 @@ export function LogoMark({ size = 32, className = "" }: { size?: number; classNa
       width={size}
       height={size}
       priority
-      className={`rounded-full bg-white ${className}`}
+      className={className}
       style={{ width: size, height: size }}
     />
   );

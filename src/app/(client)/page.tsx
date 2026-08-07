@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { SearchBox } from "@/components/SearchBox";
-import { ParallaxCanvas } from "@/components/ParallaxCanvas";
+import { HeroFondo } from "@/components/HeroFondo";
 import { normalize, rankProfessionals } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
@@ -68,67 +68,73 @@ export default async function HomePage({
 
   return (
     <div className="space-y-6">
-      {/* Hero + buscador */}
-      <section className="parallax-hero relative min-h-[390px] rounded-[2rem] p-5 text-white sm:p-8 md:p-10">
-        <ParallaxCanvas />
-        <div className="parallax-content flex min-h-[350px] flex-col justify-between">
-          <div className="max-w-2xl">
-            <span className="inline-flex rounded-full border border-white/25 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.2em] text-blue-100 uppercase backdrop-blur">
-              ServiRed · servicios conectados
-            </span>
-            <h1 className="mt-5 max-w-xl text-3xl leading-tight font-bold tracking-tight sm:text-4xl md:text-5xl">
-              Encontrá a alguien que resuelva lo que necesitás.
-            </h1>
-            <p className="mt-3 max-w-lg text-sm leading-6 text-blue-100 sm:text-base">
-              Profesionales verificados, trabajos reales y contacto directo para coordinar sin vueltas.
-            </p>
-          </div>
+      {/* Hero: oficios trabajando de noche, con el buscador apoyado encima en
+          vidrio. El fondo es la foto de public/hero-soldador.jpg; si no está,
+          <HeroFondo> cae en la escena dibujada en canvas. */}
+      {/* z-10: el desplegable del buscador se sale del banner por abajo, y sin
+          esto lo taparían los chips de categoría que vienen después. */}
+      <div className="relative">
+        <aside
+          aria-label="Publicidad"
+          className="absolute top-1/2 right-full mr-4 hidden h-48 w-28 -translate-y-1/2 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/60 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm backdrop-blur-sm xl:flex 2xl:w-44"
+        >
+          ADS
+        </aside>
 
-          <div className="mt-8">
-            <SearchBox
-              defaultQuery={params.q ?? ""}
-              defaultZone={params.ubicacion ?? ""}
-              categoria={params.categoria}
-            />
-            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-blue-100">
-              <span className="font-semibold text-white">Probá con:</span>
-              {popularSearches.map((term) => (
-                <Link
-                  key={term}
-                  href={`/?q=${encodeURIComponent(term)}`}
-                  className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 transition hover:border-white/50 hover:bg-white/20"
-                >
-                  {term}
-                </Link>
-              ))}
+        <section className="hero-weld relative z-10 min-h-[480px] rounded-[2rem] p-5 text-white sm:min-h-[520px] sm:p-8 md:p-10">
+          <HeroFondo />
+
+          <div className="hero-weld-content flex min-h-[440px] flex-col justify-between">
+            <div className="max-w-2xl">
+              <span className="glass glass-thin glass-dark hero-arc-glow inline-flex rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.2em] uppercase">
+                ServiRed · oficios que resuelven
+              </span>
+              <h1 className="mt-5 max-w-xl text-3xl leading-[1.1] font-bold tracking-tight drop-shadow-[0_2px_18px_rgba(2,6,23,0.8)] sm:text-4xl md:text-5xl">
+                Tu problema tiene solución. Encontrala acá.
+              </h1>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-slate-200 drop-shadow-[0_1px_10px_rgba(2,6,23,0.9)] sm:text-base">
+                Soldadores, plomeros, electricistas y más. Verificados, con
+                trabajos hechos a la vista y contacto directo para coordinar sin
+                vueltas.
+              </p>
+            </div>
+
+            <div className="mt-8">
+              <SearchBox
+                defaultQuery={params.q ?? ""}
+                defaultZone={params.ubicacion ?? ""}
+                categoria={params.categoria}
+              />
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+                <span className="font-semibold text-white/90">Probá con:</span>
+                {popularSearches.map((term) => (
+                  <Link
+                    key={term}
+                    href={`/?q=${encodeURIComponent(term)}`}
+                    className="glass glass-thin glass-dark rounded-full px-3 py-1.5 transition hover:bg-white/20"
+                  >
+                    {term}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="parallax-content parallax-float absolute top-8 right-6 hidden w-44 rounded-2xl border border-white/20 bg-slate-950/20 p-4 shadow-2xl backdrop-blur-md lg:block">
-          <p className="text-2xl font-bold">+1.200</p>
-          <p className="mt-1 text-xs text-blue-100">servicios publicados</p>
-          <div className="mt-4 flex -space-x-2">
-            {["#38bdf8", "#34d399", "#fbbf24", "#f472b6"].map((color) => (
-              <span key={color} className="h-7 w-7 rounded-full border-2 border-blue-700" style={{ backgroundColor: color }} aria-hidden />
-            ))}
-          </div>
-        </div>
-
-        <div className="parallax-content parallax-float-slow absolute right-16 bottom-10 hidden rounded-2xl border border-white/20 bg-white/10 px-4 py-3 shadow-xl backdrop-blur-md lg:block">
-          <p className="text-xs text-blue-100">La búsqueda empieza acá</p>
-          <p className="mt-1 text-sm font-semibold">Describí tu necesidad</p>
-        </div>
-      </section>
+        <aside
+          aria-label="Publicidad"
+          className="absolute top-1/2 left-full ml-4 hidden h-48 w-28 -translate-y-1/2 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/60 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm backdrop-blur-sm xl:flex 2xl:w-44"
+        >
+          ADS
+        </aside>
+      </div>
 
       {/* Categorías: carrusel horizontal en móvil, wrap en desktop */}
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
         <Link
           href={chipHref(params, "")}
-          className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
-            !params.categoria
-              ? "border-cliente bg-cliente text-white"
-              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+          className={`glass-chip shrink-0 px-3.5 py-2 text-sm font-medium whitespace-nowrap ${
+            !params.categoria ? "glass-chip-on" : "text-slate-600"
           }`}
         >
           Todos
@@ -137,10 +143,8 @@ export default async function HomePage({
           <Link
             key={c.slug}
             href={chipHref(params, c.slug)}
-            className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
-              params.categoria === c.slug
-                ? "border-cliente bg-cliente text-white"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+            className={`glass-chip shrink-0 px-3.5 py-2 text-sm font-medium whitespace-nowrap ${
+              params.categoria === c.slug ? "glass-chip-on" : "text-slate-600"
             }`}
           >
             {c.icon} {c.name}
@@ -150,7 +154,7 @@ export default async function HomePage({
 
       {/* Resultados */}
       {pros.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+        <div className="glass glass-solid rounded-[1.5rem] p-12 text-center">
           <p className="text-lg font-semibold text-slate-900">Sin resultados</p>
           <p className="mt-1 text-slate-500">
             Probá con otra categoría, ubicación o término de búsqueda.
@@ -182,23 +186,20 @@ export default async function HomePage({
       )}
 
       {/* CTA solicitud */}
-      <section className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-6 sm:flex-row sm:items-center">
+      <section className="glass glass-solid glass-card flex flex-col items-start justify-between gap-3 rounded-[1.5rem] p-6 sm:flex-row sm:items-center">
         <div>
           <h2 className="font-bold text-slate-900">¿No encontrás lo que buscás?</h2>
           <p className="text-sm text-slate-500">
             Publicá tu solicitud y los profesionales te contactan.
           </p>
         </div>
-        <Link
-          href="/publicar-solicitud"
-          className="shrink-0 rounded-xl bg-cliente px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cliente-dark"
-        >
+        <Link href="/publicar-solicitud" className="glass-btn shrink-0 px-4 py-2.5 text-sm">
           Publicar solicitud
         </Link>
       </section>
 
       {/* CTA preinscripción */}
-      <section className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-6 sm:flex-row sm:items-center">
+      <section className="glass glass-solid glass-card flex flex-col items-start justify-between gap-3 rounded-[1.5rem] p-6 sm:flex-row sm:items-center">
         <div>
           <h2 className="font-bold text-slate-900">¿Todavía no estamos en tu zona?</h2>
           <p className="text-sm text-slate-500">
@@ -207,7 +208,7 @@ export default async function HomePage({
         </div>
         <Link
           href="/preinscripcion"
-          className="shrink-0 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          className="glass-btn glass-btn-ghost shrink-0 px-4 py-2.5 text-sm"
         >
           Preinscribirme
         </Link>

@@ -55,7 +55,7 @@ export default async function ProfesionalPage({
       </Link>
 
       {/* Encabezado del perfil */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+      <section className="glass glass-solid rounded-2xl p-4 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-4">
             <Avatar name={pro.name} color={pro.avatarColor} size={64} />
@@ -87,15 +87,15 @@ export default async function ProfesionalPage({
             </div>
           </div>
         </div>
-        {pro.bio && <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600 sm:text-base">{pro.bio}</p>}
+        {pro.bio && <p className="mt-4 border-t border-white/60 pt-4 text-sm text-slate-600 sm:text-base">{pro.bio}</p>}
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0 space-y-6">
           {/* Servicios */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+          <section className="glass glass-solid rounded-2xl p-4 sm:p-6">
             <h2 className="mb-4 text-lg font-bold text-slate-900">Servicios</h2>
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-white/60">
               {pro.services.map((s) => (
                 <li key={s.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
                   <div>
@@ -110,13 +110,13 @@ export default async function ProfesionalPage({
 
           {/* Historial público de trabajos: conecta cliente, profesional y monto final. */}
           {pro.bookings.length > 0 && (
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+            <section className="glass glass-solid rounded-2xl p-4 sm:p-6">
               <div className="mb-4 flex items-end justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold tracking-[0.16em] text-pro uppercase">Experiencia comprobable</p>
                   <h2 className="mt-1 text-lg font-bold text-slate-900">Trabajos realizados</h2>
                 </div>
-                <span className="rounded-full bg-pro-soft px-2.5 py-1 text-xs font-semibold text-pro-dark">
+                <span className="rounded-full bg-emerald-500/12 px-2.5 py-1 text-xs font-semibold text-pro-dark ring-1 ring-emerald-400/25 ring-inset backdrop-blur-sm">
                   {pro.bookings.length} completado{pro.bookings.length === 1 ? "" : "s"}
                 </span>
               </div>
@@ -124,7 +124,7 @@ export default async function ProfesionalPage({
                 {pro.bookings.map((booking) => {
                   const amount = booking.finalPrice ?? booking.service?.priceFrom;
                   return (
-                    <article key={booking.id} className="rounded-2xl border border-emerald-100 bg-pro-bg2 p-4">
+                    <article key={booking.id} className="glass glass-thin rounded-2xl border-emerald-300/35 bg-emerald-400/8 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h3 className="font-semibold text-slate-900">
@@ -157,7 +157,7 @@ export default async function ProfesionalPage({
           )}
 
           {/* Opiniones */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+          <section className="glass glass-solid rounded-2xl p-4 sm:p-6">
             <h2 className="mb-4 text-lg font-bold text-slate-900">
               Opiniones ({pro.reviews.length})
             </h2>

@@ -8,13 +8,13 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
   return (
     <Link
       href={`/profesionales/${pro.id}`}
-      className="group flex flex-col rounded-[1.5rem] border border-slate-200/80 bg-white/95 p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl active:scale-[0.99]"
+      className="glass glass-card group flex flex-col rounded-[1.5rem] p-4"
     >
       <div className="flex items-center gap-3">
         <Avatar name={pro.name} color={pro.avatarColor} size={48} />
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <h3 className="truncate font-semibold text-slate-900 group-hover:text-pro-dark">
+            <h3 className="truncate font-semibold text-slate-900 transition-colors group-hover:text-[var(--accent-dark)]">
               {pro.name}
             </h3>
             {pro.verified && <VerifiedBadge />}
@@ -33,7 +33,7 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
         </span>
       </div>
 
-      <div className="mt-3 space-y-1 border-t border-slate-100 pt-3 text-sm">
+      <div className="mt-3 space-y-1 border-t border-white/70 pt-3 text-sm">
         <p className="flex items-center justify-between text-slate-500">
           <span>Último trabajo realizado</span>
           <span className="font-semibold text-slate-900">

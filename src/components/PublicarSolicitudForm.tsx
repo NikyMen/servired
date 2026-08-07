@@ -61,10 +61,10 @@ export function PublicarSolicitudForm({ categorias }: { categorias: Categoria[] 
   }
 
   const inputCls =
-    "w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20";
+    "glass-field px-3 py-2.5 text-sm";
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
+    <form onSubmit={onSubmit} className="glass glass-solid space-y-5 rounded-2xl p-6">
       <div>
         <label className="mb-1 block text-sm font-medium text-slate-900">¿Qué necesitás?</label>
         <input

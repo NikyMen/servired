@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { FacebookIcon, InstagramIcon } from "@/components/icons";
+import { FacebookIcon, InstagramIcon, TikTokIcon } from "@/components/icons";
 import { Logo } from "@/components/Logo";
 import { PreinscripcionForm } from "@/components/PreinscripcionForm";
-import { FACEBOOK_URL, INSTAGRAM_URL } from "@/lib/links";
+import { FACEBOOK_URL, INSTAGRAM_URL, TIKTOK_URL } from "@/lib/links";
 
 export const metadata: Metadata = {
   title: "Preinscripción",
@@ -11,20 +11,28 @@ export const metadata: Metadata = {
 
 export default function LandingPreinscripcionPage() {
   return (
-    <main className="landing-shell relative min-h-screen overflow-hidden px-4 py-5 sm:px-6 sm:py-8">
-      <div className="landing-orb landing-orb-one" aria-hidden />
-      <div className="landing-orb landing-orb-two" aria-hidden />
+    // El fondo lo pone body::before (globals.css); acá sólo se agregan dos
+    // manchas propias que respiran, para que el vidrio tenga qué refractar.
+    <main className="relative min-h-screen overflow-hidden px-4 py-5 sm:px-6 sm:py-8">
+      <div
+        aria-hidden
+        className="animate-blob absolute -top-32 -left-24 -z-10 size-[26rem] rounded-full bg-cliente/25 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="animate-blob absolute -right-24 top-1/3 -z-10 size-[30rem] rounded-full bg-pro/20 blur-3xl [animation-delay:-5s]"
+      />
       <div className="relative mx-auto max-w-5xl">
-        <header className="glass-nav flex items-center justify-between rounded-2xl px-4 py-3 sm:px-5">
+        <header className="glass flex items-center justify-between rounded-2xl px-4 py-3 sm:px-5">
           <Logo href="/" accent="cliente" height={40} />
-          <span className="hidden rounded-full border border-white/60 bg-white/35 px-3 py-1.5 text-xs font-semibold text-cliente-dark backdrop-blur sm:inline-flex">
+          <span className="glass-chip hidden px-3 py-1.5 text-xs font-semibold text-cliente-dark sm:inline-flex">
             Muy pronto en tu zona
           </span>
         </header>
 
         <section className="mt-10 grid items-center gap-10 lg:mt-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <div className="text-center lg:text-left">
-            <p className="inline-flex rounded-full border border-blue-200/70 bg-blue-100/50 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-cliente-dark backdrop-blur">
+            <p className="glass-chip inline-flex px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-cliente-dark">
               Preinscripción abierta
             </p>
             <h1 className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight text-slate-950 sm:text-6xl">
@@ -44,7 +52,7 @@ export default function LandingPreinscripcionPage() {
           </div>
         </section>
 
-        <section className="glass-panel mt-10 flex flex-col items-center justify-between gap-4 rounded-2xl px-5 py-4 sm:flex-row">
+        <section className="glass glass-solid mt-10 flex flex-col items-center justify-between gap-4 rounded-2xl px-5 py-4 sm:flex-row">
           <p className="text-sm text-slate-600">Seguinos y enterate de las novedades.</p>
           <div className="flex gap-2">
             <a
@@ -52,7 +60,7 @@ export default function LandingPreinscripcionPage() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="ServiRed en Instagram (se abre en una pestaña nueva)"
-              className="social-button text-[#E1306C]"
+              className="glass-chip px-3.5 py-2.5 text-sm font-medium text-[#E1306C]"
             >
               <InstagramIcon width={19} height={19} />
               Instagram
@@ -62,10 +70,20 @@ export default function LandingPreinscripcionPage() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="ServiRed en Facebook (se abre en una pestaña nueva)"
-              className="social-button text-[#1877F2]"
+              className="glass-chip px-3.5 py-2.5 text-sm font-medium text-[#1877F2]"
             >
               <FacebookIcon width={19} height={19} />
               Facebook
+            </a>
+            <a
+              href={TIKTOK_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="ServiRed en TikTok (se abre en una pestaña nueva)"
+              className="glass-chip px-3.5 py-2.5 text-sm font-medium text-[#010101]"
+            >
+              <TikTokIcon width={19} height={19} />
+              TikTok
             </a>
           </div>
         </section>

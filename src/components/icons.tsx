@@ -176,3 +176,11 @@ export const InstagramIcon = (p: IconProps) => (
     <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
   </svg>
 );
+
+/* La corchea de TikTok. Va rellena y sin trazo, como Facebook: es un logotipo,
+   no un ícono de línea, y contorneado se deforma en tamaños chicos. */
+export const TikTokIcon = (p: IconProps) => (
+  <svg {...base(p)} fill="currentColor" stroke="none">
+    <path d="M16.6 2h-3.2v13.6a2.35 2.35 0 1 1-1.9-2.3V9.9a5.9 5.9 0 1 0 5.1 5.85V9.32a7.06 7.06 0 0 0 4.1 1.3V7.3a3.85 3.85 0 0 1-2.9-1.24A4 4 0 0 1 16.6 2Z" />
+  </svg>
+);

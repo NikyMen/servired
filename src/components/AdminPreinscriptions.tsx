@@ -47,21 +47,21 @@ export function AdminPreinscriptions({ initialRows }: { initialRows: Row[] }) {
 
   return (
     <div className="mt-8 grid gap-6 lg:grid-cols-[340px_1fr]">
-      <form onSubmit={add} className="h-fit space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <form onSubmit={add} className="glass glass-solid h-fit space-y-4 rounded-2xl p-5">
         <div>
           <h2 className="font-bold text-slate-900">Agregar manualmente</h2>
           <p className="mt-1 text-sm text-slate-500">Sumá un contacto a la lista.</p>
         </div>
         <input name="name" required minLength={2} placeholder="Nombre y apellido"
-          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20" />
+          className="glass-field px-3 py-2.5 text-sm" />
         <input name="email" required type="email" placeholder="correo@ejemplo.com"
-          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20" />
+          className="glass-field px-3 py-2.5 text-sm" />
         <input name="phone" required type="tel" placeholder="Teléfono"
-          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20" />
+          className="glass-field px-3 py-2.5 text-sm" />
         <input name="occupation" placeholder="Oficio / profesión (opcional)"
-          className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20" />
+          className="glass-field px-3 py-2.5 text-sm" />
         <select name="type" defaultValue="cliente"
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-cliente focus:ring-2 focus:ring-cliente/20">
+          className="glass-field px-3 py-2.5 text-sm">
           <option value="cliente">Busca servicios</option>
           <option value="profesional">Ofrece servicios</option>
         </select>
@@ -71,17 +71,17 @@ export function AdminPreinscriptions({ initialRows }: { initialRows: Row[] }) {
         </button>
       </form>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-5 py-4"><h2 className="font-bold text-slate-900">Contactos registrados</h2></div>
+      <section className="glass glass-solid overflow-hidden rounded-2xl">
+        <div className="border-b border-white/60 px-5 py-4"><h2 className="font-bold text-slate-900">Contactos registrados</h2></div>
         {initialRows.length === 0 ? (
           <p className="p-8 text-center text-sm text-slate-500">Todavía no hay preinscripciones.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <thead className="bg-white/45 text-xs uppercase tracking-wide text-slate-500">
                 <tr><th className="px-5 py-3">Nombre</th><th className="px-5 py-3">Contacto</th><th className="px-5 py-3">Oficio / profesión</th><th className="px-5 py-3">Tipo</th><th className="px-5 py-3">Fecha</th></tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-white/60">
                 {initialRows.map((row) => (
                   <tr key={row.id}>
                     <td className="px-5 py-3 font-medium text-slate-900">{row.name}</td>
