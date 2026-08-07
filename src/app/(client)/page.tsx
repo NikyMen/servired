@@ -76,7 +76,7 @@ export default async function HomePage({
       <div className="relative">
         <aside
           aria-label="Publicidad"
-          className="absolute top-1/2 right-full mr-4 hidden h-48 w-28 -translate-y-1/2 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/60 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm backdrop-blur-sm xl:flex 2xl:w-44"
+          className="absolute inset-y-0 right-full mr-4 hidden w-28 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/60 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm backdrop-blur-sm xl:flex 2xl:w-44"
         >
           ADS
         </aside>
@@ -123,7 +123,7 @@ export default async function HomePage({
 
         <aside
           aria-label="Publicidad"
-          className="absolute top-1/2 left-full ml-4 hidden h-48 w-28 -translate-y-1/2 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/60 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm backdrop-blur-sm xl:flex 2xl:w-44"
+          className="absolute inset-y-0 left-full ml-4 hidden w-28 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/60 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm backdrop-blur-sm xl:flex 2xl:w-44"
         >
           ADS
         </aside>
