@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui";
+import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
 import { ChevronLeftIcon, PaperclipIcon, SendIcon, FileIcon, XIcon } from "@/components/icons";
 import { formatBytes } from "@/lib/format";
 
@@ -21,10 +22,31 @@ export type ChatConversation = {
   withName: string; // con quién habla el que mira la pantalla
   withColor: string;
   messages: ChatMessage[];
+  /** Sin leer según el servidor al renderizar. Después manda el poll del globito. */
+  noLeidos: number;
 };
 
 /** Cada cuánto se buscan mensajes nuevos del hilo abierto. */
 const POLL_MS = 5000;
+
+/**
+ * ¿Se ven las dos columnas a la vez?
+ *
+ * Importa para lo sin leer: en md el hilo está siempre a la vista, así que
+ * elegirlo ya es leerlo. En móvil hay que abrirlo, y hasta entonces sigue sin
+ * leer aunque sea el seleccionado.
+ */
+function useDosColumnas() {
+  const [dos, setDos] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const aplicar = () => setDos(mq.matches);
+    aplicar();
+    mq.addEventListener("change", aplicar);
+    return () => mq.removeEventListener("change", aplicar);
+  }, []);
+  return dos;
+}
 
 /** Chat: lista de conversaciones + hilo. Lo usan cliente (azul) y profesional (verde). */
 export function Chat({
@@ -57,6 +79,50 @@ export function Chat({
 
   const selected = conversations.find((c) => c.id === selectedId) ?? conversations[0] ?? null;
   const messages = selected ? (byId[selected.id] ?? selected.messages) : [];
+
+  const { porConversacion, marcarLeida, mirandoHilo } = useNoLeidos();
+  const dosColumnas = useDosColumnas();
+  // El hilo cuenta como leído sólo si se está viendo de verdad.
+  const hiloALaVista = (threadOpen || dosColumnas) && selected ? selected.id : null;
+  // Id del primer mensaje sin leer de cada hilo: ahí va la línea de "nuevos".
+  const [divisor, setDivisor] = useState<Record<string, string | null>>({});
+
+  // Mientras se lo mira no tiene que sonar: el aviso es para lo que no estás viendo.
+  useEffect(() => {
+    if (!hiloALaVista) return;
+    mirandoHilo(hiloALaVista);
+    return () => {
+      mirandoHilo(null);
+      // Al salir se olvida dónde estaba la línea de nuevos: si volvés, se
+      // recalcula con lo que haya llegado mientras estabas en otro hilo.
+      setDivisor(({ [hiloALaVista]: _, ...resto }) => resto);
+    };
+  }, [hiloALaVista, mirandoHilo]);
+
+  // Al abrirlo y cada vez que entra algo nuevo estando abierto. El provider
+  // frena las repeticiones para no escribir una vez por mensaje.
+  useEffect(() => {
+    if (!hiloALaVista) return;
+    marcarLeida(hiloALaVista);
+  }, [hiloALaVista, messages.length, marcarLeida]);
+
+  // Dónde arranca lo que no habías visto. Se fija en el momento de abrir el
+  // hilo, porque un instante después queda marcado como leído y ya no habría
+  // manera de saber dónde iba la línea.
+  useEffect(() => {
+    if (!hiloALaVista) return;
+    setDivisor((prev) => {
+      if (hiloALaVista in prev) return prev; // se decide una sola vez por visita
+      const conv = conversations.find((c) => c.id === hiloALaVista);
+      const sinLeer = porConversacion[hiloALaVista] ?? conv?.noLeidos ?? 0;
+      const list = byId[hiloALaVista] ?? conv?.messages ?? [];
+      // Los propios no cuentan como sin leer, así que la línea va antes del
+      // más viejo de los últimos `sinLeer` que llegaron del otro lado.
+      const entrantes = list.filter((m) => m.sender !== viewer);
+      const primero = sinLeer > 0 ? entrantes[entrantes.length - sinLeer] : undefined;
+      return { ...prev, [hiloALaVista]: primero?.id ?? null };
+    });
+  }, [hiloALaVista, conversations, byId, viewer, porConversacion]);
 
   // Hilos que aparecieron después del primer render (contrataciones nuevas).
   useEffect(() => {
@@ -201,6 +267,8 @@ export function Chat({
           const list = byId[c.id] ?? c.messages;
           const last = list[list.length - 1];
           const active = selected?.id === c.id;
+          // Hasta el primer poll manda el número que vino del servidor.
+          const sinLeer = porConversacion[c.id] ?? c.noLeidos;
           return (
             <button
               key={c.id}
@@ -211,19 +279,41 @@ export function Chat({
               }}
               className={`flex min-h-[60px] w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
                 active ? "md:bg-[rgb(var(--accent-rgb)/0.12)]" : ""
-              } hover:bg-white/60`}
+              } ${sinLeer > 0 ? "bg-[rgb(var(--accent-rgb)/0.06)]" : ""} hover:bg-white/60`}
             >
-              <Avatar name={c.withName} color={c.withColor} size={42} />
+              <span className="relative shrink-0">
+                <Avatar name={c.withName} color={c.withColor} size={42} />
+                {/* Punto sobre la foto: se ve quién escribió aunque la fila
+                    esté cortada por el ancho de la columna. */}
+                {sinLeer > 0 && (
+                  <span
+                    aria-hidden
+                    className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-red-500 ring-2 ring-white"
+                  />
+                )}
+              </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-slate-900">
                   {c.withName}
                 </span>
                 {last && (
-                  <span className="block truncate text-xs text-slate-500">
+                  // Sin leer va más oscuro y en negrita, como cualquier bandeja.
+                  <span
+                    className={`block truncate text-xs ${
+                      sinLeer > 0 ? "font-semibold text-slate-700" : "text-slate-500"
+                    }`}
+                  >
                     {last.text || (last.attachmentType?.startsWith("image/") ? "📷 Foto" : "📎 Archivo")}
                   </span>
                 )}
               </span>
+              {/* Acá el número son los mensajes del hilo, no los chats: ya
+                  estás mirando uno solo. */}
+              <NoLeidosBadge
+                n={sinLeer}
+                className="shrink-0"
+                label={sinLeer === 1 ? "1 mensaje sin leer" : `${sinLeer} mensajes sin leer`}
+              />
               <ChevronLeftIcon
                 width={16}
                 height={16}
@@ -254,24 +344,29 @@ export function Chat({
               {messages.map((m) => {
                 const own = m.sender === viewer;
                 return (
-                  <div key={m.id} className={`flex ${own ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm ${
-                        own ? bubbleOwn : "bg-slate-100 text-slate-800"
-                      }`}
-                    >
-                      {m.attachmentUrl && <Attachment message={m} own={own} />}
-                      {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
-                      <p className={`mt-0.5 text-[10px] ${own ? "text-white/70" : "text-slate-400"}`}>
-                        {new Date(m.createdAt).toLocaleString("es-AR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
+                  <Fragment key={m.id}>
+                    {divisor[selected.id] === m.id && <SeparadorNuevos />}
+                    <div className={`flex ${own ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm ${
+                          own ? bubbleOwn : "bg-slate-100 text-slate-800"
+                        }`}
+                      >
+                        {m.attachmentUrl && <Attachment message={m} own={own} />}
+                        {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
+                        <p
+                          className={`mt-0.5 text-[10px] ${own ? "text-white/70" : "text-slate-400"}`}
+                        >
+                          {new Date(m.createdAt).toLocaleString("es-AR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  </Fragment>
                 );
               })}
               <div ref={bottom} />
@@ -369,6 +464,19 @@ export function Chat({
           </>
         )}
       </section>
+    </div>
+  );
+}
+
+/** La línea de "hasta acá habías leído", dentro del hilo. */
+function SeparadorNuevos() {
+  return (
+    <div className="flex items-center gap-2 pt-1" role="separator">
+      <span className="h-px flex-1 bg-red-200" aria-hidden />
+      <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-500">
+        Mensajes nuevos
+      </span>
+      <span className="h-px flex-1 bg-red-200" aria-hidden />
     </div>
   );
 }

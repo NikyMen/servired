@@ -11,7 +11,7 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
       className="glass glass-card group flex flex-col rounded-[1.5rem] p-4"
     >
       <div className="flex items-center gap-3">
-        <Avatar name={pro.name} color={pro.avatarColor} size={48} />
+        <Avatar name={pro.name} color={pro.avatarColor} src={pro.avatarUrl} size={48} />
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <h3 className="truncate font-semibold text-slate-900 transition-colors group-hover:text-[var(--accent-dark)]">

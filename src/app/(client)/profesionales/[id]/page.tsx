@@ -17,6 +17,7 @@ async function getPro(id: string) {
       category: true,
       services: { where: { status: "activo" }, orderBy: { createdAt: "asc" } },
       reviews: { orderBy: { createdAt: "desc" } },
+      workPhotos: { orderBy: { createdAt: "desc" } },
       bookings: {
         where: { status: "completada" },
         orderBy: { updatedAt: "desc" },
@@ -55,39 +56,57 @@ export default async function ProfesionalPage({
       </Link>
 
       {/* Encabezado del perfil */}
-      <section className="glass glass-solid rounded-2xl p-4 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-4">
-            <Avatar name={pro.name} color={pro.avatarColor} size={64} />
-            <div className="min-w-0 flex-1 sm:hidden">
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-slate-900">{pro.name}</h1>
-                {pro.verified && <VerifiedBadge />}
+      <section className="glass glass-solid overflow-hidden rounded-2xl">
+        {/* Portada: si no subió ninguna, un degradé del color de su lado. */}
+        <div className="relative h-32 sm:h-44">
+          {pro.coverUrl ? (
+            <img src={pro.coverUrl} alt="" className="size-full object-cover" />
+          ) : (
+            <div className="size-full bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600" />
+          )}
+        </div>
+
+        <div className="p-4 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            {/* La foto pisa la portada; el nombre no, que arriba está la imagen. */}
+            <div className="flex items-end gap-4">
+              <span className="-mt-16 inline-flex rounded-full ring-4 ring-white/90 sm:-mt-20">
+                <Avatar name={pro.name} color={pro.avatarColor} src={pro.avatarUrl} size={88} />
+              </span>
+              <div className="min-w-0 flex-1 pb-1 sm:hidden">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-slate-900">{pro.name}</h1>
+                  {pro.verified && <VerifiedBadge />}
+                </div>
+                <p className="text-sm text-slate-500">
+                  {pro.headline} · {pro.category.icon} {pro.category.name}
+                </p>
               </div>
-              <p className="text-sm text-slate-500">
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="hidden items-center gap-2 sm:flex">
+                <h1 className="text-2xl font-bold text-slate-900">{pro.name}</h1>
+                {pro.verified && <VerifiedBadge className="[&>svg]:h-6 [&>svg]:w-6" />}
+              </div>
+              <p className="hidden text-slate-500 sm:block">
                 {pro.headline} · {pro.category.icon} {pro.category.name}
               </p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 sm:mt-1">
+                <Rating value={pro.rating} count={pro.reviewsCount} />
+                <span className="flex items-center gap-1">
+                  <MapPinIcon width={15} height={15} className="text-slate-400" />
+                  {pro.zone}
+                </span>
+                <span>{pro.yearsExperience} años de experiencia</span>
+              </div>
             </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="hidden items-center gap-2 sm:flex">
-              <h1 className="text-2xl font-bold text-slate-900">{pro.name}</h1>
-              {pro.verified && <VerifiedBadge className="[&>svg]:h-6 [&>svg]:w-6" />}
-            </div>
-            <p className="hidden text-slate-500 sm:block">
-              {pro.headline} · {pro.category.icon} {pro.category.name}
+          {pro.bio && (
+            <p className="mt-4 border-t border-white/60 pt-4 text-sm text-slate-600 sm:text-base">
+              {pro.bio}
             </p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 sm:mt-1">
-              <Rating value={pro.rating} count={pro.reviewsCount} />
-              <span className="flex items-center gap-1">
-                <MapPinIcon width={15} height={15} className="text-slate-400" />
-                {pro.zone}
-              </span>
-              <span>{pro.yearsExperience} años de experiencia</span>
-            </div>
-          </div>
+          )}
         </div>
-        {pro.bio && <p className="mt-4 border-t border-white/60 pt-4 text-sm text-slate-600 sm:text-base">{pro.bio}</p>}
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -153,6 +172,47 @@ export default async function ProfesionalPage({
                   );
                 })}
               </div>
+            </section>
+          )}
+
+          {/* Trabajos particulares: los sube el propio profesional, de trabajos
+              hechos fuera de ServiRed. Van en su propia sección y con el aviso a
+              la vista: no hubo contratación, así que nadie los calificó. */}
+          {pro.workPhotos.length > 0 && (
+            <section className="glass glass-solid rounded-2xl p-4 sm:p-6">
+              <div className="mb-4 flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold tracking-[0.16em] text-slate-400 uppercase">
+                    Muestra del profesional
+                  </p>
+                  <h2 className="mt-1 text-lg font-bold text-slate-900">Trabajos particulares</h2>
+                </div>
+                <span className="rounded-full bg-slate-400/12 px-2.5 py-1 text-xs font-semibold text-slate-500 ring-1 ring-slate-400/25 ring-inset backdrop-blur-sm">
+                  Sin calificación
+                </span>
+              </div>
+              <p className="mb-4 text-sm text-slate-500">
+                Fotos que cargó {pro.name} de trabajos hechos por fuera de ServiRed.
+                No pasaron por una contratación de la plataforma, así que no tienen
+                opinión de un cliente verificado.
+              </p>
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {pro.workPhotos.map((foto) => (
+                  <li key={foto.id} className="glass glass-thin overflow-hidden rounded-2xl">
+                    <img
+                      src={foto.url}
+                      alt={foto.title}
+                      className="h-32 w-full object-cover sm:h-36"
+                    />
+                    <div className="p-3">
+                      <p className="truncate text-sm font-semibold text-slate-900">{foto.title}</p>
+                      {foto.description && (
+                        <p className="line-clamp-3 text-xs text-slate-500">{foto.description}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 

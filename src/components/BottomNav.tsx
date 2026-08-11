@@ -10,6 +10,7 @@ import {
   ChatIcon,
   GridIcon,
 } from "@/components/icons";
+import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
 import type { Mode } from "@/lib/types";
 
 type Item = {
@@ -17,23 +18,26 @@ type Item = {
   label: string;
   icon: (p: SVGProps<SVGSVGElement>) => React.JSX.Element;
   exact?: boolean;
+  /** Lleva el globito de mensajes sin leer. */
+  noLeidos?: boolean;
 };
 
 const clientItems: Item[] = [
   { href: "/", label: "Buscar", icon: SearchIcon, exact: true },
   { href: "/solicitudes", label: "Solicitudes", icon: ClipboardIcon },
   { href: "/contrataciones", label: "Propuestas", icon: BriefcaseIcon },
-  { href: "/mensajes", label: "Mensajes", icon: ChatIcon },
+  { href: "/mensajes", label: "Mensajes", icon: ChatIcon, noLeidos: true },
 ];
 
 const proItems: Item[] = [
   { href: "/pro", label: "Panel", icon: GridIcon, exact: true },
-  { href: "/pro/mensajes", label: "Mensajes", icon: ChatIcon },
+  { href: "/pro/mensajes", label: "Mensajes", icon: ChatIcon, noLeidos: true },
 ];
 
 /** Barra de pestañas inferior, solo móvil. En desktop navega el header. */
 export function BottomNav({ mode }: { mode: Mode }) {
   const pathname = usePathname();
+  const { total } = useNoLeidos();
 
   // En el perfil del profesional la reemplaza la barra fija de contratación.
   if (pathname.startsWith("/profesionales/")) return null;
@@ -66,13 +70,18 @@ export function BottomNav({ mode }: { mode: Mode }) {
               {/* La pastilla de vidrio detrás del ícono es lo que marca la
                   pestaña activa; el color solo no alcanza sobre vidrio. */}
               <span
-                className={`inline-flex items-center justify-center rounded-full px-3.5 py-1 transition-all duration-200 ${
+                className={`relative inline-flex items-center justify-center rounded-full px-3.5 py-1 transition-all duration-200 ${
                   active
                     ? "bg-[rgb(var(--accent-rgb)/0.14)] shadow-[inset_0_1px_0_rgb(255_255_255/0.6)]"
                     : ""
                 }`}
               >
                 <Icon width={22} height={22} strokeWidth={active ? 2.2 : 1.8} />
+                {/* Encimado sobre el ícono: la pestaña ya es angosta, un globito
+                    al lado empujaría la etiqueta fuera de la columna. */}
+                {item.noLeidos && (
+                  <NoLeidosBadge n={total} className="absolute top-0 right-1.5" />
+                )}
               </span>
               {item.label}
             </Link>

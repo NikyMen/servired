@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { CLIENT_BLUE, PRO_GREEN } from "@/lib/brand";
+import { contarNoLeidos } from "@/lib/mensajes";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,8 @@ export async function GET(req: NextRequest) {
     },
   });
 
+  const viewer = comoPro ? "profesional" : "cliente";
+
   return NextResponse.json({
     conversations: conversations.map((c) => ({
       id: c.id,
@@ -37,6 +40,7 @@ export async function GET(req: NextRequest) {
       withColor: comoPro
         ? c.user.avatarColor || CLIENT_BLUE
         : c.professional.avatarColor || PRO_GREEN,
+      noLeidos: contarNoLeidos(c.messages, viewer, comoPro ? c.leidoPro : c.leidoCliente),
       messages: c.messages.map((m) => ({
         id: m.id,
         sender: m.sender,

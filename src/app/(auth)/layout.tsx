@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FondoLiquido } from "@/components/FondoLiquido";
 import { LogoMark } from "@/components/Logo";
 import { FacebookIcon, SearchIcon, BriefcaseIcon, VerifiedIcon, ChatIcon } from "@/components/icons";
 import { FACEBOOK_URL } from "@/lib/links";
@@ -14,8 +15,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* Panel de marca */}
-      <aside className="relative isolate overflow-hidden bg-slate-900 px-6 py-10 text-white lg:px-12 lg:py-14">
-        {/* Manchas de color: azul y verde, los dos lados conviviendo. */}
+      <aside className="relative isolate overflow-hidden bg-slate-900 px-6 py-8 text-white lg:px-12 lg:py-14">
+        {/* Manchas de color: azul y verde, los dos lados conviviendo. Quedan
+            debajo del fluido y son además lo que se ve si el sistema pidió
+            menos movimiento, porque ahí <FondoLiquido> no dibuja nada. */}
         <div
           aria-hidden
           className="animate-blob absolute -top-24 -left-20 -z-10 size-80 rounded-full bg-cliente/35 blur-3xl"
@@ -25,24 +28,36 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           className="animate-blob absolute -right-16 bottom-0 -z-10 size-96 rounded-full bg-pro/30 blur-3xl [animation-delay:-4s]"
         />
 
+        {/* El azul y el verde mezclándose de verdad, no dos manchas quietas:
+            es literalmente de lo que habla el panel. `screen` sobre el slate
+            oscuro, que es como el shader espera componerse. */}
+        <FondoLiquido className="absolute inset-0 -z-10 opacity-70 mix-blend-screen" />
+
         <div className="flex h-full flex-col">
-          <Link href="/" className="inline-flex w-fit items-center gap-2.5">
-            <LogoMark size={34} />
-            <span className="text-2xl font-extrabold tracking-tight">
+          {/* El logo va grande: es lo primero que ve alguien que llega a crear
+              una cuenta y todavía no sabe dónde está parado. Dos marcas y no
+              una con clases responsive porque LogoMark fija el tamaño por
+              style, y una clase no le puede ganar a eso. */}
+          <Link href="/" className="inline-flex w-fit items-center gap-3 lg:gap-5">
+            <LogoMark size={56} className="lg:hidden" />
+            <LogoMark size={102} className="hidden lg:block" />
+            <span className="text-4xl font-extrabold tracking-tight lg:text-[4.5rem] lg:leading-none">
               SERVI<span className="text-blue-300">RED</span>
             </span>
           </Link>
 
-          <div className="mt-8 lg:mt-auto lg:pt-12">
-            <h1 className="max-w-md text-3xl leading-tight font-extrabold lg:text-4xl">
+          <div className="mt-6 lg:mt-auto lg:pt-12">
+            <h1 className="max-w-md text-2xl leading-tight font-extrabold lg:text-4xl">
               Un lugar, dos caminos.
             </h1>
-            <p className="mt-3 max-w-md text-slate-300">
+            <p className="mt-2.5 max-w-md text-sm text-slate-300 lg:text-base">
               Entrá con tu cuenta y elegí de qué lado estás hoy. Podés cambiar
               cuando quieras.
             </p>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:max-w-lg">
+            {/* En móvil los dos caminos ya se eligen en el propio formulario:
+                repetirlos acá solo empuja el form abajo del pliegue. */}
+            <div className="mt-8 hidden gap-3 sm:grid-cols-2 lg:grid lg:max-w-lg">
               <PathCard
                 tone="cliente"
                 icon={<SearchIcon width={20} height={20} />}
@@ -73,7 +88,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             href={FACEBOOK_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-8 inline-flex w-fit items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white lg:mt-10"
+            className="mt-6 inline-flex w-fit items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white lg:mt-10"
           >
             <FacebookIcon width={18} height={18} />
             Seguinos en Facebook

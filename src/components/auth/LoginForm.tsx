@@ -9,19 +9,15 @@ export function LoginForm({ next }: { next?: string }) {
   const [state, formAction] = useActionState<AuthState, FormData>(loginAction, undefined);
 
   return (
-    <div>
-      <h2 className="text-2xl font-extrabold text-slate-900">Entrá a tu cuenta</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        ¿Todavía no tenés?{" "}
-        <Link
-          href={next ? `/crear-cuenta?next=${encodeURIComponent(next)}` : "/crear-cuenta"}
-          className="font-semibold text-cliente hover:underline"
-        >
-          Creá una gratis
-        </Link>
+    <div className="animate-page-in">
+      <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+        Entrá a tu cuenta
+      </h2>
+      <p className="mt-1.5 text-sm text-slate-500">
+        Retomá donde dejaste, del lado que estabas.
       </p>
 
-      <form action={formAction} className="mt-7 space-y-4">
+      <form action={formAction} className="glass glass-solid mt-5 space-y-5 rounded-[1.5rem] p-5 sm:p-6">
         {next && <input type="hidden" name="next" value={next} />}
 
         <div className="space-y-1.5">
@@ -46,39 +42,24 @@ export function LoginForm({ next }: { next?: string }) {
           tone="cliente"
         />
 
-        <FormError message={state?.error} />
+        <div className="space-y-3">
+          <FormError message={state?.error} />
 
-        <SubmitButton tone="cliente" pendingLabel="Entrando…">
-          Entrar
-        </SubmitButton>
+          <SubmitButton tone="cliente" pendingLabel="Entrando…">
+            Entrar
+          </SubmitButton>
+
+          <p className="text-center text-sm text-slate-500">
+            ¿Todavía no tenés?{" "}
+            <Link
+              href={next ? `/crear-cuenta?next=${encodeURIComponent(next)}` : "/crear-cuenta"}
+              className="font-semibold text-cliente-dark hover:underline"
+            >
+              Creá una gratis
+            </Link>
+          </p>
+        </div>
       </form>
-
-      <DemoHint />
-    </div>
-  );
-}
-
-/** Atajo para probar la app sin crear cuenta. Los datos salen del seed. */
-function DemoHint() {
-  return (
-    <div className="glass glass-thin mt-8 rounded-2xl p-4">
-      <p className="text-xs font-bold tracking-wide text-slate-400 uppercase">
-        Cuentas de prueba
-      </p>
-      <dl className="mt-2 space-y-1 text-sm">
-        <div className="flex items-center gap-2">
-          <dt className="text-slate-500">Cliente:</dt>
-          <dd className="font-mono text-xs text-slate-700">maria@servired.test</dd>
-        </div>
-        <div className="flex items-center gap-2">
-          <dt className="text-slate-500">Profesional:</dt>
-          <dd className="font-mono text-xs text-slate-700">martin@servired.test</dd>
-        </div>
-        <div className="flex items-center gap-2">
-          <dt className="text-slate-500">Clave:</dt>
-          <dd className="font-mono text-xs text-slate-700">servired123</dd>
-        </div>
-      </dl>
     </div>
   );
 }

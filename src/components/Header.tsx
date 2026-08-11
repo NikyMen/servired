@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { ModeSwitch } from "@/components/ModeSwitch";
 import { UserMenu } from "@/components/UserMenu";
+import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
 import { SearchIcon } from "@/components/icons";
 import type { SessionUser } from "@/lib/auth";
 import type { Mode } from "@/lib/types";
@@ -14,23 +15,26 @@ type NavItem = {
   href: string;
   label: string;
   icon?: (props: SVGProps<SVGSVGElement>) => React.JSX.Element;
+  /** Lleva el globito de mensajes sin leer. */
+  noLeidos?: boolean;
 };
 
 const clientNav: NavItem[] = [
   { href: "/", label: "Buscar", icon: SearchIcon },
   { href: "/solicitudes", label: "Solicitudes" },
   { href: "/contrataciones", label: "Propuestas" },
-  { href: "/mensajes", label: "Mensajes" },
+  { href: "/mensajes", label: "Mensajes", noLeidos: true },
 ];
 
 const proNav: NavItem[] = [
   { href: "/pro", label: "Panel" },
-  { href: "/pro/mensajes", label: "Mensajes" },
+  { href: "/pro/mensajes", label: "Mensajes", noLeidos: true },
 ];
 
 export function Header({ mode, user }: { mode: Mode; user: SessionUser | null }) {
   const pathname = usePathname();
   const nav = mode === "pro" ? proNav : clientNav;
+  const { total } = useNoLeidos();
 
   return (
     // glass-bar y no glass: una barra pegada no lleva borde completo ni
@@ -74,6 +78,7 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
               >
                 {Icon && <Icon width={16} height={16} />}
                 {item.label}
+                {item.noLeidos && <NoLeidosBadge n={total} className="-mr-1" />}
               </Link>
             );
           })}

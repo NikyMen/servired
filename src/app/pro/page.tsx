@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { formatARS } from "@/lib/format";
-import { Avatar, StatusPill } from "@/components/ui";
+import { StatusPill } from "@/components/ui";
+import { EncabezadoPerfil } from "@/components/pro/EncabezadoPerfil";
+import { TrabajosParticulares } from "@/components/pro/TrabajosParticulares";
 import { BookingActions } from "@/components/BookingActions";
 import { ResponderSolicitud } from "@/components/ResponderSolicitud";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
@@ -22,7 +24,7 @@ export default async function ProPanelPage() {
     ? await prisma.professional.findUnique({ where: { id: user.professionalId } })
     : null;
 
-  const [bookings, requests, services] = await Promise.all([
+  const [bookings, requests, services, workPhotos] = await Promise.all([
     pro
       ? prisma.booking.findMany({
           where: { professionalId: pro.id },
@@ -40,6 +42,13 @@ export default async function ProPanelPage() {
       ? prisma.service.findMany({
           where: { professionalId: pro.id },
           orderBy: { createdAt: "asc" },
+        })
+      : [],
+    pro
+      ? prisma.workPhoto.findMany({
+          where: { professionalId: pro.id },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, url: true, title: true, description: true },
         })
       : [],
   ]);
@@ -61,21 +70,15 @@ export default async function ProPanelPage() {
 
       {/* Encabezado */}
       {pro ? (
-        <section className="flex items-center gap-4 rounded-2xl bg-pro p-6 text-white">
-          <Avatar name={pro.name} color="#047857" size={56} ring />
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold">{pro.name}</h1>
-            <p className="text-emerald-100">
-              {pro.headline} · {pro.zone}
-            </p>
-          </div>
-          <div className="shrink-0 text-right">
-            <p className="text-3xl font-bold">{pendientes}</p>
-            <p className="text-sm text-emerald-100">
-              {pendientes === 1 ? "pedido nuevo" : "pedidos nuevos"}
-            </p>
-          </div>
-        </section>
+        <EncabezadoPerfil
+          name={pro.name}
+          headline={pro.headline}
+          zone={pro.zone}
+          avatarColor="#047857"
+          avatarUrl={pro.avatarUrl}
+          coverUrl={pro.coverUrl}
+          pendientes={pendientes}
+        />
       ) : (
         <section className="glass glass-solid rounded-2xl p-6">
           <h1 className="text-xl font-bold text-slate-900">Panel del profesional</h1>
@@ -216,6 +219,21 @@ export default async function ProPanelPage() {
           </p>
         )}
       </section>
+
+      {/* Trabajos particulares: los que hizo por fuera de la plataforma. No
+          tienen calificación porque no hubo contratación que calificar. */}
+      {pro ? (
+        <TrabajosParticulares fotos={workPhotos} />
+      ) : (
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900">Trabajos particulares</h2>
+          <p className="glass rounded-2xl border-dashed border-white/70 p-6 text-sm text-slate-500">
+            Acá subís fotos de trabajos que hiciste por fuera de ServiRed. Aparecen
+            en tu perfil como muestra, sin calificación, hasta que empieces a
+            cerrar trabajos por la plataforma.
+          </p>
+        </section>
+      )}
     </div>
   );
 }

@@ -731,6 +731,17 @@
     box-shadow: 0 30px 70px -30px rgb(2 6 23 / 0.85);
   }
 
+  /* De tablet para arriba el banner toma la proporción exacta de la foto
+     (1656×944). Con object-fit: cover eso significa recorte cero: entra la
+     escena completa, los dos oficios centrados y "más atrás", en vez de un
+     primer plano recortado arriba y abajo. Si el contenido pide más alto que
+     la proporción, la caja crece igual — aspect-ratio no lo achica. */
+  @media (min-width: 768px) {
+    .hero-weld {
+      aspect-ratio: 1656 / 944;
+    }
+  }
+
   /* El recorte vive acá y no en .hero-weld a propósito.
      Las capas de la escena (canvas, foto, velo, grano) tienen que quedar
      dentro de las esquinas redondeadas, pero el CONTENIDO no: el desplegable
@@ -745,17 +756,6 @@
     pointer-events: none;
   }
 
-  /* Marco suave: funde visualmente la foto con el fondo claro de la página
-     sin desenfocar el texto ni los controles que viven por encima. */
-  .hero-weld-scene::after {
-    position: absolute;
-    z-index: 4;
-    inset: -1px;
-    border-radius: inherit;
-    box-shadow: inset 0 0 42px 22px rgb(238 243 251 / 0.96);
-    content: "";
-  }
-
   /* La foto. Es un <img> y no un background porque necesitamos saber si el
      archivo existe (onError) para no dejar el canvas animando por gusto
      debajo de una imagen opaca. */
@@ -766,16 +766,36 @@
     height: 100%;
     width: 100%;
     object-fit: cover;
-    /* En pantallas angostas entra menos ancho, así que el recorte se queda
-       con el soldador y el arco — la mitad que más cuenta. */
-    object-position: 32% center;
+    /* Centrada siempre. En desktop el banner tiene la proporción de la foto,
+       así que entra entera; en móvil el recorte es inevitable (la pantalla es
+       vertical y la foto apaisada) pero queda al medio, no corrido. */
+    object-position: center;
   }
 
-  /* Desde tablet entran los dos oficios y la foto se centra. */
-  @media (min-width: 768px) {
-    .hero-weld-photo {
-      object-position: center;
-    }
+  /* La simulación de fluido (ver src/components/LiquidEther.tsx). El canvas
+     que le cuelga adentro se estira solo al 100%. */
+  .liquid-ether-container {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+
+  /* El fluido en la portada: encima de la foto pero debajo del velo (z2), para
+     que el velo también lo atenúe y el título no pelee contra un chorro de
+     color. Comparte el z-index con la foto a propósito y va después en el DOM:
+     entre z iguales gana el que se escribe último, y no hay entero libre entre
+     la foto y el velo. Si algún día se reordena el JSX, esto se rompe.
+
+     `screen` porque el shader devuelve negro transparente donde no hay
+     movimiento: mezclado así sólo suma luz por donde pasa el fluido. */
+  .hero-weld-liquid {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    mix-blend-mode: screen;
+    opacity: 0.85;
   }
 
   /* Velo de legibilidad.

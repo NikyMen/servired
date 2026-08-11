@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
+import { UploadError, saveUpload } from "@/lib/uploads";
 
 export type AuthState = { error?: string; field?: string } | undefined;
 
@@ -61,10 +62,10 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
   const headline = String(formData.get("headline") ?? "").trim();
   const zone = String(formData.get("zone") ?? "").trim();
   const categorySlug = String(formData.get("categoria") ?? "").trim();
-  const priceFromRaw = String(formData.get("priceFrom") ?? "").trim();
+  const bio = String(formData.get("bio") ?? "").trim();
+  const years = Number.parseInt(String(formData.get("years") ?? ""), 10);
 
   let categoryId: string | null = null;
-  let priceFrom = 0;
 
   if (role === "profesional") {
     if (headline.length < 3) {
@@ -75,18 +76,13 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
     const category = await prisma.category.findUnique({ where: { slug: categorySlug } });
     if (!category) return { error: "Elegí un rubro.", field: "categoria" };
     categoryId = category.id;
-
-    const parsed = Number(priceFromRaw);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      return { error: "El precio publicado tiene que ser un número.", field: "priceFrom" };
-    }
-    priceFrom = Math.round(parsed);
   }
 
   const passwordHash = await hashPassword(password);
   const avatarColor = role === "profesional" ? "#059669" : "#2563eb";
 
   let user;
+  let professionalId: string | null = null;
   try {
     // Transacción: si falla el perfil, no queda una cuenta profesional huérfana
     // sin perfil, que después rebota para siempre en /pro.
@@ -96,18 +92,22 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
       });
 
       if (role === "profesional" && categoryId) {
-        await tx.professional.create({
+        const perfil = await tx.professional.create({
           data: {
             name,
             headline,
             zone,
-            priceFrom,
+            // El precio no se pide al registrarse: sale de los servicios que
+            // publique después, desde el panel.
+            priceFrom: 0,
             categoryId,
             userId: created.id,
             avatarColor,
-            bio: null,
+            bio: bio || null,
+            yearsExperience: Number.isFinite(years) && years > 0 ? Math.min(years, 70) : 0,
           },
         });
+        professionalId = perfil.id;
       }
       return created;
     });
@@ -119,8 +119,57 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
     throw e;
   }
 
+  // Las fotos van al final, con la cuenta ya creada.
+  //
+  // Se guardan desde acá y no por /api/upload porque en ese momento todavía no
+  // hay sesión, y escribir en disco antes de crear la cuenta abriría dos
+  // problemas: un email repetido dejaría los archivos huérfanos, y cualquiera
+  // sin cuenta podría llenar el disco mandando el form una y otra vez.
+  if (professionalId) {
+    await guardarFotosDePerfil(formData, user.id, professionalId);
+  }
+
   await createSession(user.id);
   redirect(homeFor(role));
+}
+
+/**
+ * Guarda la foto de perfil y la de portada que vinieron con el alta.
+ *
+ * Las dos son opcionales, así que nada de esto puede voltear un registro que ya
+ * está hecho: si una imagen falla, la cuenta queda creada igual y la persona la
+ * vuelve a cargar desde su panel.
+ */
+async function guardarFotosDePerfil(
+  formData: FormData,
+  userId: string,
+  professionalId: string
+): Promise<void> {
+  const subir = async (campo: "avatar" | "cover"): Promise<string | null> => {
+    const file = formData.get(campo);
+    if (!(file instanceof File) || file.size === 0) return null;
+    try {
+      return (await saveUpload(file, { imagesOnly: true })).url;
+    } catch (e) {
+      if (e instanceof UploadError) {
+        console.warn(`[registro] no se pudo guardar la ${campo}:`, e.message);
+        return null;
+      }
+      throw e;
+    }
+  };
+
+  const [avatarUrl, coverUrl] = [await subir("avatar"), await subir("cover")];
+  if (!avatarUrl && !coverUrl) return;
+
+  await prisma.professional.update({
+    where: { id: professionalId },
+    data: { ...(avatarUrl ? { avatarUrl } : {}), ...(coverUrl ? { coverUrl } : {}) },
+  });
+  // La foto de perfil es también la de la cuenta: es la que sale en el menú.
+  if (avatarUrl) {
+    await prisma.user.update({ where: { id: userId }, data: { avatarUrl } });
+  }
 }
 
 export async function logoutAction() {

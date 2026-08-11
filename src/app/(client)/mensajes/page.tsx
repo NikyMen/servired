@@ -4,6 +4,7 @@ import { Chat } from "@/components/Chat";
 import { getSessionUser } from "@/lib/auth";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
 import { PRO_GREEN } from "@/lib/brand";
+import { contarNoLeidos } from "@/lib/mensajes";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mensajes" };
@@ -39,6 +40,7 @@ export default async function MensajesPage() {
           id: c.id,
           withName: c.professional.name,
           withColor: c.professional.avatarColor || PRO_GREEN,
+          noLeidos: contarNoLeidos(c.messages, "cliente", c.leidoCliente),
           messages: c.messages.map((m) => ({
             id: m.id,
             sender: m.sender,

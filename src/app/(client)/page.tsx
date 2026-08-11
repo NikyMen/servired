@@ -76,15 +76,19 @@ export default async function HomePage({
       <div className="relative">
         <aside
           aria-label="Publicidad"
-          className="absolute inset-y-0 right-full mr-4 hidden w-28 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/60 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm backdrop-blur-sm xl:flex 2xl:w-44"
+          className="absolute inset-y-0 right-full mr-4 hidden w-28 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm xl:flex 2xl:w-44"
         >
           ADS
         </aside>
 
-        <section className="hero-weld relative z-10 min-h-[480px] rounded-[2rem] p-5 text-white sm:min-h-[520px] sm:p-8 md:p-10">
+        {/* min-h más bajo que antes: en móvil el alto es lo que decide cuánto
+            se agranda la foto, así que un banner menos alto deja entrar más
+            escena a lo ancho en vez de un primer plano. En md+ manda la
+            proporción de la foto (ver .hero-weld en globals.css). */}
+        <section className="hero-weld relative z-10 min-h-[430px] rounded-[1.5rem] p-5 text-white sm:min-h-[470px] sm:p-8 md:p-10">
           <HeroFondo />
 
-          <div className="hero-weld-content flex min-h-[440px] flex-col justify-between">
+          <div className="hero-weld-content flex min-h-[390px] flex-col justify-between">
             <div className="max-w-2xl">
               <span className="glass glass-thin glass-dark hero-arc-glow inline-flex rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.2em] uppercase">
                 ServiRed · oficios que resuelven
@@ -123,7 +127,7 @@ export default async function HomePage({
 
         <aside
           aria-label="Publicidad"
-          className="absolute inset-y-0 left-full ml-4 hidden w-28 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/60 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm backdrop-blur-sm xl:flex 2xl:w-44"
+          className="absolute inset-y-0 left-full ml-4 hidden w-28 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm xl:flex 2xl:w-44"
         >
           ADS
         </aside>
@@ -171,6 +175,7 @@ export default async function HomePage({
                 headline: p.headline,
                 category: { slug: p.category.slug, name: p.category.name, icon: p.category.icon },
                 avatarColor: p.avatarColor,
+                avatarUrl: p.avatarUrl,
                 rating: p.rating,
                 reviewsCount: p.reviewsCount,
                 zone: p.zone,

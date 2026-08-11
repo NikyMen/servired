@@ -7,6 +7,8 @@ export type ProCard = {
   headline: string;
   category: { slug: string; name: string; icon: string };
   avatarColor: string;
+  /** Foto de perfil, si subió una. */
+  avatarUrl?: string | null;
   rating: number;
   reviewsCount: number;
   zone: string;

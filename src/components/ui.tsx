@@ -29,23 +29,42 @@ export function Rating({
   );
 }
 
-/** Avatar generado a partir de iniciales (sin dependencia de red). */
+/**
+ * Avatar: la foto de la persona si la subió, y si no las iniciales sobre su
+ * color. Que el fallback no dependa de la red es lo que deja que el perfil se
+ * vea completo desde el minuto cero, antes de que nadie suba nada.
+ */
 export function Avatar({
   name,
   color = "#059669",
   size = 40,
   ring = false,
+  src,
 }: {
   name: string;
   color?: string;
   size?: number;
   ring?: boolean;
+  src?: string | null;
 }) {
+  const box = ring ? "ring-2 ring-white" : "";
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt=""
+        width={size}
+        height={size}
+        className={`inline-block shrink-0 rounded-full object-cover ${box}`}
+        style={{ width: size, height: size, backgroundColor: color }}
+      />
+    );
+  }
+
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${
-        ring ? "ring-2 ring-white" : ""
-      }`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${box}`}
       style={{
         width: size,
         height: size,

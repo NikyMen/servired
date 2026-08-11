@@ -47,7 +47,7 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
         aria-label={`Cuenta de ${user.name}`}
         className="flex items-center gap-2 rounded-full p-0.5 transition-shadow hover:shadow-md"
       >
-        <Avatar name={user.name} color={user.avatarColor} size={34} />
+        <Avatar name={user.name} color={user.avatarColor} src={user.avatarUrl} size={34} />
       </button>
 
       {open && (
@@ -56,7 +56,7 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
           className="glass glass-solid animate-fade-in absolute top-full right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl"
         >
           <div className="flex items-center gap-3 border-b border-white/60 p-3">
-            <Avatar name={user.name} color={user.avatarColor} size={40} />
+            <Avatar name={user.name} color={user.avatarColor} src={user.avatarUrl} size={40} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900">{user.name}</p>
               <p className="truncate text-xs text-slate-500">{user.email}</p>

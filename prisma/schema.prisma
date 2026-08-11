@@ -19,6 +19,7 @@ model User {
   name         String
   role         String @default("cliente") // cliente | profesional
   avatarColor  String @default("#2563eb")
+  avatarUrl    String? // foto de perfil subida a /uploads; si falta, van las iniciales
 
   /// Perfil público. Solo lo tienen las cuentas con role = profesional.
   professional Professional?
@@ -94,6 +95,8 @@ model Professional {
   headline        String // "Plomero", "Electricista", ...
   bio             String?
   avatarColor     String  @default("#059669") // color para el avatar generado
+  avatarUrl       String? // foto de perfil; si falta, se dibujan las iniciales
+  coverUrl        String? // foto de portada del perfil público
   rating          Float   @default(0)
   reviewsCount    Int     @default(0)
   zone            String // "Zona Norte, CABA"
@@ -113,6 +116,24 @@ model Professional {
   reviews       Review[]
   bookings      Booking[]
   conversations Conversation[]
+  workPhotos    WorkPhoto[]
+
+  createdAt DateTime @default(now())
+}
+
+/// Foto de un trabajo particular, cargada por el propio profesional.
+///
+/// No nace de una contratación de ServiRed: no hay cliente del otro lado ni,
+/// por lo tanto, calificación posible. Es la muestra de lo que sabe hacer
+/// alguien que recién llega y todavía no cerró trabajos por la plataforma.
+model WorkPhoto {
+  id          String  @id @default(cuid())
+  url         String
+  title       String
+  description String?
+
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
@@ -166,6 +187,11 @@ model Conversation {
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 
   messages Message[]
+
+  /// Hasta cuándo miró el hilo cada lado. Null = todavía no lo abrió nunca, así
+  /// que todo lo que le escribieron cuenta como sin leer.
+  leidoCliente DateTime?
+  leidoPro     DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

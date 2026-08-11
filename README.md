@@ -23,7 +23,7 @@ cruza de uno al otro con una cortina de color.
 ```bash
 pnpm install        # instala dependencias (genera el cliente de Prisma)
 pnpm setup          # crea la base de datos SQLite y carga datos de ejemplo
-pnpm dev            # levanta el servidor en http://localhost:3655
+pnpm dev            # levanta el servidor en http://localhost:3000
 ```
 
 > `pnpm setup` = `prisma db push` + `prisma db seed`.

@@ -49,6 +49,8 @@ export type SessionUser = {
   name: string;
   role: Role;
   avatarColor: string;
+  /** Foto de perfil, si subió una. */
+  avatarUrl: string | null;
   /** Perfil público, solo si la cuenta es profesional. */
   professionalId: string | null;
 };
@@ -80,6 +82,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     name: user.name,
     role: user.role === "profesional" ? "profesional" : "cliente",
     avatarColor: user.avatarColor,
+    avatarUrl: user.avatarUrl,
     professionalId: user.professional?.id ?? null,
   };
 });

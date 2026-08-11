@@ -169,6 +169,49 @@ export const FacebookIcon = (p: IconProps) => (
   </svg>
 );
 
+export const CameraIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 8.5h3.2l1.4-2.2h8.8l1.4 2.2H21v10.2H3Z" />
+    <circle cx="12" cy="13.4" r="3.4" />
+  </svg>
+);
+
+export const ImageIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="3" y="4.5" width="18" height="15" rx="3" />
+    <circle cx="8.6" cy="10" r="1.6" />
+    <path d="m4 17 4.6-4.4 3.5 3.2 3-2.6L20 17" />
+  </svg>
+);
+
+export const TrashIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M4 6.5h16M9.5 6.5V4h5v2.5" />
+    <path d="M6.5 6.5 7.4 20h9.2l.9-13.5" />
+  </svg>
+);
+
+export const PlusIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
+export const BellIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M18 8a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6" />
+    <path d="M10.3 20a2 2 0 0 0 3.4 0" />
+  </svg>
+);
+
+export const BellOffIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M18 8a6 6 0 0 0-9.3-5M6.3 6.3A6 6 0 0 0 6 8c0 5-2 6-2 6h13" />
+    <path d="M10.3 20a2 2 0 0 0 3.4 0" />
+    <path d="m3 3 18 18" />
+  </svg>
+);
+
 export const InstagramIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <rect x="3" y="3" width="18" height="18" rx="5" />

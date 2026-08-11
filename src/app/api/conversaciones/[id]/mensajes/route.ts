@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { participantIn } from "@/lib/mensajes-server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,32 +11,6 @@ const ALLOWED_TYPES = new Set([
   "image/gif",
   "application/pdf",
 ]);
-
-/**
- * Quién es el que mira esta conversación.
- *
- * El rol sale de la sesión, nunca del body: si lo mandara el cliente, cualquiera
- * podría escribir haciéndose pasar por el profesional. Devuelve null si la
- * persona no es parte de la conversación.
- */
-async function participantIn(conversationId: string) {
-  const user = await getSessionUser();
-  if (!user) return { user: null, role: null, conversation: null } as const;
-
-  const conversation = await prisma.conversation.findUnique({
-    where: { id: conversationId },
-    include: { professional: { select: { userId: true } } },
-  });
-  if (!conversation) return { user, role: null, conversation: null } as const;
-
-  if (conversation.userId === user.id) {
-    return { user, role: "cliente" as const, conversation };
-  }
-  if (conversation.professional.userId && conversation.professional.userId === user.id) {
-    return { user, role: "profesional" as const, conversation };
-  }
-  return { user, role: null, conversation } as const;
-}
 
 // GET /api/conversaciones/[id]/mensajes — mensajes del hilo (lo usa el polling)
 export async function GET(

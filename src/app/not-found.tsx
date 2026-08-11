@@ -4,7 +4,7 @@ import { Logo } from "@/components/Logo";
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 text-center">
-      <div className="glass glass-solid flex max-w-lg flex-col items-center rounded-[2rem] px-8 py-10">
+      <div className="glass glass-solid flex max-w-lg flex-col items-center rounded-[1.5rem] px-8 py-10">
         <Logo />
         <p className="mt-8 text-6xl font-extrabold text-cliente">404</p>
         <h1 className="mt-2 text-2xl font-bold text-slate-900">Página no encontrada</h1>
