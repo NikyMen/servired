@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
+import { MapPicker } from "@/components/MapPicker";
 
 type Categoria = { slug: string; name: string; icon: string };
 
@@ -11,7 +12,8 @@ type Form = {
   categorySlug: string;
   description: string;
   zone: string;
-  budget: string;
+  latitude: number;
+  longitude: number;
   contactName: string;
 };
 
@@ -19,8 +21,9 @@ const empty: Form = {
   title: "",
   categorySlug: "",
   description: "",
-  zone: "",
-  budget: "",
+  zone: "Corrientes",
+  latitude: -27.4692,
+  longitude: -58.8306,
   contactName: "",
 };
 
@@ -94,13 +97,8 @@ export function PublicarSolicitudForm({ categorias }: { categorias: Categoria[] 
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-900">Ubicación</label>
-          <input
-            required
-            value={form.zone}
-            onChange={(e) => update("zone", e.target.value)}
-            placeholder="Ej: Belgrano, CABA"
-            className={inputCls}
-          />
+          <input readOnly value={form.zone} className={`${inputCls} cursor-not-allowed bg-slate-100/70`} />
+          <p className="mt-1 text-xs text-slate-400">La plataforma opera por defecto en Corrientes.</p>
         </div>
       </div>
 
@@ -118,19 +116,6 @@ export function PublicarSolicitudForm({ categorias }: { categorias: Categoria[] 
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-900">
-            Presupuesto estimado <span className="text-slate-400">(opcional)</span>
-          </label>
-          <input
-            type="number"
-            min={0}
-            value={form.budget}
-            onChange={(e) => update("budget", e.target.value)}
-            placeholder="Ej: 20000"
-            className={inputCls}
-          />
-        </div>
-        <div>
           <label className="mb-1 block text-sm font-medium text-slate-900">Tu nombre</label>
           <input
             required
@@ -140,6 +125,14 @@ export function PublicarSolicitudForm({ categorias }: { categorias: Categoria[] 
             className={inputCls}
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <div>
+          <p className="text-sm font-medium text-slate-900">Punto del trabajo</p>
+          <p className="text-xs text-slate-500">Tocá el mapa para marcar la ubicación exacta.</p>
+        </div>
+        <MapPicker latitude={form.latitude} longitude={form.longitude} onChange={(latitude, longitude) => setForm((current) => ({ ...current, latitude, longitude }))} />
       </div>
 
       {error && (

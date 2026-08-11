@@ -44,6 +44,7 @@ const categories = [
   { slug: "abogado", name: "Abogados", icon: "⚖️" },
   { slug: "contador", name: "Contadores", icon: "📊" },
   { slug: "diseno", name: "Diseño", icon: "🖌️" },
+  { slug: "otro", name: "Otro", icon: "+" },
 ];
 
 type ProSeed = {
@@ -287,7 +288,7 @@ async function main() {
 
   console.log("🌱 Creando profesionales...");
   const proMap = new Map<string, { id: string; serviceIds: Map<string, string> }>();
-  for (const p of pros) {
+  for (const [proIndex, p] of pros.entries()) {
     const categoryId = categoryMap.get(p.categorySlug);
     if (!categoryId) throw new Error(`Categoría faltante: ${p.categorySlug}`);
 
@@ -312,6 +313,9 @@ async function main() {
         rating: p.rating,
         reviewsCount: p.reviewsCount,
         zone: p.zone,
+        address: "Corrientes, Argentina",
+        latitude: -27.4692 + (proIndex % 4) * 0.012,
+        longitude: -58.8306 + (proIndex % 5) * 0.014,
         priceFrom: p.priceFrom,
         verified: p.verified,
         featured: p.featured,
@@ -365,8 +369,10 @@ async function main() {
       data: {
         title: r.title,
         description: r.description,
-        zone: r.zone,
-        budget: r.budget ?? null,
+        zone: "Corrientes",
+        budget: null,
+        latitude: -27.4692 + (requests.indexOf(r) % 3) * 0.009,
+        longitude: -58.8306 + (requests.indexOf(r) % 4) * 0.011,
         contactName: r.contactName,
         userId: autor.id,
         categoryId: categoryMap.get(r.categorySlug) ?? null,

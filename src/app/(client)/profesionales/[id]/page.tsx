@@ -7,6 +7,7 @@ import { Avatar, Rating, VerifiedBadge } from "@/components/ui";
 import { ContratarBox } from "@/components/ContratarBox";
 import { ContratarSheet } from "@/components/ContratarSheet";
 import { StarIcon, MapPinIcon } from "@/components/icons";
+import { MapView } from "@/components/MapView";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +76,7 @@ export default async function ProfesionalPage({
               </span>
               <div className="min-w-0 flex-1 pb-1 sm:hidden">
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-bold text-slate-900">{pro.name}</h1>
+                  <h1 className="text-xl font-bold text-slate-900">{pro.businessName || pro.name}</h1>
                   {pro.verified && <VerifiedBadge />}
                 </div>
                 <p className="text-sm text-slate-500">
@@ -85,7 +86,7 @@ export default async function ProfesionalPage({
             </div>
             <div className="min-w-0 flex-1">
               <div className="hidden items-center gap-2 sm:flex">
-                <h1 className="text-2xl font-bold text-slate-900">{pro.name}</h1>
+                <h1 className="text-2xl font-bold text-slate-900">{pro.businessName || pro.name}</h1>
                 {pro.verified && <VerifiedBadge className="[&>svg]:h-6 [&>svg]:w-6" />}
               </div>
               <p className="hidden text-slate-500 sm:block">
@@ -106,6 +107,7 @@ export default async function ProfesionalPage({
               {pro.bio}
             </p>
           )}
+          {pro.latitude != null && pro.longitude != null && <div className="mt-4"><MapView className="h-64" points={[{ id: pro.id, type: "profesional", title: pro.businessName || pro.name, subtitle: pro.address || pro.zone, latitude: pro.latitude, longitude: pro.longitude }]} /></div>}
         </div>
       </section>
 
@@ -209,6 +211,7 @@ export default async function ProfesionalPage({
                       {foto.description && (
                         <p className="line-clamp-3 text-xs text-slate-500">{foto.description}</p>
                       )}
+                      {foto.address && <p className="mt-1 text-[11px] text-slate-400">📍 {foto.address}</p>}
                     </div>
                   </li>
                 ))}
@@ -244,6 +247,7 @@ export default async function ProfesionalPage({
                       ))}
                     </div>
                     <p className="mt-1 text-sm text-slate-600">{r.comment}</p>
+                    {r.imageUrl && <a href={r.imageUrl} target="_blank" rel="noopener noreferrer"><img src={r.imageUrl} alt="Imagen de la reseña" className="mt-2 max-h-52 rounded-xl object-cover" /></a>}
                   </div>
                 </li>
               ))}

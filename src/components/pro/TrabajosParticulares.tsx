@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlusIcon, TrashIcon, XIcon, ImageIcon } from "@/components/icons";
+import { MapPicker } from "@/components/MapPicker";
 
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 
@@ -11,6 +12,9 @@ export type TrabajoParticular = {
   url: string;
   title: string;
   description: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 /**
@@ -28,6 +32,9 @@ export function TrabajosParticulares({ fotos }: { fotos: TrabajoParticular[] }) 
   const [preview, setPreview] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [address, setAddress] = useState("Corrientes");
+  const [latitude, setLatitude] = useState(-27.4692);
+  const [longitude, setLongitude] = useState(-58.8306);
   const [guardando, setGuardando] = useState(false);
   const [borrando, setBorrando] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +56,9 @@ export function TrabajosParticulares({ fotos }: { fotos: TrabajoParticular[] }) 
     setPreview(null);
     setTitle("");
     setDescription("");
+    setAddress("Corrientes");
+    setLatitude(-27.4692);
+    setLongitude(-58.8306);
     setError(null);
   }
 
@@ -70,7 +80,7 @@ export function TrabajosParticulares({ fotos }: { fotos: TrabajoParticular[] }) 
       const res = await fetch("/api/pro/trabajos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: data.url, title, description }),
+        body: JSON.stringify({ url: data.url, title, description, address, latitude, longitude }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -157,6 +167,8 @@ export function TrabajosParticulares({ fotos }: { fotos: TrabajoParticular[] }) 
               placeholder="Detalle opcional: qué resolviste, cuánto llevó, materiales."
               className="glass-field resize-none px-3 py-2.5 text-sm"
             />
+            <input value={address} onChange={(e) => setAddress(e.target.value)} maxLength={180} placeholder="Dirección o referencia en Corrientes" className="glass-field px-3 py-2.5 text-sm" />
+            <MapPicker latitude={latitude} longitude={longitude} onChange={(lat, lng) => { setLatitude(lat); setLongitude(lng); }} />
             <div className="flex gap-2">
               <button
                 type="button"
@@ -201,6 +213,7 @@ export function TrabajosParticulares({ fotos }: { fotos: TrabajoParticular[] }) 
                 {foto.description && (
                   <p className="line-clamp-2 text-xs text-slate-500">{foto.description}</p>
                 )}
+                {foto.address && <p className="mt-1 truncate text-[11px] text-slate-400">📍 {foto.address}</p>}
               </div>
               <button
                 type="button"

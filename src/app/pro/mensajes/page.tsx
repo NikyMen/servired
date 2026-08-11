@@ -27,7 +27,7 @@ export default async function ProMensajesPage() {
 
   return (
     <div className="space-y-4">
-      {!professionalId && (
+      {!user && (
         <InvitadoAviso accion="responderles a los clientes" next="/pro/mensajes" />
       )}
 

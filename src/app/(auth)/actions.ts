@@ -60,7 +60,7 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
 
   // Datos extra del perfil público: solo aplican al que ofrece servicios.
   const headline = String(formData.get("headline") ?? "").trim();
-  const zone = String(formData.get("zone") ?? "").trim();
+  const zone = "Corrientes";
   const categorySlug = String(formData.get("categoria") ?? "").trim();
   const bio = String(formData.get("bio") ?? "").trim();
   const years = Number.parseInt(String(formData.get("years") ?? ""), 10);

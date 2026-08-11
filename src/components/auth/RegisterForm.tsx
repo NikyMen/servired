@@ -246,7 +246,10 @@ export function RegisterForm({
                 placeholder="Plomero matriculado"
               />
 
-              <Field id="zone" label="Zona donde trabajás" placeholder="Zona Norte, CABA" />
+              <div className="space-y-1.5">
+                <label htmlFor="zone" className="text-sm font-medium text-slate-700">Zona donde trabajás</label>
+                <input id="zone" name="zone" readOnly value="Corrientes" className={`${FIELD} cursor-not-allowed bg-slate-100/70`} />
+              </div>
 
               <div className="space-y-1.5">
                 <label htmlFor="years" className="text-sm font-medium text-slate-700">

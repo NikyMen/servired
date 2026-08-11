@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import { formatARS } from "@/lib/format";
 import { StatusPill } from "@/components/ui";
 import { MapPinIcon, CheckCircleIcon } from "@/components/icons";
 
@@ -78,11 +77,6 @@ export default async function SolicitudesPage({
                 <MapPinIcon width={15} height={15} className="text-slate-400" />
                 {r.zone}
               </span>
-              {r.budget != null && (
-                <span>
-                  Presupuesto: <span className="font-medium text-slate-900">{formatARS(r.budget)}</span>
-                </span>
-              )}
               <span className="ml-auto text-xs text-slate-400">
                 {r.contactName} · {timeAgo(new Date(r.createdAt))}
               </span>

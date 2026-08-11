@@ -13,12 +13,12 @@ datasource db {
 /// Cuenta de usuario. `role` define con qué cara entra a la app:
 /// cliente (azul, contrata) o profesional (verde, ofrece).
 model User {
-  id           String @id @default(cuid())
-  email        String @unique
+  id           String  @id @default(cuid())
+  email        String  @unique
   passwordHash String // scrypt: "salt:hash" (ver src/lib/auth.ts)
   name         String
-  role         String @default("cliente") // cliente | profesional
-  avatarColor  String @default("#2563eb")
+  role         String  @default("cliente") // cliente | profesional
+  avatarColor  String  @default("#2563eb")
   avatarUrl    String? // foto de perfil subida a /uploads; si falta, van las iniciales
 
   /// Perfil público. Solo lo tienen las cuentas con role = profesional.
@@ -28,6 +28,8 @@ model User {
   conversations Conversation[]
   bookings      Booking[]
   requests      ServiceRequest[]
+  payments      Payment[]
+  reviews       Review[]
 
   createdAt DateTime @default(now())
 }
@@ -76,6 +78,8 @@ model ServiceRequest {
   description String
   zone        String
   budget      Int? // presupuesto estimado opcional (ARS)
+  latitude    Float    @default(-27.4692)
+  longitude   Float    @default(-58.8306)
   contactName String // nombre mostrado; la identidad real es userId
   status      String   @default("abierta") // abierta | cerrada
   createdAt   DateTime @default(now())
@@ -100,6 +104,10 @@ model Professional {
   rating          Float   @default(0)
   reviewsCount    Int     @default(0)
   zone            String // "Zona Norte, CABA"
+  businessName    String?
+  address         String?
+  latitude        Float?
+  longitude       Float?
   priceFrom       Int // precio publicado en ARS
   verified        Boolean @default(false)
   featured        Boolean @default(false)
@@ -117,6 +125,7 @@ model Professional {
   bookings      Booking[]
   conversations Conversation[]
   workPhotos    WorkPhoto[]
+  payments      Payment[]
 
   createdAt DateTime @default(now())
 }
@@ -131,6 +140,9 @@ model WorkPhoto {
   url         String
   title       String
   description String?
+  address     String?
+  latitude    Float?
+  longitude   Float?
 
   professionalId String
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
@@ -140,13 +152,13 @@ model WorkPhoto {
 
 /// Contratación: un cliente contrata a un profesional
 model Booking {
-  id         String  @id @default(cuid())
-  clientName String // nombre mostrado; la identidad real es userId
-  note       String?
-  finalPrice Int? // monto acordado al cerrar el trabajo (ARS)
+  id          String  @id @default(cuid())
+  clientName  String // nombre mostrado; la identidad real es userId
+  note        String?
+  finalPrice  Int? // monto acordado al cerrar el trabajo (ARS)
   quotedPrice Int? // presupuesto que propone el profesional (ARS)
   workSummary String? // breve resumen del trabajo realizado
-  status     String  @default("solicitada") // solicitada | presupuestada | aceptada | completada | cancelada
+  status      String  @default("solicitada") // solicitada | presupuestada | aceptada | completada | cancelada
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -158,6 +170,8 @@ model Booking {
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 
   attachments ProposalAttachment[]
+  payments    Payment[]
+  reviews     Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -165,14 +179,14 @@ model Booking {
 
 /// Imagen adjunta a una propuesta enviada desde el perfil público.
 model ProposalAttachment {
-  id         String   @id @default(cuid())
-  url        String
-  name       String
-  type       String
-  size       Int?
-  bookingId  String
-  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  url       String
+  name      String
+  type      String
+  size      Int?
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }
 
 /// Conversación entre un cliente y un profesional
@@ -187,6 +201,7 @@ model Conversation {
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 
   messages Message[]
+  payments Payment[]
 
   /// Hasta cuándo miró el hilo cada lado. Null = todavía no lo abrió nunca, así
   /// que todo lo que le escribieron cuenta como sin leer.
@@ -243,8 +258,47 @@ model Review {
   rating     Int
   comment    String
   serviceTag String? // servicio al que refiere la opinión
+  imageUrl   String?
   createdAt  DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  paymentId String?  @unique
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
   professionalId String
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+}
+
+/// Pago de demostracion iniciado desde una conversacion.
+model Payment {
+  id            String    @id @default(cuid())
+  amount        Int
+  commission    Int
+  netAmount     Int
+  currency      String    @default("ARS")
+  status        String    @default("pendiente") // pendiente | pagado | cancelado
+  provider      String    @default("mercadopago-demo")
+  checkoutToken String    @unique @default(cuid())
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  professionalId String
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  review Review?
 }

@@ -25,7 +25,7 @@ export default async function ContratacionesPage({
     ? await prisma.booking.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "desc" },
-        include: { professional: true, service: true, attachments: true },
+        include: { professional: true, service: true, attachments: true, payments: { orderBy: { createdAt: "desc" } } },
       })
     : [];
 
@@ -69,6 +69,7 @@ export default async function ContratacionesPage({
                 <p className="text-xs text-slate-400">Pedido el {new Date(b.createdAt).toLocaleDateString("es-AR")}</p>
                 {b.note && <p className="mt-1 text-sm text-slate-600">{b.note}</p>}
                 {b.status === "completada" && b.workSummary && <p className="mt-1 text-xs text-pro-dark">{b.workSummary}</p>}
+                {b.payments.map((payment) => <p key={payment.id} className={`mt-1 text-xs font-semibold ${payment.status === "pagado" ? "text-emerald-700" : "text-amber-700"}`}>Pago {payment.status}: {formatARS(payment.amount)}</p>)}
                 {b.attachments.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {b.attachments.map((attachment) => (

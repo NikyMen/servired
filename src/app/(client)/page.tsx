@@ -4,20 +4,21 @@ import type { Prisma } from "@prisma/client";
 import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { SearchBox } from "@/components/SearchBox";
 import { HeroFondo } from "@/components/HeroFondo";
-import { normalize, rankProfessionals } from "@/lib/search";
+import { MapView } from "@/components/MapView";
+import { rankProfessionals } from "@/lib/search";
 
 export const dynamic = "force-dynamic";
 
-type Search = { q?: string; categoria?: string; ubicacion?: string };
+type Search = { q?: string; categoria?: string };
 const popularSearches = ["Pérdida de agua", "Luminarias LED", "Limpieza profunda"];
 
-async function getData({ q, categoria, ubicacion }: Search) {
+async function getData({ q, categoria }: Search) {
   // Categoría y ubicación filtran en la base; el texto libre se rankea en memoria
   // (ver src/lib/search.ts: LIKE de SQLite no ignora acentos ni tolera typos).
   const where: Prisma.ProfessionalWhereInput = {};
   if (categoria) where.category = { slug: categoria };
 
-  const [categories, found] = await Promise.all([
+  const [categories, found, requests, workPhotos] = await Promise.all([
     prisma.category.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.professional.findMany({
       where,
@@ -36,23 +37,23 @@ async function getData({ q, categoria, ubicacion }: Search) {
         },
       },
     }),
+    prisma.serviceRequest.findMany({
+      where: { status: "abierta" },
+      orderBy: { createdAt: "desc" },
+      include: { category: true },
+    }),
+    prisma.workPhoto.findMany({
+      where: { latitude: { not: null }, longitude: { not: null } },
+      orderBy: { createdAt: "desc" },
+      include: { professional: { select: { id: true, name: true, businessName: true } } },
+    }),
   ]);
-
-  // La zona también se compara normalizada: "Núñez" tiene que encontrarse con "nunez".
-  const byZone = ubicacion?.trim()
-    ? found.filter((p) => {
-        const zone = normalize(p.zone);
-        return normalize(ubicacion).split(" ").every((term) => zone.includes(term));
-      })
-    : found;
-
-  return { categories, pros: rankProfessionals(byZone, q ?? "") };
+  return { categories, pros: rankProfessionals(found, q ?? ""), requests, workPhotos };
 }
 
 function chipHref(params: Search, categoria: string) {
   const sp = new URLSearchParams();
   if (params.q) sp.set("q", params.q);
-  if (params.ubicacion) sp.set("ubicacion", params.ubicacion);
   if (categoria) sp.set("categoria", categoria);
   const qs = sp.toString();
   return qs ? `/?${qs}` : "/";
@@ -64,10 +65,13 @@ export default async function HomePage({
   searchParams: Promise<Search>;
 }) {
   const params = await searchParams;
-  const { categories, pros } = await getData(params);
+  const { categories, pros, requests, workPhotos } = await getData(params);
 
   return (
     <div className="space-y-6">
+      <aside aria-label="Publicidad" className="flex min-h-20 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm sm:min-h-24">
+        ADS
+      </aside>
       {/* Hero: oficios trabajando de noche, con el buscador apoyado encima en
           vidrio. El fondo es la foto de public/hero-soldador.jpg; si no está,
           <HeroFondo> cae en la escena dibujada en canvas. */}
@@ -96,17 +100,11 @@ export default async function HomePage({
               <h1 className="mt-5 max-w-xl text-3xl leading-[1.1] font-bold tracking-tight drop-shadow-[0_2px_18px_rgba(2,6,23,0.8)] sm:text-4xl md:text-5xl">
                 Tu problema tiene solución. Encontrala acá.
               </h1>
-              <p className="mt-3 max-w-lg text-sm leading-6 text-slate-200 drop-shadow-[0_1px_10px_rgba(2,6,23,0.9)] sm:text-base">
-                Soldadores, plomeros, electricistas y más. Verificados, con
-                trabajos hechos a la vista y contacto directo para coordinar sin
-                vueltas.
-              </p>
             </div>
 
             <div className="mt-8">
               <SearchBox
                 defaultQuery={params.q ?? ""}
-                defaultZone={params.ubicacion ?? ""}
                 categoria={params.categoria}
               />
               <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
@@ -131,6 +129,11 @@ export default async function HomePage({
         >
           ADS
         </aside>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 xl:hidden">
+        <aside aria-label="Publicidad lateral izquierda" className="flex min-h-24 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400">ADS</aside>
+        <aside aria-label="Publicidad lateral derecha" className="flex min-h-24 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400">ADS</aside>
       </div>
 
       {/* Categorías: carrusel horizontal en móvil, wrap en desktop */}
@@ -161,7 +164,7 @@ export default async function HomePage({
         <div className="glass glass-solid rounded-[1.5rem] p-12 text-center">
           <p className="text-lg font-semibold text-slate-900">Sin resultados</p>
           <p className="mt-1 text-slate-500">
-            Probá con otra categoría, ubicación o término de búsqueda.
+            Probá con otra categoría o término de búsqueda.
           </p>
         </div>
       ) : (
@@ -189,6 +192,30 @@ export default async function HomePage({
           ))}
         </div>
       )}
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Mapa de oportunidades</h2>
+          <p className="text-sm text-slate-500">Trabajos abiertos y profesionales o negocios adheridos en Corrientes.</p>
+        </div>
+        <MapView
+          points={[
+            ...pros.map((p, index) => ({
+              id: p.id, type: "profesional" as const, title: p.businessName || p.name,
+              subtitle: `${p.headline} · ${p.zone}`, latitude: p.latitude ?? -27.4692 + (index % 4) * 0.008, longitude: p.longitude ?? -58.8306 + (index % 5) * 0.009, href: `/profesionales/${p.id}`,
+            })),
+            ...requests.map((r) => ({
+              id: r.id, type: "solicitud" as const, title: r.title,
+              subtitle: `${r.category?.name ?? "Otro"} · ${r.zone}`, latitude: r.latitude, longitude: r.longitude, href: "/solicitudes",
+            })),
+            ...workPhotos.map((work) => ({
+              id: work.id, type: "trabajo" as const, title: work.title,
+              subtitle: `${work.professional.businessName || work.professional.name} · ${work.address || "Corrientes"}`, latitude: work.latitude!, longitude: work.longitude!, href: `/profesionales/${work.professional.id}`,
+            })),
+          ]}
+        />
+        <div className="flex flex-wrap gap-3 text-xs text-slate-500"><span>🟢 Profesionales</span><span>🔵 Trabajos abiertos</span><span>🟠 Trabajos realizados</span></div>
+      </section>
 
       {/* CTA solicitud */}
       <section className="glass glass-solid glass-card flex flex-col items-start justify-between gap-3 rounded-[1.5rem] p-6 sm:flex-row sm:items-center">

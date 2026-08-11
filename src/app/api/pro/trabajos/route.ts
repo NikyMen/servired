@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const { url, title, description } = (body ?? {}) as Record<string, unknown>;
+  const { url, title, description, address, latitude, longitude } = (body ?? {}) as Record<string, unknown>;
 
   if (typeof url !== "string" || !UPLOAD_URL.test(url)) {
     return NextResponse.json({ error: "Falta la foto del trabajo." }, { status: 422 });
@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
         typeof description === "string" && description.trim()
           ? description.trim().slice(0, 400)
           : null,
+      address: typeof address === "string" ? address.trim().slice(0, 180) || "Corrientes" : "Corrientes",
+      latitude: Number.isFinite(Number(latitude)) ? Number(latitude) : -27.4692,
+      longitude: Number.isFinite(Number(longitude)) ? Number(longitude) : -58.8306,
       professionalId: user.professionalId,
     },
   });

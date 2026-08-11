@@ -43,21 +43,15 @@ export function Logo({
       aria-label="ServiRed — inicio"
       className={`inline-flex items-center gap-2 leading-none ${className}`}
     >
-      {compactOnMobile && <LogoMark size={height} className="shrink-0 sm:hidden" />}
       <Image
         src="/logo-horizontal.png"
         alt="ServiRed — servicios profesionales conectados"
         width={width}
         height={height}
         priority
-        className={compactOnMobile ? "hidden sm:block" : "block"}
+        className="block max-w-[118px] sm:max-w-none"
         style={{ width, height }}
       />
-      {accent === "pro" && (
-        <span className="rounded-md bg-pro px-1.5 py-0.5 text-[10px] font-bold text-white">
-          PRO
-        </span>
-      )}
     </Link>
   );
 }

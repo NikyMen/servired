@@ -7,9 +7,8 @@ import { StatusPill } from "@/components/ui";
 import { EncabezadoPerfil } from "@/components/pro/EncabezadoPerfil";
 import { TrabajosParticulares } from "@/components/pro/TrabajosParticulares";
 import { BookingActions } from "@/components/BookingActions";
-import { ResponderSolicitud } from "@/components/ResponderSolicitud";
+import { SolicitudCard } from "@/components/pro/SolicitudCard";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
-import { MapPinIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Panel del profesional" };
@@ -29,7 +28,7 @@ export default async function ProPanelPage() {
       ? prisma.booking.findMany({
           where: { professionalId: pro.id },
           orderBy: { createdAt: "desc" },
-          include: { service: true, attachments: true },
+          include: { service: true, attachments: true, payments: { orderBy: { createdAt: "desc" } } },
         })
       : [],
     prisma.serviceRequest.findMany({
@@ -48,7 +47,7 @@ export default async function ProPanelPage() {
       ? prisma.workPhoto.findMany({
           where: { professionalId: pro.id },
           orderBy: { createdAt: "desc" },
-          select: { id: true, url: true, title: true, description: true },
+          select: { id: true, url: true, title: true, description: true, address: true, latitude: true, longitude: true },
         })
       : [],
   ]);
@@ -57,7 +56,7 @@ export default async function ProPanelPage() {
 
   return (
     <div className="space-y-8">
-      {!pro && (
+      {!user && (
         <InvitadoAviso
           accion={
             user
@@ -123,6 +122,11 @@ export default async function ProPanelPage() {
                     </p>
                   )}
                   {b.workSummary && <p className="text-xs text-slate-500">{b.workSummary}</p>}
+                  {b.payments.map((payment) => (
+                    <p key={payment.id} className={`mt-1 text-sm font-semibold ${payment.status === "pagado" ? "text-emerald-700" : "text-amber-700"}`}>
+                      Mercado Pago demo: {formatARS(payment.amount)} · {payment.status}{payment.status === "pagado" ? ` · recibís ${formatARS(payment.netAmount)}` : ""}
+                    </p>
+                  ))}
                   {b.attachments.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {b.attachments.map((attachment) => (
@@ -153,35 +157,7 @@ export default async function ProPanelPage() {
           <span className="text-sm text-slate-500">{requests.length} abiertas</span>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {requests.map((r) => (
-            <article key={r.id} className="glass glass-card flex flex-col rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                {r.category ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-2.5 py-1 text-xs font-medium text-pro-dark ring-1 ring-emerald-400/25 ring-inset backdrop-blur-sm">
-                    {r.category.icon} {r.category.name}
-                  </span>
-                ) : (
-                  <span className="text-xs text-slate-400">Sin categoría</span>
-                )}
-                {r.budget != null && (
-                  <span className="text-sm font-medium text-slate-700">{formatARS(r.budget)}</span>
-                )}
-              </div>
-              <h3 className="mt-2 font-semibold text-slate-900">{r.title}</h3>
-              <p className="mt-1 line-clamp-2 text-sm text-slate-500">{r.description}</p>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/60 pt-3">
-                <span className="flex items-center gap-1 text-xs text-slate-400">
-                  <MapPinIcon width={14} height={14} />
-                  {r.zone} · {r.contactName}
-                </span>
-                <ResponderSolicitud
-                  requestId={r.id}
-                  clientName={r.contactName}
-                  requestTitle={r.title}
-                />
-              </div>
-            </article>
-          ))}
+          {requests.map((r) => <SolicitudCard key={r.id} request={{ ...r, createdAt: r.createdAt.toISOString(), category: r.category ? { name: r.category.name, icon: r.category.icon } : null }} />)}
         </div>
       </section>
 

@@ -80,7 +80,8 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
         <button
           onClick={() => setOpen(true)}
           aria-label={total > 0 ? `Abrir mensajes, ${total} sin leer` : "Abrir mensajes"}
-          className={`fixed right-4 bottom-40 z-40 flex w-40 items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl active:scale-95 md:bottom-22 ${accent} ${accentHover}`}
+          title="Mensajes"
+          className={`fixed right-4 bottom-40 z-40 flex size-13 items-center justify-center rounded-full text-white shadow-lg transition-all hover:shadow-xl active:scale-95 md:bottom-22 ${accent} ${accentHover}`}
         >
           <span className="relative">
             <ChatIcon width={20} height={20} />
@@ -88,7 +89,6 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
                 compartido con el botón de ServiRed IA) y no puede crecer. */}
             <NoLeidosBadge n={total} className="absolute -top-2.5 -right-3 ring-white/40" />
           </span>
-          Mensajes
         </button>
       )}
 

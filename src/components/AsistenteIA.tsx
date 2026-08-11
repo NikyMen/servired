@@ -113,10 +113,10 @@ export function AsistenteIA({ mode }: { mode: Mode }) {
         <button
           onClick={() => setOpen(true)}
           aria-label="Abrir ServiRed IA"
-          className={`fixed right-4 bottom-24 z-40 flex w-40 items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl active:scale-95 md:bottom-6 ${accent} ${accentHover}`}
+          title="ServiRed IA"
+          className={`fixed right-4 bottom-24 z-40 flex size-13 items-center justify-center rounded-full text-white shadow-lg transition-all hover:shadow-xl active:scale-95 md:bottom-6 ${accent} ${accentHover}`}
         >
           <SparklesIcon width={20} height={20} />
-          ServiRed IA
         </button>
       )}
 

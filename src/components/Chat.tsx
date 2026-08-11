@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui";
 import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
 import { ChevronLeftIcon, PaperclipIcon, SendIcon, FileIcon, XIcon } from "@/components/icons";
 import { formatBytes } from "@/lib/format";
+import { PaymentControls } from "@/components/PaymentControls";
 
 export type ChatMessage = {
   id: string;
@@ -372,6 +373,8 @@ export function Chat({
               <div ref={bottom} />
             </div>
 
+            <PaymentControls conversationId={selected.id} viewer={viewer} />
+
             {error && (
               <p
                 role="alert"
@@ -494,7 +497,7 @@ function Attachment({ message: m, own }: { message: ChatMessage; own: boolean })
           src={m.attachmentUrl!}
           alt={m.attachmentName ?? "Imagen adjunta"}
           className="max-h-60 w-auto max-w-full rounded-xl object-cover"
-          loading="lazy"
+          decoding="async"
         />
       </a>
     );

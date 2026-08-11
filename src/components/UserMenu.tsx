@@ -68,6 +68,14 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
           </p>
 
           <div className="pb-1">
+            <Link
+              href={isPro ? "/pro/mi-perfil" : "/mi-perfil"}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="block px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70"
+            >
+              Mi perfil
+            </Link>
             {isPro && user.professionalId && (
               <Link
                 href={`/profesionales/${user.professionalId}`}

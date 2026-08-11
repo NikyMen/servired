@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const { title, description, zone, budget, contactName, categorySlug } =
+  const { title, description, contactName, categorySlug, latitude, longitude } =
     (body ?? {}) as Record<string, unknown>;
 
   // Validación mínima
@@ -28,8 +28,6 @@ export async function POST(req: NextRequest) {
     errors.push("El título debe tener al menos 4 caracteres.");
   if (typeof description !== "string" || description.trim().length < 10)
     errors.push("Contanos un poco más: la descripción es muy corta.");
-  if (typeof zone !== "string" || zone.trim().length < 2)
-    errors.push("Indicá una ubicación.");
   if (typeof contactName !== "string" || contactName.trim().length < 2)
     errors.push("Ingresá tu nombre de contacto.");
 
@@ -43,14 +41,17 @@ export async function POST(req: NextRequest) {
     categoryId = cat?.id ?? null;
   }
 
-  const parsedBudget = budget === "" || budget == null ? null : Number(budget);
+  const lat = Number(latitude);
+  const lng = Number(longitude);
 
   const created = await prisma.serviceRequest.create({
     data: {
       title: (title as string).trim(),
       description: (description as string).trim(),
-      zone: (zone as string).trim(),
-      budget: Number.isFinite(parsedBudget) ? (parsedBudget as number) : null,
+      zone: "Corrientes",
+      budget: null,
+      latitude: Number.isFinite(lat) ? lat : -27.4692,
+      longitude: Number.isFinite(lng) ? lng : -58.8306,
       contactName: (contactName as string).trim(),
       userId: user.id,
       categoryId,

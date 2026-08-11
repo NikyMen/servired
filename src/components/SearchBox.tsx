@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { SearchIcon, MapPinIcon } from "@/components/icons";
+import { SearchIcon } from "@/components/icons";
 import type { Suggestion } from "@/lib/search";
 
 /** Espera a que dejes de tipear antes de pedir sugerencias. */
@@ -10,11 +10,9 @@ const DEBOUNCE_MS = 220;
 
 export function SearchBox({
   defaultQuery = "",
-  defaultZone = "",
   categoria,
 }: {
   defaultQuery?: string;
-  defaultZone?: string;
   categoria?: string;
 }) {
   const router = useRouter();
@@ -150,17 +148,6 @@ export function SearchBox({
             ))}
           </ul>
         )}
-      </div>
-
-      <div className="flex items-center gap-2 border-t border-white/20 px-3 md:w-52 md:border-t-0 md:border-l">
-        <MapPinIcon className="shrink-0 text-white/55" width={18} height={18} />
-        <input
-          name="ubicacion"
-          defaultValue={defaultZone}
-          placeholder="Ubicación"
-          autoComplete="off"
-          className="w-full bg-transparent py-2.5 text-sm text-white outline-none placeholder:text-white/55"
-        />
       </div>
 
       {categoria && <input type="hidden" name="categoria" value={categoria} />}
