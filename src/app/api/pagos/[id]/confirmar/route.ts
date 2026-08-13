@@ -11,10 +11,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (payment.status === "pagado") return NextResponse.json(payment);
   const updated = await prisma.$transaction(async (tx) => {
     const paid = await tx.payment.update({ where: { id }, data: { status: "pagado", paidAt: new Date() } });
-    if (payment.bookingId) await tx.booking.update({ where: { id: payment.bookingId }, data: { status: "completada", finalPrice: payment.amount, workSummary: "Trabajo abonado mediante Mercado Pago demo." } });
-    await tx.message.create({ data: { conversationId: payment.conversationId, sender: "cliente", text: `Pago confirmado por $${payment.amount.toLocaleString("es-AR")} (demo).` } });
+    if (payment.bookingId) await tx.booking.update({ where: { id: payment.bookingId }, data: { status: "aceptada", finalPrice: payment.amount } });
     return paid;
   });
   return NextResponse.json(updated);
 }
-

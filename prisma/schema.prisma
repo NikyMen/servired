@@ -208,6 +208,12 @@ model Conversation {
   leidoCliente DateTime?
   leidoPro     DateTime?
 
+  /// Novedades del acuerdo (pedido, presupuesto y pago) vistas por cada lado.
+  acuerdoLeidoCliente DateTime?
+  acuerdoLeidoPro     DateTime?
+  pagoLeidoCliente    DateTime?
+  pagoLeidoPro        DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

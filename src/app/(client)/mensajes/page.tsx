@@ -9,7 +9,8 @@ import { contarNoLeidos } from "@/lib/mensajes";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mensajes" };
 
-export default async function MensajesPage() {
+export default async function MensajesPage({ searchParams }: { searchParams: Promise<{ conversacion?: string }> }) {
+  const { conversacion } = await searchParams;
   const user = await getSessionUser();
 
   // Solo los hilos propios: antes se listaban los de todo el mundo. Un
@@ -36,6 +37,7 @@ export default async function MensajesPage() {
 
       <Chat
         viewer="cliente"
+        initialConversationId={conversacion}
         conversations={conversations.map((c) => ({
           id: c.id,
           withName: c.professional.name,

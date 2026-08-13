@@ -3,12 +3,13 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { formatARS } from "@/lib/format";
-import { StatusPill } from "@/components/ui";
+import { Avatar, StatusPill } from "@/components/ui";
 import { EncabezadoPerfil } from "@/components/pro/EncabezadoPerfil";
 import { TrabajosParticulares } from "@/components/pro/TrabajosParticulares";
 import { BookingActions } from "@/components/BookingActions";
 import { SolicitudCard } from "@/components/pro/SolicitudCard";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
+import { ChatIcon, ChevronLeftIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Panel del profesional" };
@@ -23,12 +24,12 @@ export default async function ProPanelPage() {
     ? await prisma.professional.findUnique({ where: { id: user.professionalId } })
     : null;
 
-  const [bookings, requests, services, workPhotos] = await Promise.all([
+  const [bookings, requests, services, workPhotos, conversations] = await Promise.all([
     pro
       ? prisma.booking.findMany({
           where: { professionalId: pro.id },
           orderBy: { createdAt: "desc" },
-          include: { service: true, attachments: true, payments: { orderBy: { createdAt: "desc" } } },
+          include: { user: true, service: true, attachments: true, payments: { orderBy: { createdAt: "desc" } } },
         })
       : [],
     prisma.serviceRequest.findMany({
@@ -50,7 +51,11 @@ export default async function ProPanelPage() {
           select: { id: true, url: true, title: true, description: true, address: true, latitude: true, longitude: true },
         })
       : [],
+    pro
+      ? prisma.conversation.findMany({ where: { professionalId: pro.id }, select: { id: true, userId: true } })
+      : [],
   ]);
+  const conversationByUser = new Map(conversations.map((conversation) => [conversation.userId, conversation.id]));
 
   const pendientes = bookings.filter((b) => b.status === "solicitada").length;
 
@@ -103,49 +108,29 @@ export default async function ProPanelPage() {
           </p>
         ) : (
           <ul className="space-y-3">
-            {bookings.map((b) => (
-              <li
-                key={b.id}
-                className="glass glass-card flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-slate-900">
-                    {b.service?.title ?? "Servicio a convenir"}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    {b.clientName}
-                    {b.note && <> · “{b.note}”</>}
-                  </p>
-                  {(b.finalPrice ?? b.quotedPrice) != null && (
-                    <p className="text-sm font-semibold text-pro-dark">
-                      {b.finalPrice != null ? "Monto final" : "Presupuesto enviado"}: {formatARS(b.finalPrice ?? b.quotedPrice ?? 0)}
-                    </p>
-                  )}
-                  {b.workSummary && <p className="text-xs text-slate-500">{b.workSummary}</p>}
-                  {b.payments.map((payment) => (
-                    <p key={payment.id} className={`mt-1 text-sm font-semibold ${payment.status === "pagado" ? "text-emerald-700" : "text-amber-700"}`}>
-                      Mercado Pago demo: {formatARS(payment.amount)} · {payment.status}{payment.status === "pagado" ? ` · recibís ${formatARS(payment.netAmount)}` : ""}
-                    </p>
-                  ))}
-                  {b.attachments.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {b.attachments.map((attachment) => (
-                        <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer">
-                          <img src={attachment.url} alt={attachment.name} className="size-16 rounded-xl object-cover ring-1 ring-slate-200" />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                  <p className="text-xs text-slate-400">
-                    {new Date(b.createdAt).toLocaleDateString("es-AR")}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <StatusPill status={b.status} />
-                  <BookingActions bookingId={b.id} status={b.status} viewer="profesional" />
-                </div>
-              </li>
-            ))}
+            {bookings.map((b) => {
+              const conversationId = conversationByUser.get(b.userId);
+              return <li key={b.id}>
+                <details className="glass glass-card group overflow-hidden rounded-2xl">
+                  <summary className="flex cursor-pointer list-none items-center gap-3 p-4 marker:hidden">
+                    <Avatar name={b.user.name} color={b.user.avatarColor} src={b.user.avatarUrl} size={46} />
+                    <div className="min-w-0 flex-1"><p className="truncate font-semibold text-slate-900">{b.service?.title ?? "Servicio a convenir"}</p><p className="truncate text-sm text-slate-500">Creada por {b.user.name}</p></div>
+                    {(b.finalPrice ?? b.quotedPrice) != null && <span className="hidden font-bold text-slate-800 sm:block">{formatARS(b.finalPrice ?? b.quotedPrice ?? 0)}</span>}
+                    <StatusPill status={b.status} />
+                    <ChevronLeftIcon width={18} height={18} className="rotate-[-90deg] text-slate-400 transition-transform group-open:rotate-90" />
+                  </summary>
+                  <div className="space-y-4 border-t border-white/60 p-4">
+                    <div className="rounded-2xl bg-white/50 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Usuario que creó la propuesta</p><div className="mt-2 flex items-center gap-2"><Avatar name={b.user.name} color={b.user.avatarColor} src={b.user.avatarUrl} size={38} /><div><p className="text-sm font-semibold text-slate-800">{b.user.name}</p><p className="text-xs text-slate-500">Cliente de ServiRed</p></div></div></div>
+                    <div><p className="text-xs font-semibold text-slate-500">Detalle del pedido</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{b.note || "Sin descripción adicional."}</p></div>
+                    <p className="text-xs text-slate-400">Recibida el {new Date(b.createdAt).toLocaleString("es-AR")}</p>
+                    {b.workSummary && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-pro-dark">{b.workSummary}</p>}
+                    {b.payments.map((payment) => <p key={payment.id} className={`rounded-xl px-3 py-2 text-sm font-semibold ${payment.status === "pagado" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>Mercado Pago: {formatARS(payment.amount)} · {payment.status}{payment.status === "pagado" ? ` · recibís ${formatARS(payment.netAmount)}` : ""}</p>)}
+                    {b.attachments.length > 0 && <div className="flex flex-wrap gap-2">{b.attachments.map((attachment) => <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer"><img src={attachment.url} alt={attachment.name} className="size-20 rounded-xl object-cover ring-1 ring-slate-200" /></a>)}</div>}
+                    <div className="flex flex-wrap items-center justify-between gap-3">{conversationId ? <Link href={`/pro/mensajes?conversacion=${conversationId}`} className="inline-flex items-center gap-2 rounded-xl bg-pro px-4 py-2 text-sm font-semibold text-white"><ChatIcon width={17} height={17} />Chatear</Link> : <span />}<BookingActions bookingId={b.id} status={b.status} viewer="profesional" /></div>
+                  </div>
+                </details>
+              </li>;
+            })}
           </ul>
         )}
       </section>

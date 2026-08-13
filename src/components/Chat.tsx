@@ -53,13 +53,16 @@ function useDosColumnas() {
 export function Chat({
   conversations,
   viewer,
+  initialConversationId,
 }: {
   conversations: ChatConversation[];
   viewer: "cliente" | "profesional";
+  initialConversationId?: string;
 }) {
-  const [selectedId, setSelectedId] = useState(conversations[0]?.id ?? null);
+  const initialId = conversations.some((conversation) => conversation.id === initialConversationId) ? initialConversationId! : conversations[0]?.id ?? null;
+  const [selectedId, setSelectedId] = useState(initialId);
   // En móvil se ve una pantalla por vez: lista o hilo (patrón app de mensajería)
-  const [threadOpen, setThreadOpen] = useState(false);
+  const [threadOpen, setThreadOpen] = useState(Boolean(initialConversationId && initialId === initialConversationId));
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -373,8 +376,6 @@ export function Chat({
               <div ref={bottom} />
             </div>
 
-            <PaymentControls conversationId={selected.id} viewer={viewer} />
-
             {error && (
               <p
                 role="alert"
@@ -449,6 +450,7 @@ export function Chat({
               >
                 <PaperclipIcon width={20} height={20} />
               </button>
+              <PaymentControls conversationId={selected.id} viewer={viewer} />
               <input
                 value={text}
                 onChange={(e) => setText(e.target.value)}

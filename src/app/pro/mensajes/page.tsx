@@ -9,7 +9,8 @@ import { contarNoLeidos } from "@/lib/mensajes";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mensajes" };
 
-export default async function ProMensajesPage() {
+export default async function ProMensajesPage({ searchParams }: { searchParams: Promise<{ conversacion?: string }> }) {
+  const { conversacion } = await searchParams;
   const user = await getSessionUser();
   const professionalId = user?.professionalId ?? null;
 
@@ -38,6 +39,7 @@ export default async function ProMensajesPage() {
 
       <Chat
         viewer="profesional"
+        initialConversationId={conversacion}
         conversations={conversations.map((c) => ({
           id: c.id,
           withName: c.clientName,
