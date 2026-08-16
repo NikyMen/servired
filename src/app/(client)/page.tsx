@@ -5,6 +5,7 @@ import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { HeroFondo } from "@/components/HeroFondo";
 import { MapView } from "@/components/MapView";
 import { rankProfessionals } from "@/lib/search";
+import { AdPlate } from "@/components/AdPlate";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +15,10 @@ async function getData({ q, categoria }: Search) {
   // Categoría y ubicación filtran en la base; el texto libre se rankea en memoria
   // (ver src/lib/search.ts: LIKE de SQLite no ignora acentos ni tolera typos).
   const where: Prisma.ProfessionalWhereInput = {};
-  if (categoria) where.category = { slug: categoria };
+  if (categoria) where.category = { OR: [{ slug: categoria }, { parent: { slug: categoria } }] };
 
-  const [categories, found, requests, workPhotos] = await Promise.all([
-    prisma.category.findMany({ orderBy: { createdAt: "asc" } }),
+  const [categories, found, requests, workPhotos, ads] = await Promise.all([
+    prisma.category.findMany({ include: { parent: true }, orderBy: [{ parentId: "asc" }, { createdAt: "asc" }] }),
     prisma.professional.findMany({
       where,
       include: {
@@ -45,8 +46,9 @@ async function getData({ q, categoria }: Search) {
       orderBy: { createdAt: "desc" },
       include: { professional: { select: { id: true, name: true, businessName: true } } },
     }),
+    prisma.ad.findMany(),
   ]);
-  return { categories, pros: rankProfessionals(found, q ?? ""), requests, workPhotos };
+  return { categories, pros: rankProfessionals(found, q ?? ""), requests, workPhotos, ads };
 }
 
 function chipHref(params: Search, categoria: string) {
@@ -63,7 +65,8 @@ export default async function HomePage({
   searchParams: Promise<Search>;
 }) {
   const params = await searchParams;
-  const { categories, pros, requests, workPhotos } = await getData(params);
+  const { categories, pros, requests, workPhotos, ads } = await getData(params);
+  const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
 
   return (
     <div className="space-y-6">
@@ -74,8 +77,8 @@ export default async function HomePage({
           esto lo taparían los chips de categoría que vienen después. */}
       <div className="relative">
         <div className="absolute inset-y-0 right-full mr-4 hidden w-28 grid-rows-2 gap-4 xl:grid 2xl:w-44">
-          <aside aria-label="Publicidad lateral izquierda 1" className="flex items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm">ADS</aside>
-          <aside aria-label="Publicidad lateral izquierda 2" className="flex items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm">ADS</aside>
+          <AdPlate ad={adMap.get("left-1") || null} label="Publicidad lateral izquierda 1" />
+          <AdPlate ad={adMap.get("left-2") || null} label="Publicidad lateral izquierda 2" />
         </div>
 
         {/* min-h más bajo que antes: en móvil el alto es lo que decide cuánto
@@ -99,14 +102,14 @@ export default async function HomePage({
         </section>
 
         <div className="absolute inset-y-0 left-full ml-4 hidden w-28 grid-rows-2 gap-4 xl:grid 2xl:w-44">
-          <aside aria-label="Publicidad lateral derecha 1" className="flex items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm">ADS</aside>
-          <aside aria-label="Publicidad lateral derecha 2" className="flex items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm">ADS</aside>
+          <AdPlate ad={adMap.get("right-1") || null} label="Publicidad lateral derecha 1" />
+          <AdPlate ad={adMap.get("right-2") || null} label="Publicidad lateral derecha 2" />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:hidden">
         {[1, 2, 3, 4].map((position) => (
-          <aside key={position} aria-label={`Publicidad ${position}`} className="flex min-h-24 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400">ADS</aside>
+          <AdPlate key={position} ad={adMap.get(`mobile-${position}`) || null} label={`Publicidad ${position}`} className="min-h-24 rounded-2xl" />
         ))}
       </div>
 
@@ -128,7 +131,7 @@ export default async function HomePage({
               params.categoria === c.slug ? "glass-chip-on" : "text-slate-600"
             }`}
           >
-            {c.icon} {c.name}
+            {c.parent ? "↳ " : ""}{c.icon} {c.name}
           </Link>
         ))}
       </div>
@@ -204,21 +207,6 @@ export default async function HomePage({
         </Link>
       </section>
 
-      {/* CTA preinscripción */}
-      <section className="glass glass-solid glass-card flex flex-col items-start justify-between gap-3 rounded-[1.5rem] p-6 sm:flex-row sm:items-center">
-        <div>
-          <h2 className="font-bold text-slate-900">¿Todavía no estamos en tu zona?</h2>
-          <p className="text-sm text-slate-500">
-            Preinscribite y te avisamos apenas abramos, seas cliente o profesional.
-          </p>
-        </div>
-        <Link
-          href="/preinscripcion"
-          className="glass-btn glass-btn-ghost shrink-0 px-4 py-2.5 text-sm"
-        >
-          Preinscribirme
-        </Link>
-      </section>
     </div>
   );
 }

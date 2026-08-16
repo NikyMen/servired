@@ -14,7 +14,6 @@ const clientLinks = [
 const proLinks = [
   { href: "/pro", label: "Panel" },
   { href: "/pro/mensajes", label: "Mensajes" },
-  { href: "/preinscripcion", label: "Preinscripción" },
 ];
 
 export function Footer({ mode }: { mode: Mode }) {

@@ -49,7 +49,6 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
         <Logo
           accent={mode}
           href={mode === "pro" ? "/pro" : "/"}
-          compactOnMobile
           className="shrink-0 md:mr-2"
         />
 

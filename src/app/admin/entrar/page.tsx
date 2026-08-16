@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
         <form action={formAction} className="mt-10 glass glass-solid space-y-5 rounded-2xl p-6">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Administración</h1>
-            <p className="mt-1 text-sm text-slate-500">Ingresá para ver las preinscripciones.</p>
+            <p className="mt-1 text-sm text-slate-500">Ingresá al panel de gestión.</p>
           </div>
           <div className="space-y-1.5">
             <label htmlFor="admin-email" className="text-sm font-medium text-slate-700">Email</label>
@@ -35,7 +35,7 @@ export default function AdminLoginPage() {
             className="w-full rounded-xl bg-cliente px-4 py-3 text-sm font-medium text-white hover:bg-cliente-dark disabled:opacity-60">
             {pending ? "Ingresando…" : "Ingresar"}
           </button>
-          <Link href="/" className="block text-center text-sm text-slate-500 hover:underline">Volver a la preinscripción</Link>
+          <Link href="/" className="block text-center text-sm text-slate-500 hover:underline">Volver al inicio</Link>
         </form>
       </div>
     </main>

@@ -42,8 +42,7 @@ está trackeado por git y terminaría publicada.
 
 ## Cuentas
 
-Las preinscripciones se guardan en MongoDB cuando `MONGODB_URI` está configurada.
-El panel administrativo está en `/admin` y requiere `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+El panel administrativo está en `/admin` y permite gestionar anuncios, categorías y métricas. Requiere `ADMIN_EMAIL`, `ADMIN_PASSWORD`
 y `ADMIN_SESSION_SECRET` en `.env.local`.
 
 Autenticación propia, sin librerías externas:

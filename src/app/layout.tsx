@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ModeTransition } from "@/components/ModeTransition";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
+import { Suspense } from "react";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -30,6 +32,7 @@ export default function RootLayout({
         {/* Vive acá y no en cada layout: el layout raíz no se desmonta al
             navegar, así que es el único que puede notar el cambio de modo. */}
         <ModeTransition />
+        <Suspense><AnalyticsTracker /></Suspense>
         {children}
       </body>
     </html>
