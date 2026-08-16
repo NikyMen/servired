@@ -19,12 +19,6 @@ export async function POST(
 
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Entrá para responder." }, { status: 401 });
-  if (user.role !== "profesional" || !user.professionalId) {
-    return NextResponse.json(
-      { error: "Solo los profesionales pueden responder solicitudes." },
-      { status: 403 }
-    );
-  }
 
   let body: unknown;
   try {
@@ -40,7 +34,14 @@ export async function POST(
 
   const request = await prisma.serviceRequest.findUnique({
     where: { id },
-    select: { id: true, userId: true, status: true, user: { select: { name: true } } },
+    select: {
+      id: true,
+      userId: true,
+      status: true,
+      categoryId: true,
+      category: { select: { name: true } },
+      user: { select: { name: true } },
+    },
   });
   if (!request) {
     return NextResponse.json({ error: "La solicitud no existe." }, { status: 404 });
@@ -52,13 +53,48 @@ export async function POST(
     return NextResponse.json({ error: "Esa solicitud es tuya." }, { status: 422 });
   }
 
+  // Entrar al lado "Ofrezco" no exige haber elegido ese rol al registrarse.
+  // En la primera respuesta se crea el perfil mínimo, asociado a la cuenta de
+  // la sesión y al rubro de la solicitud. Después puede completarlo desde el panel.
+  let professionalId = user.professionalId;
+  if (!professionalId) {
+    const categoryId = request.categoryId ?? (await prisma.category.findFirst({ select: { id: true } }))?.id;
+    if (!categoryId) {
+      return NextResponse.json({ error: "No hay un rubro disponible para crear tu perfil." }, { status: 422 });
+    }
+
+    const professional = await prisma.$transaction(async (tx) => {
+      const profile = await tx.professional.upsert({
+        where: { userId: user.id },
+        create: {
+          userId: user.id,
+          name: user.name,
+          headline: request.category ? `Profesional de ${request.category.name}` : "Profesional de servicios",
+          zone: "Corrientes",
+          priceFrom: 0,
+          categoryId,
+          avatarColor: "#059669",
+          avatarUrl: user.avatarUrl,
+        },
+        update: {},
+        select: { id: true },
+      });
+      await tx.user.update({
+        where: { id: user.id },
+        data: { role: "profesional", avatarColor: "#059669" },
+      });
+      return profile;
+    });
+    professionalId = professional.id;
+  }
+
   // Retoma el hilo si ya se habían escrito antes.
   const conversation = await prisma.conversation.upsert({
     where: {
-      professionalId_userId: { professionalId: user.professionalId, userId: request.userId },
+      professionalId_userId: { professionalId, userId: request.userId },
     },
     create: {
-      professionalId: user.professionalId,
+      professionalId,
       userId: request.userId,
       clientName: request.user.name,
     },
