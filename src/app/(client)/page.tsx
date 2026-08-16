@@ -67,21 +67,16 @@ export default async function HomePage({
 
   return (
     <div className="space-y-6">
-      <aside aria-label="Publicidad" className="flex min-h-20 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm sm:min-h-24">
-        ADS
-      </aside>
       {/* Hero: oficios trabajando de noche, con el buscador apoyado encima en
           vidrio. El fondo es la foto de public/hero-soldador.jpg; si no está,
           <HeroFondo> cae en la escena dibujada en canvas. */}
       {/* z-10: el desplegable del buscador se sale del banner por abajo, y sin
           esto lo taparían los chips de categoría que vienen después. */}
       <div className="relative">
-        <aside
-          aria-label="Publicidad"
-          className="absolute inset-y-0 right-full mr-4 hidden w-28 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm xl:flex 2xl:w-44"
-        >
-          ADS
-        </aside>
+        <div className="absolute inset-y-0 right-full mr-4 hidden w-28 grid-rows-2 gap-4 xl:grid 2xl:w-44">
+          <aside aria-label="Publicidad lateral izquierda 1" className="flex items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm">ADS</aside>
+          <aside aria-label="Publicidad lateral izquierda 2" className="flex items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm">ADS</aside>
+        </div>
 
         {/* min-h más bajo que antes: en móvil el alto es lo que decide cuánto
             se agranda la foto, así que un banner menos alto deja entrar más
@@ -103,17 +98,16 @@ export default async function HomePage({
           </div>
         </section>
 
-        <aside
-          aria-label="Publicidad"
-          className="absolute inset-y-0 left-full ml-4 hidden w-28 items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm xl:flex 2xl:w-44"
-        >
-          ADS
-        </aside>
+        <div className="absolute inset-y-0 left-full ml-4 hidden w-28 grid-rows-2 gap-4 xl:grid 2xl:w-44">
+          <aside aria-label="Publicidad lateral derecha 1" className="flex items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm">ADS</aside>
+          <aside aria-label="Publicidad lateral derecha 2" className="flex items-center justify-center rounded-[1.5rem] border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400 shadow-sm">ADS</aside>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:hidden">
-        <aside aria-label="Publicidad lateral izquierda" className="flex min-h-24 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400">ADS</aside>
-        <aside aria-label="Publicidad lateral derecha" className="flex min-h-24 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400">ADS</aside>
+        {[1, 2, 3, 4].map((position) => (
+          <aside key={position} aria-label={`Publicidad ${position}`} className="flex min-h-24 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/70 text-xs font-semibold tracking-[0.2em] text-slate-400">ADS</aside>
+        ))}
       </div>
 
       {/* Categorías: carrusel horizontal en móvil, wrap en desktop */}
