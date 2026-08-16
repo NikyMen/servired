@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { ModeSwitch } from "@/components/ModeSwitch";
 import { UserMenu } from "@/components/UserMenu";
+import { SearchBox } from "@/components/SearchBox";
 import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
-import { SearchIcon } from "@/components/icons";
 import type { SessionUser } from "@/lib/auth";
 import type { Mode } from "@/lib/types";
 import type { SVGProps } from "react";
@@ -20,7 +20,6 @@ type NavItem = {
 };
 
 const clientNav: NavItem[] = [
-  { href: "/", label: "Buscar", icon: SearchIcon },
   { href: "/solicitudes", label: "Solicitudes" },
   { href: "/contrataciones", label: "Propuestas" },
   { href: "/mensajes", label: "Mensajes", noLeidos: true },
@@ -46,13 +45,19 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
         className="h-[3px] bg-[linear-gradient(90deg,transparent,rgb(var(--accent-rgb)/0.9),rgb(var(--accent-rgb)/0.35),transparent)]"
         aria-hidden
       />
-      <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2 px-4 py-3">
         <Logo
           accent={mode}
           href={mode === "pro" ? "/pro" : "/"}
           compactOnMobile
           className="shrink-0 md:mr-2"
         />
+
+        {mode === "cliente" && (
+          <div className="order-3 w-full md:order-none md:max-w-xs md:flex-1">
+            <SearchBox variant="nav" />
+          </div>
+        )}
 
         {/* En móvil la navegación vive en la barra inferior */}
         <nav className="hidden min-w-0 items-center gap-1 md:flex">

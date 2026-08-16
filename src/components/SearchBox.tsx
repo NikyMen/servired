@@ -11,9 +11,11 @@ const DEBOUNCE_MS = 220;
 export function SearchBox({
   defaultQuery = "",
   categoria,
+  variant = "hero",
 }: {
   defaultQuery?: string;
   categoria?: string;
+  variant?: "hero" | "nav";
 }) {
   const router = useRouter();
   const [q, setQ] = useState(defaultQuery);
@@ -91,15 +93,17 @@ export function SearchBox({
     }
   }
 
+  const inNav = variant === "nav";
+
   return (
-    // Vive sobre el hero oscuro del soldador, así que es vidrio oscuro:
-    // una lámina blanca acá cortaría la escena al medio.
     <form
       action="/"
-      className="glass glass-dark mt-5 flex flex-col gap-2 rounded-[1.25rem] p-2 md:flex-row"
+      className={inNav
+        ? "flex min-w-0 flex-1 items-center rounded-full border border-slate-200 bg-white px-2 shadow-sm"
+        : "glass glass-dark mt-5 flex flex-col gap-2 rounded-[1.25rem] p-2 md:flex-row"}
     >
-      <div ref={boxRef} className="relative flex flex-1 items-center gap-2 px-3">
-        <SearchIcon className="shrink-0 text-white/55" width={18} height={18} />
+      <div ref={boxRef} className={`relative flex min-w-0 flex-1 items-center gap-2 ${inNav ? "px-2" : "px-3"}`}>
+        <SearchIcon className={`shrink-0 ${inNav ? "text-slate-400" : "text-white/55"}`} width={18} height={18} />
         <input
           name="q"
           value={q}
@@ -109,13 +113,13 @@ export function SearchBox({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="¿Qué necesitás resolver? Ej: pérdida de agua"
+          placeholder={inNav ? "¿Qué necesitás?" : "¿Qué necesitás resolver? Ej: pérdida de agua"}
           autoComplete="off"
           role="combobox"
           aria-expanded={visible}
           aria-controls="sugerencias"
           aria-autocomplete="list"
-          className="w-full bg-transparent py-2.5 text-sm text-white outline-none placeholder:text-white/55"
+          className={`min-w-0 w-full bg-transparent text-sm outline-none ${inNav ? "py-2 text-slate-800 placeholder:text-slate-400" : "py-2.5 text-white placeholder:text-white/55"}`}
         />
 
         {visible && (
@@ -152,8 +156,8 @@ export function SearchBox({
 
       {categoria && <input type="hidden" name="categoria" value={categoria} />}
 
-      <button type="submit" className="glass-btn px-5 py-2.5 text-sm">
-        Buscar
+      <button type="submit" aria-label="Buscar" className={inNav ? "flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white" : "glass-btn px-5 py-2.5 text-sm"}>
+        {inNav ? <SearchIcon width={16} height={16} /> : "Buscar"}
       </button>
     </form>
   );

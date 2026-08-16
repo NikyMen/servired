@@ -53,7 +53,7 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
       {open && (
         <div
           role="menu"
-          className="glass glass-solid animate-fade-in absolute top-full right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl"
+          className="glass animate-fade-in absolute top-full right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-xl"
         >
           <div className="flex items-center gap-3 border-b border-white/60 p-3">
             <Avatar name={user.name} color={user.avatarColor} src={user.avatarUrl} size={40} />

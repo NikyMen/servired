@@ -2,7 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { ProfessionalCard } from "@/components/ProfessionalCard";
-import { SearchBox } from "@/components/SearchBox";
 import { HeroFondo } from "@/components/HeroFondo";
 import { MapView } from "@/components/MapView";
 import { rankProfessionals } from "@/lib/search";
@@ -10,7 +9,6 @@ import { rankProfessionals } from "@/lib/search";
 export const dynamic = "force-dynamic";
 
 type Search = { q?: string; categoria?: string };
-const popularSearches = ["Pérdida de agua", "Luminarias LED", "Limpieza profunda"];
 
 async function getData({ q, categoria }: Search) {
   // Categoría y ubicación filtran en la base; el texto libre se rankea en memoria
@@ -89,10 +87,10 @@ export default async function HomePage({
             se agranda la foto, así que un banner menos alto deja entrar más
             escena a lo ancho en vez de un primer plano. En md+ manda la
             proporción de la foto (ver .hero-weld en globals.css). */}
-        <section className="hero-weld relative z-10 min-h-[430px] rounded-[1.5rem] p-5 text-white sm:min-h-[470px] sm:p-8 md:p-10">
+        <section className="hero-weld relative z-10 min-h-[215px] rounded-[1.5rem] p-5 text-white sm:min-h-[470px] sm:p-8 md:p-10">
           <HeroFondo />
 
-          <div className="hero-weld-content flex min-h-[390px] flex-col justify-between">
+          <div className="hero-weld-content flex min-h-[175px] flex-col justify-center sm:min-h-[406px] sm:justify-between md:min-h-[390px]">
             <div className="max-w-2xl">
               <span className="glass glass-thin glass-dark hero-arc-glow inline-flex rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.2em] uppercase">
                 ServiRed · oficios que resuelven
@@ -102,24 +100,6 @@ export default async function HomePage({
               </h1>
             </div>
 
-            <div className="mt-8">
-              <SearchBox
-                defaultQuery={params.q ?? ""}
-                categoria={params.categoria}
-              />
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-                <span className="font-semibold text-white/90">Probá con:</span>
-                {popularSearches.map((term) => (
-                  <Link
-                    key={term}
-                    href={`/?q=${encodeURIComponent(term)}`}
-                    className="glass glass-thin glass-dark rounded-full px-3 py-1.5 transition hover:bg-white/20"
-                  >
-                    {term}
-                  </Link>
-                ))}
-              </div>
-            </div>
           </div>
         </section>
 

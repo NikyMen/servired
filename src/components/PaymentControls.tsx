@@ -97,11 +97,11 @@ export function PaymentControls({ conversationId, viewer }: { conversationId: st
       <BriefcaseIcon width={17} height={17} />
     </ActionButton>
     <ActionButton label="Mercado Pago" active={panel === "payment"} novelty={agreement.novelty.payment} disabled={viewer === "cliente" && !canPay && !paidPayment} onClick={() => openPanel("payment")} mercadoPago>
-      <MercadoPagoIcon />
+      <img src="/mercado-pago.svg" alt="" width="32" height="24" className="h-6 w-8 object-contain" />
     </ActionButton>
 
-    {panel && <div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/30 p-3 sm:items-center" onMouseDown={(event) => { if (event.target === event.currentTarget) setPanel(null); }}>
-      <section role="dialog" aria-modal="true" aria-label={panel === "proposal" ? "Propuesta" : "Mercado Pago"} className="glass glass-solid animate-sheet-up w-full max-w-md rounded-3xl p-5 text-left shadow-2xl">
+    {panel && <div data-modo={viewer === "profesional" ? "pro" : "cliente"} className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/30 p-3 sm:items-center" onMouseDown={(event) => { if (event.target === event.currentTarget) setPanel(null); }}>
+      <section role="dialog" aria-modal="true" aria-label={panel === "proposal" ? "Propuesta" : "Mercado Pago"} className="glass glass-solid animate-sheet-up w-full max-w-md rounded-3xl border-t-4 border-t-[var(--accent)] p-5 text-left shadow-2xl">
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             <p className="text-lg font-bold text-slate-900">{panel === "proposal" ? "Propuesta y presupuesto" : "Mercado Pago"}</p>
@@ -131,7 +131,7 @@ function ProposalPanel({ viewer, booking, detail, amount, busy, setDetail, setAm
   return <div className="space-y-3">
     <div className="rounded-2xl bg-white/65 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Pedido del cliente</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{booking.note || booking.service?.title || "Servicio a convenir"}</p></div>
     {booking.status === "solicitada" && (viewer === "profesional" ? <div className="space-y-2"><label className="block text-sm font-semibold text-slate-700">Tu presupuesto estimado<input type="number" min="100" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="Monto en ARS" className="glass-field mt-2 px-3 py-2.5 text-sm" /></label><button type="button" disabled={busy} onClick={onQuote} className="w-full rounded-xl bg-pro px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Enviando…" : "Enviar presupuesto"}</button></div> : <EmptyState text="Solicitud enviada. Te avisamos cuando el profesional la presupueste." />)}
-    {booking.quotedPrice != null && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-xs font-semibold text-emerald-700">Presupuesto del profesional</p><p className="mt-1 text-2xl font-bold text-slate-900">{formatARS(booking.quotedPrice)}</p><p className="text-xs text-slate-500">Monto estimado para el trabajo detallado.</p></div>}
+    {booking.quotedPrice != null && <div className={`rounded-2xl border p-4 ${viewer === "cliente" ? "border-blue-200 bg-blue-50" : "border-emerald-200 bg-emerald-50"}`}><p className={`text-xs font-semibold ${viewer === "cliente" ? "text-blue-700" : "text-emerald-700"}`}>Presupuesto del profesional</p><p className="mt-1 text-2xl font-bold text-slate-900">{formatARS(booking.quotedPrice)}</p><p className="text-xs text-slate-500">Monto estimado para el trabajo detallado.</p></div>}
   </div>;
 }
 
@@ -145,11 +145,3 @@ function PaymentPanel({ viewer, booking, pendingPayment, paidPayment, busy, revi
 }
 
 function EmptyState({ text }: { text: string }) { return <p className="rounded-2xl border border-dashed border-slate-200 bg-white/45 p-5 text-center text-sm text-slate-500">{text}</p>; }
-
-function MercadoPagoIcon() {
-  return <svg viewBox="0 0 38 28" width="32" height="24" aria-hidden>
-    <ellipse cx="19" cy="14" rx="18" ry="13" fill="#009ee3" />
-    <path d="M8 13.5c2.4-3.2 5.2-4.7 8.1-4.4 1.2.1 2.2.7 3.2 1.4 1-.7 2-1.3 3.2-1.4 2.8-.2 5.2 1 7.5 4" fill="none" stroke="white" strokeWidth="1.7" strokeLinecap="round" />
-    <path d="m14 12.2 4.1 3.2c.8.6 1.8.6 2.5-.1l2.5-2.3M11.8 15.4l5.5 4.1c.8.6 1.8.5 2.4-.2l.7-.8m-5.5-.8 3.4 2.6c.8.6 1.8.4 2.4-.3l.5-.7m-3.7-3.6 4.5 3.4c.8.6 1.9.4 2.4-.4l.4-.6" fill="none" stroke="white" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>;
-}

@@ -15,7 +15,7 @@ export default async function ClientLayout({
 
   return (
     // data-modo pinta el fondo azulado desde el CSS (ver globals.css).
-    <div data-modo="cliente" className="flex min-h-screen flex-col">
+    <div data-modo="cliente" className="mode-page flex min-h-screen flex-col">
       {/* Envuelve todo: el globito de sin leer lo miran el header, la barra
           inferior, el botón flotante y el chat, con un solo poll para todos. */}
       <NoLeidosProvider mode="cliente" activo={!!user}>

@@ -43,13 +43,14 @@ export function Logo({
       aria-label="ServiRed — inicio"
       className={`inline-flex items-center gap-2 leading-none ${className}`}
     >
+      {compactOnMobile && <LogoMark size={height} className="sm:hidden" />}
       <Image
         src="/logo-horizontal.png"
         alt="ServiRed — servicios profesionales conectados"
         width={width}
         height={height}
         priority
-        className="block max-w-[118px] sm:max-w-none"
+        className={`${compactOnMobile ? "hidden sm:block" : "block"} max-w-[118px] sm:max-w-none`}
         style={{ width, height }}
       />
     </Link>
