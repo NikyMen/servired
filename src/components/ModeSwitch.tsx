@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { MODE_SWITCH_EVENT } from "@/components/ModeTransition";
 import type { Mode } from "@/lib/types";
 
@@ -30,7 +31,15 @@ export function ModeSwitch({
   // Cruzar de lado no pide cuenta: el panel profesional se puede mirar como
   // invitado. Antes, sin sesión de pro, esto te desviaba a /crear-cuenta y el
   // interruptor no cambiaba de modo, que era exactamente lo que prometía.
-  const target = isPro ? "/" : "/pro";
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const enMensajes = pathname === "/mensajes" || pathname === "/pro/mensajes";
+  const query = searchParams.toString();
+  const target = enMensajes
+    ? `${isPro ? "" : "/pro"}/mensajes${query ? `?${query}` : ""}`
+    : isPro
+      ? "/"
+      : "/pro";
 
   // Dónde está la píldora. Arranca donde dice el modo real y se adelanta al
   // clic; si la navegación se cancela (o volvés con el botón atrás), el
