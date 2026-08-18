@@ -26,7 +26,8 @@ const ESPERA_MS = 120;
 
 /** El modo sale de la ruta: /pro… es el lado que ofrece, el resto el que busca. */
 function modeOf(pathname: string): Mode {
-  return pathname.startsWith("/pro") ? "pro" : "cliente";
+  // `/profesionales/...` pertenece al panel cliente.
+  return pathname === "/pro" || pathname.startsWith("/pro/") ? "pro" : "cliente";
 }
 
 /**

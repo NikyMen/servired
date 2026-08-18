@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
+import { ClientResultSwitch } from "@/components/ClientResultSwitch";
 import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { HeroFondo } from "@/components/HeroFondo";
 import { MapView } from "@/components/MapView";
@@ -136,6 +137,14 @@ export default async function HomePage({
         ))}
       </div>
 
+      <ClientResultSwitch
+        requests={requests.map((r) => ({
+          ...r,
+          createdAt: r.createdAt.toISOString(),
+          category: r.category ? { name: r.category.name, icon: r.category.icon } : null,
+        }))}
+      />
+
       {/* Resultados */}
       {pros.length === 0 ? (
         <div className="glass glass-solid rounded-[1.5rem] p-12 text-center">
@@ -145,7 +154,7 @@ export default async function HomePage({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+        <div id="professional-results" className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {pros.map((p) => (
             <ProfessionalCard
               key={p.id}
