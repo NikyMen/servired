@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await tx.message.create({
       data: {
         conversationId: id,
-        sender: "cliente",
+        sender: "sistema",
         text: `💳 PAGO INICIADO · Pedido por ${booking.clientName} · Monto: $${amount.toLocaleString("es-AR")} · Fecha: ${new Date().toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}`,
       },
     });

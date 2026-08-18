@@ -91,10 +91,10 @@ export default async function HomePage({
             se agranda la foto, así que un banner menos alto deja entrar más
             escena a lo ancho en vez de un primer plano. En md+ manda la
             proporción de la foto (ver .hero-weld en globals.css). */}
-        <section className="hero-weld relative z-10 min-h-[215px] rounded-[1.5rem] p-5 text-white sm:min-h-[470px] sm:p-8 md:p-10">
+        <section className="hero-weld relative z-10 min-h-[215px] rounded-[1.5rem] p-5 text-white sm:min-h-[470px] sm:p-8 md:min-h-[235px] md:p-10">
           <HeroFondo />
 
-          <div className="hero-weld-content flex min-h-[175px] flex-col justify-center sm:min-h-[406px] sm:justify-between md:min-h-[390px]">
+          <div className="hero-weld-content flex min-h-[175px] flex-col justify-center sm:min-h-[406px] sm:justify-between md:min-h-[155px]">
             <div className="max-w-2xl">
               <span className="glass glass-thin glass-dark hero-arc-glow inline-flex rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.2em] uppercase">
                 ServiRed · oficios que resuelven

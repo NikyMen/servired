@@ -18,7 +18,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     await tx.message.create({
       data: {
         conversationId: payment.conversationId,
-        sender: "cliente",
+        sender: "sistema",
         text: `✅ PAGO ACREDITADO · Realizado por ${payment.user.name} · Monto: $${payment.amount.toLocaleString("es-AR")} · Fecha: ${new Date().toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}`,
       },
     });

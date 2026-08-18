@@ -26,7 +26,7 @@ export function contarNoLeidos(
 ): number {
   const desde = leido ? new Date(leido).getTime() : null;
   return messages.filter(
-    (m) => m.sender !== viewer && (desde === null || new Date(m.createdAt).getTime() > desde)
+    (m) => m.sender !== viewer && m.sender !== "sistema" && (desde === null || new Date(m.createdAt).getTime() > desde)
   ).length;
 }
 

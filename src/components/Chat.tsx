@@ -122,7 +122,7 @@ export function Chat({
       const list = byId[hiloALaVista] ?? conv?.messages ?? [];
       // Los propios no cuentan como sin leer, así que la línea va antes del
       // más viejo de los últimos `sinLeer` que llegaron del otro lado.
-      const entrantes = list.filter((m) => m.sender !== viewer);
+      const entrantes = list.filter((m) => m.sender !== viewer && m.sender !== "sistema");
       const primero = sinLeer > 0 ? entrantes[entrantes.length - sinLeer] : undefined;
       return { ...prev, [hiloALaVista]: primero?.id ?? null };
     });
@@ -347,13 +347,16 @@ export function Chat({
             <div className="max-h-[52vh] flex-1 space-y-3 overflow-y-auto p-4 md:max-h-none">
               {messages.map((m) => {
                 const own = m.sender === viewer;
+                const system = m.sender === "sistema";
                 return (
                   <Fragment key={m.id}>
                     {divisor[selected.id] === m.id && <SeparadorNuevos />}
-                    <div className={`flex ${own ? "justify-end" : "justify-start"}`}>
+                    <div className={`flex ${system ? "justify-center" : own ? "justify-end" : "justify-start"}`}>
                       <div
                         className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
-                          m.text.startsWith("📋") || m.text.startsWith("💰")
+                          system
+                            ? "max-w-[92%] rounded-xl border border-slate-200 bg-slate-100 px-4 text-center text-slate-600 shadow-none"
+                            : m.text.startsWith("📋") || m.text.startsWith("💰")
                             ? "border border-amber-200 bg-amber-50 text-amber-950 shadow-amber-100"
                             : own ? bubbleOwn : "bg-white/80 text-slate-800 backdrop-blur-md"
                         }`}
@@ -361,7 +364,7 @@ export function Chat({
                         {m.attachmentUrl && <Attachment message={m} own={own} />}
                         {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
                         <p
-                          className={`mt-0.5 text-[10px] ${m.text.startsWith("📋") || m.text.startsWith("💰") ? "text-amber-700/70" : own ? "text-white/70" : "text-slate-400"}`}
+                          className={`mt-0.5 text-[10px] ${system ? "text-slate-400" : m.text.startsWith("📋") || m.text.startsWith("💰") ? "text-amber-700/70" : own ? "text-white/70" : "text-slate-400"}`}
                         >
                           {new Date(m.createdAt).toLocaleString("es-AR", {
                             day: "2-digit",
