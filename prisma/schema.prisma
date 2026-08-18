@@ -46,6 +46,17 @@ model Session {
   createdAt DateTime @default(now())
 }
 
+/// Contactos que quieren recibir novedades antes del lanzamiento.
+model Preregistration {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  phone      String
+  occupation String?
+  type       String   @default("cliente")
+  createdAt  DateTime @default(now())
+}
+
 /// Categorías de servicio (Plomería, Electricidad, Limpieza, etc.)
 model Category {
   id            String           @id @default(cuid())
