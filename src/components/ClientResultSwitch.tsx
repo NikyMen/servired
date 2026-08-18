@@ -7,6 +7,7 @@ type RequestCard = {
   id: string; title: string; description: string; zone: string; contactName: string;
   latitude: number; longitude: number; createdAt: string;
   category: { name: string; icon: string } | null;
+  alreadyContacted?: boolean;
 };
 
 export function ClientResultSwitch({ requests }: { requests: RequestCard[] }) {
@@ -21,7 +22,7 @@ export function ClientResultSwitch({ requests }: { requests: RequestCard[] }) {
         <button type="button" aria-pressed={view === "professionals"} onClick={() => setView("professionals")} className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition sm:text-sm ${view === "professionals" ? "bg-cliente text-white shadow-md" : "text-slate-600 hover:bg-white/60"}`}>Perfiles profesionales / trabajadores</button>
       </div>
       {view === "requests" ? (
-        requests.length ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">{requests.map((request) => <SolicitudCard key={request.id} request={request} />)}</div> : <div className="glass glass-solid rounded-[1.5rem] p-8 text-center text-sm text-slate-500">Todavía no hay solicitudes de trabajo abiertas.</div>
+        requests.length ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">{requests.map((request) => <SolicitudCard key={request.id} request={request} alreadyContacted={request.alreadyContacted} />)}</div> : <div className="glass glass-solid rounded-[1.5rem] p-8 text-center text-sm text-slate-500">Todavía no hay solicitudes de trabajo abiertas.</div>
       ) : null}
     </section>
   );

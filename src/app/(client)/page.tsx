@@ -7,6 +7,7 @@ import { HeroFondo } from "@/components/HeroFondo";
 import { MapView } from "@/components/MapView";
 import { rankProfessionals } from "@/lib/search";
 import { AdPlate } from "@/components/AdPlate";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,11 @@ async function getData({ q, categoria }: Search) {
     }),
     prisma.ad.findMany(),
   ]);
-  return { categories, pros: rankProfessionals(found, q ?? ""), requests, workPhotos, ads };
+  const user = await getSessionUser();
+  const contactedUserIds = user?.professionalId
+    ? new Set((await prisma.conversation.findMany({ where: { professionalId: user.professionalId }, select: { userId: true } })).map((conversation) => conversation.userId))
+    : new Set<string>();
+  return { categories, pros: rankProfessionals(found, q ?? ""), requests, workPhotos, ads, contactedUserIds };
 }
 
 function chipHref(params: Search, categoria: string) {
@@ -66,7 +71,7 @@ export default async function HomePage({
   searchParams: Promise<Search>;
 }) {
   const params = await searchParams;
-  const { categories, pros, requests, workPhotos, ads } = await getData(params);
+  const { categories, pros, requests, workPhotos, ads, contactedUserIds } = await getData(params);
   const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
 
   return (
@@ -142,6 +147,7 @@ export default async function HomePage({
           ...r,
           createdAt: r.createdAt.toISOString(),
           category: r.category ? { name: r.category.name, icon: r.category.icon } : null,
+          alreadyContacted: contactedUserIds.has(r.userId),
         }))}
       />
 

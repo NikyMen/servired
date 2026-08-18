@@ -11,7 +11,7 @@ type Solicitud = {
   category: { name: string; icon: string } | null;
 };
 
-export function SolicitudCard({ request }: { request: Solicitud }) {
+export function SolicitudCard({ request, alreadyContacted = false }: { request: Solicitud; alreadyContacted?: boolean }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) return;
@@ -21,10 +21,10 @@ export function SolicitudCard({ request }: { request: Solicitud }) {
   }, [open]);
 
   return <>
-    <article role="button" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setOpen(true)} className="glass glass-card flex cursor-pointer flex-col rounded-2xl p-4 transition hover:-translate-y-0.5 hover:shadow-lg">
+    <article role="button" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setOpen(true)} className={`glass glass-card flex cursor-pointer flex-col rounded-2xl p-4 transition hover:-translate-y-0.5 hover:shadow-lg ${alreadyContacted ? "bg-slate-200/80 grayscale" : "bg-blue-50/80 ring-1 ring-blue-200/80"}`}>
       <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/12 px-2.5 py-1 text-xs font-medium text-pro-dark ring-1 ring-emerald-400/25 ring-inset">{request.category ? `${request.category.icon} ${request.category.name}` : "Otro"}</span>
-        <span className="text-xs font-semibold text-pro">Ver detalle</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/12 px-2.5 py-1 text-xs font-medium text-cliente-dark ring-1 ring-blue-400/25 ring-inset">{request.category ? `${request.category.icon} ${request.category.name}` : "Otro"}</span>
+        <span className={`text-xs font-semibold ${alreadyContacted ? "text-slate-500" : "text-cliente"}`}>{alreadyContacted ? "Ya contactaste" : "Ver detalle"}</span>
       </div>
       <h3 className="mt-2 font-semibold text-slate-900">{request.title}</h3>
       <p className="mt-1 line-clamp-2 text-sm text-slate-500">{request.description}</p>
@@ -42,4 +42,3 @@ export function SolicitudCard({ request }: { request: Solicitud }) {
     </div>}
   </>;
 }
-
