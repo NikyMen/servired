@@ -33,7 +33,7 @@ export default async function ProMensajesPage({ searchParams }: { searchParams: 
       )}
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Mensajes</h1>
+        <h1 className="text-2xl font-bold text-pro-dark">Mensajes · Ofrezco</h1>
         <p className="mt-1 text-slate-500">Respondé rápido: es la clave para conseguir clientes.</p>
       </div>
 

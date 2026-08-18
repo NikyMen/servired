@@ -34,6 +34,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       include: { review: { select: { id: true } } },
     });
     await tx.booking.update({ where: { id: booking.id }, data: { status: "aceptada" } });
+    await tx.message.create({
+      data: {
+        conversationId: id,
+        sender: "cliente",
+        text: `💳 PAGO INICIADO · Pedido por ${booking.clientName} · Monto: $${amount.toLocaleString("es-AR")} · Fecha: ${new Date().toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}`,
+      },
+    });
+    await tx.conversation.update({ where: { id }, data: { updatedAt: new Date() } });
     return created;
   });
   return NextResponse.json(payment, { status: 201 });

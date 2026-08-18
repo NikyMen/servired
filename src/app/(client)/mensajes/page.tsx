@@ -31,7 +31,7 @@ export default async function MensajesPage({ searchParams }: { searchParams: Pro
       {!user && <InvitadoAviso accion="escribirle a un profesional" next="/mensajes" />}
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Mensajes</h1>
+        <h1 className="text-2xl font-bold text-cliente-dark">Mensajes · Busco</h1>
         <p className="mt-1 text-slate-500">Coordiná los detalles con los profesionales.</p>
       </div>
 

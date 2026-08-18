@@ -99,7 +99,9 @@ export async function POST(req: NextRequest) {
     data: {
       conversationId: conversation.id,
       sender: "cliente",
-      text: cleanNote ? `${intro} ${cleanNote}` : intro,
+      text: cleanNote
+        ? `📋 SOLICITUD DE PROPUESTA · Pedido por ${user.name}. ${intro} ${cleanNote}`
+        : `📋 SOLICITUD DE PROPUESTA · Pedido por ${user.name}. ${intro}`,
     },
   });
   await prisma.conversation.update({

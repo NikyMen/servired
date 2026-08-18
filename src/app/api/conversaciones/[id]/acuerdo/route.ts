@@ -66,6 +66,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Ya hay una propuesta activa en esta conversación." }, { status: 409 });
     }
     const booking = await prisma.booking.create({ data: { userId: conversation.userId, clientName: conversation.clientName, professionalId: conversation.professionalId, note: detail.slice(0, 2000) } });
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        sender: "cliente",
+        text: `📋 SOLICITUD DE PROPUESTA · Pedido por ${conversation.clientName}. ${detail.slice(0, 2000)}`,
+      },
+    });
+    await prisma.conversation.update({ where: { id }, data: { updatedAt: new Date() } });
     return NextResponse.json(booking, { status: 201 });
   }
 
@@ -77,6 +85,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const booking = await prisma.booking.findFirst({ where: { id: bookingId, userId: conversation.userId, professionalId: conversation.professionalId, status: "solicitada" } });
     if (!booking) return NextResponse.json({ error: "La propuesta ya no está disponible." }, { status: 409 });
     const updated = await prisma.booking.update({ where: { id: booking.id }, data: { quotedPrice: amount, status: "presupuestada" } });
+    const when = new Date().toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        sender: "profesional",
+        text: `💰 PRESUPUESTO DEFINIDO · Pedido por ${booking.clientName} · Monto: $${amount.toLocaleString("es-AR")} · Definido el ${when}`,
+      },
+    });
+    await prisma.conversation.update({ where: { id }, data: { updatedAt: new Date() } });
     return NextResponse.json(updated);
   }
 

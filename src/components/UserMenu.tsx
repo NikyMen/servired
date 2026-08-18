@@ -69,6 +69,14 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
 
           <div className="pb-1">
             <Link
+              href="/publicar-solicitud"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className={`mx-2 mt-1 block rounded-xl px-3 py-2 text-sm font-bold text-white shadow-sm transition-colors ${isPro ? "bg-pro hover:bg-pro-dark" : "bg-cliente hover:bg-cliente-dark"}`}
+            >
+              + Crear solicitud
+            </Link>
+            <Link
               href={isPro ? "/pro/mi-perfil" : "/mi-perfil"}
               role="menuitem"
               onClick={() => setOpen(false)}

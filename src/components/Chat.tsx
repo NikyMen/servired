@@ -352,14 +352,16 @@ export function Chat({
                     {divisor[selected.id] === m.id && <SeparadorNuevos />}
                     <div className={`flex ${own ? "justify-end" : "justify-start"}`}>
                       <div
-                        className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm ${
-                          own ? bubbleOwn : "bg-slate-100 text-slate-800"
+                        className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
+                          m.text.startsWith("📋") || m.text.startsWith("💰")
+                            ? "border border-amber-200 bg-amber-50 text-amber-950 shadow-amber-100"
+                            : own ? bubbleOwn : "bg-white/80 text-slate-800 backdrop-blur-md"
                         }`}
                       >
                         {m.attachmentUrl && <Attachment message={m} own={own} />}
                         {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
                         <p
-                          className={`mt-0.5 text-[10px] ${own ? "text-white/70" : "text-slate-400"}`}
+                          className={`mt-0.5 text-[10px] ${m.text.startsWith("📋") || m.text.startsWith("💰") ? "text-amber-700/70" : own ? "text-white/70" : "text-slate-400"}`}
                         >
                           {new Date(m.createdAt).toLocaleString("es-AR", {
                             day: "2-digit",

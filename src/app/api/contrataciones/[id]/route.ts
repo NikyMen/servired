@@ -93,5 +93,23 @@ export async function PATCH(
   }
 
   const updated = await prisma.booking.update({ where: { id }, data });
+  if (status === "presupuestada" || status === "completada") {
+    const conversation = await prisma.conversation.findUnique({
+      where: { professionalId_userId: { professionalId: booking.professionalId, userId: booking.userId } },
+    });
+    if (conversation) {
+      const amount = status === "presupuestada" ? data.quotedPrice : data.finalPrice;
+      const label = status === "presupuestada" ? "PRESUPUESTO DEFINIDO" : "MONTO FINAL DEFINIDO";
+      const when = new Date().toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
+      await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          sender: "profesional",
+          text: `💰 ${label} · Pedido por ${booking.clientName} · Monto: $${amount?.toLocaleString("es-AR")} · Definido el ${when}${status === "completada" ? ` · ${data.workSummary}` : ""}`,
+        },
+      });
+      await prisma.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
+    }
+  }
   return NextResponse.json(updated);
 }
