@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
   }
 
-  const { title, description, contactName, categorySlug, latitude, longitude } =
+  const { title, description, categorySlug, latitude, longitude } =
     (body ?? {}) as Record<string, unknown>;
 
   // Validación mínima
@@ -28,9 +28,6 @@ export async function POST(req: NextRequest) {
     errors.push("El título debe tener al menos 4 caracteres.");
   if (typeof description !== "string" || description.trim().length < 10)
     errors.push("Contanos un poco más: la descripción es muy corta.");
-  if (typeof contactName !== "string" || contactName.trim().length < 2)
-    errors.push("Ingresá tu nombre de contacto.");
-
   if (errors.length > 0) {
     return NextResponse.json({ error: errors.join(" ") }, { status: 422 });
   }
@@ -52,7 +49,7 @@ export async function POST(req: NextRequest) {
       budget: null,
       latitude: Number.isFinite(lat) ? lat : -27.4692,
       longitude: Number.isFinite(lng) ? lng : -58.8306,
-      contactName: (contactName as string).trim(),
+      contactName: user.name,
       userId: user.id,
       categoryId,
     },

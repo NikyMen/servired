@@ -14,7 +14,6 @@ type Form = {
   zone: string;
   latitude: number;
   longitude: number;
-  contactName: string;
 };
 
 const empty: Form = {
@@ -24,7 +23,6 @@ const empty: Form = {
   zone: "Corrientes",
   latitude: -27.4692,
   longitude: -58.8306,
-  contactName: "",
 };
 
 export function PublicarSolicitudForm({ categorias }: { categorias: Categoria[] }) {
@@ -120,19 +118,6 @@ export function PublicarSolicitudForm({ categorias }: { categorias: Categoria[] 
           placeholder="Contales a los profesionales los detalles: qué pasa, cuándo lo necesitás, materiales, etc."
           className={`${inputCls} resize-none`}
         />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-900">Tu nombre</label>
-          <input
-            required
-            value={form.contactName}
-            onChange={(e) => update("contactName", e.target.value)}
-            placeholder="Ej: Julieta R."
-            className={inputCls}
-          />
-        </div>
       </div>
 
       <div className="space-y-2">

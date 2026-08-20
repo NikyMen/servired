@@ -37,6 +37,9 @@ export function TrabajosParticulares({ fotos }: { fotos: TrabajoParticular[] }) 
   const [longitude, setLongitude] = useState(-58.8306);
   const [guardando, setGuardando] = useState(false);
   const [borrando, setBorrando] = useState<string | null>(null);
+  const [editando, setEditando] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const abierto = file != null;
@@ -112,11 +115,28 @@ export function TrabajosParticulares({ fotos }: { fotos: TrabajoParticular[] }) 
     }
   }
 
+  async function editar(id: string) {
+    if (editTitle.trim().length < 3) return setError("El título es demasiado corto.");
+    setError(null);
+    const res = await fetch(`/api/pro/trabajos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: editTitle, description: editDescription }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setError(err.error ?? "No pudimos editar el trabajo.");
+      return;
+    }
+    setEditando(null);
+    router.refresh();
+  }
+
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Trabajos particulares</h2>
+          <h2 className="text-lg font-bold text-slate-900">Historial fuera de ServiRed</h2>
           <p className="text-sm text-slate-500">
             Trabajos tuyos hechos fuera de ServiRed. Se muestran en tu perfil sin
             calificación, como muestra de lo que hacés.
@@ -209,10 +229,7 @@ export function TrabajosParticulares({ fotos }: { fotos: TrabajoParticular[] }) 
             <li key={foto.id} className="glass glass-card group relative overflow-hidden rounded-2xl">
               <img src={foto.url} alt={foto.title} className="h-32 w-full object-cover sm:h-36" />
               <div className="p-3">
-                <p className="truncate text-sm font-semibold text-slate-900">{foto.title}</p>
-                {foto.description && (
-                  <p className="line-clamp-2 text-xs text-slate-500">{foto.description}</p>
-                )}
+                {editando === foto.id ? <div className="space-y-2"><input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="glass-field w-full px-2 py-1.5 text-xs" /><textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} className="glass-field w-full resize-none px-2 py-1.5 text-xs" /><div className="flex gap-2"><button type="button" onClick={() => editar(foto.id)} className="text-xs font-semibold text-pro-dark">Guardar</button><button type="button" onClick={() => setEditando(null)} className="text-xs text-slate-500">Cancelar</button></div></div> : <><p className="truncate text-sm font-semibold text-slate-900">{foto.title}</p>{foto.description && <p className="line-clamp-2 text-xs text-slate-500">{foto.description}</p>}<button type="button" onClick={() => { setEditando(foto.id); setEditTitle(foto.title); setEditDescription(foto.description ?? ""); }} className="mt-2 text-xs font-semibold text-pro-dark hover:underline">Editar</button></>}
                 {foto.address && <p className="mt-1 truncate text-[11px] text-slate-400">📍 {foto.address}</p>}
               </div>
               <button

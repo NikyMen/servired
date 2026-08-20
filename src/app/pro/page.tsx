@@ -187,7 +187,7 @@ export default async function ProPanelPage() {
         <TrabajosParticulares fotos={workPhotos} />
       ) : (
         <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900">Trabajos particulares</h2>
+          <h2 className="text-lg font-bold text-slate-900">Historial fuera de ServiRed</h2>
           <p className="glass rounded-2xl border-dashed border-white/70 p-6 text-sm text-slate-500">
             Acá subís fotos de trabajos que hiciste por fuera de ServiRed. Aparecen
             en tu perfil como muestra, sin calificación, hasta que empieces a

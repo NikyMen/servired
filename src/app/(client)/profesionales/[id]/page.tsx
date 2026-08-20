@@ -187,7 +187,7 @@ export default async function ProfesionalPage({
                   <p className="text-xs font-semibold tracking-[0.16em] text-slate-400 uppercase">
                     Muestra del profesional
                   </p>
-                  <h2 className="mt-1 text-lg font-bold text-slate-900">Trabajos particulares</h2>
+                  <h2 className="mt-1 text-lg font-bold text-slate-900">Historial fuera de ServiRed</h2>
                 </div>
                 <span className="rounded-full bg-slate-400/12 px-2.5 py-1 text-xs font-semibold text-slate-500 ring-1 ring-slate-400/25 ring-inset backdrop-blur-sm">
                   Sin calificación

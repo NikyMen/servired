@@ -35,8 +35,11 @@ export function ModeSwitch({
   const searchParams = useSearchParams();
   const enMensajes = pathname === "/mensajes" || pathname === "/pro/mensajes";
   const query = searchParams.toString();
+  const enMiPerfil = pathname === "/mi-perfil" || pathname === "/pro/mi-perfil";
   const target = enMensajes
     ? `${isPro ? "" : "/pro"}/mensajes${query ? `?${query}` : ""}`
+    : enMiPerfil
+      ? isPro ? "/mi-perfil" : "/pro/mi-perfil"
     : isPro
       ? "/"
       : "/pro";
