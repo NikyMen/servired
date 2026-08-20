@@ -17,7 +17,7 @@ type Perfil = {
   longitude?: number | null;
 };
 
-export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; categories?: { id: string; name: string; icon: string }[] }) {
+export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; categories?: { id: string; name: string; icon: string; parentId?: string | null; parent?: { name: string } | null }[] }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const isPro = !!perfil.headline;
@@ -86,7 +86,7 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
           </label>
           <label className="text-sm font-medium text-slate-900">Rubro
             <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className={`${field} mt-1`}>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.parent ? `↳ ${c.name}` : `${c.icon} ${c.name}`}</option>)}
             </select>
           </label>
           <label className="text-sm font-medium text-slate-900">Actividad
@@ -109,4 +109,3 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
     </form>
   );
 }
-

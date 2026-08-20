@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import { MapPicker } from "@/components/MapPicker";
 
-type Categoria = { slug: string; name: string; icon: string };
+type Categoria = { id: string; slug: string; name: string; icon: string; parentId: string | null; parent: { name: string } | null };
 
 type Form = {
   title: string;
@@ -65,6 +65,11 @@ export function PublicarSolicitudForm({ categorias }: { categorias: Categoria[] 
 
   const inputCls =
     "glass-field px-3 py-2.5 text-sm";
+  const principales = categorias.filter((categoria) => !categoria.parentId);
+  const selectedCategory = categorias.find((categoria) => categoria.slug === form.categorySlug);
+  const selectedPrincipal = selectedCategory?.parentId ? categorias.find((categoria) => categoria.id === selectedCategory.parentId)?.slug ?? "" : selectedCategory?.slug ?? "";
+  const selectedPrincipalId = categorias.find((categoria) => categoria.slug === selectedPrincipal)?.id;
+  const selectedChildren = selectedPrincipalId ? categorias.filter((categoria) => categoria.parentId === selectedPrincipalId) : [];
 
   return (
     <form onSubmit={onSubmit} className="glass glass-solid space-y-5 rounded-2xl p-6">
@@ -81,19 +86,22 @@ export function PublicarSolicitudForm({ categorias }: { categorias: Categoria[] 
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-900">Categoría</label>
+          <label className="mb-1 block text-sm font-medium text-slate-900">Rubro y detalle</label>
           <select
-            value={form.categorySlug}
+            required
+            value={selectedPrincipal}
             onChange={(e) => update("categorySlug", e.target.value)}
             className={`${inputCls} cursor-pointer`}
           >
-            <option value="">Elegí una categoría</option>
-            {categorias.map((c) => (
+            <option value="">Elegí un rubro</option>
+            {principales.map((c) => (
               <option key={c.slug} value={c.slug}>
                 {c.icon} {c.name}
               </option>
             ))}
           </select>
+          {selectedChildren.length > 0 && <select required value={form.categorySlug !== selectedPrincipal ? form.categorySlug : ""} onChange={(e) => update("categorySlug", e.target.value)} className={`${inputCls} mt-2 cursor-pointer`}><option value="">Elegí una subcategoría</option>{selectedChildren.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}</select>}
+          <p className="mt-1 text-xs text-slate-400">Esto ayuda a mostrar tu aviso a los profesionales correctos.</p>
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-900">Ubicación</label>

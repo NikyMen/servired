@@ -41,6 +41,15 @@ function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
+function slugify(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function safeUrl(value: string) {
   if (!value) return null;
   if (value.startsWith("/")) return value;
@@ -67,9 +76,14 @@ export async function saveAdAction(formData: FormData) {
 export async function createCategoryAction(formData: FormData) {
   await requireAdmin();
   const name = text(formData, "name");
-  const slug = text(formData, "slug").toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-");
+  const slug = slugify(text(formData, "slug") || name);
+  const parentId = text(formData, "parentId") || null;
   if (!name || !slug) return;
-  await prisma.category.create({ data: { name, slug, icon: text(formData, "icon") || "🛠️", parentId: text(formData, "parentId") || null } });
+  if (parentId) {
+    const parent = await prisma.category.findUnique({ where: { id: parentId }, select: { parentId: true } });
+    if (!parent || parent.parentId) return;
+  }
+  await prisma.category.create({ data: { name, slug, icon: text(formData, "icon") || "🛠️", parentId } });
   revalidatePath("/");
   revalidatePath("/admin");
 }
@@ -79,6 +93,10 @@ export async function updateCategoryAction(formData: FormData) {
   const id = text(formData, "id");
   const parentId = text(formData, "parentId") || null;
   if (!id || parentId === id) return;
+  if (parentId) {
+    const parent = await prisma.category.findUnique({ where: { id: parentId }, select: { parentId: true } });
+    if (!parent || parent.parentId) return;
+  }
   let ancestorId = parentId;
   while (ancestorId) {
     if (ancestorId === id) return;
@@ -87,7 +105,7 @@ export async function updateCategoryAction(formData: FormData) {
   }
   await prisma.category.update({
     where: { id },
-    data: { name: text(formData, "name"), icon: text(formData, "icon") || "🛠️", parentId },
+    data: { name: text(formData, "name"), slug: slugify(text(formData, "slug") || text(formData, "name")), icon: text(formData, "icon") || "🛠️", parentId },
   });
   revalidatePath("/");
   revalidatePath("/admin");

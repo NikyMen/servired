@@ -12,7 +12,7 @@ export default async function PublicarSolicitudPage() {
   const [categorias, user] = await Promise.all([
     prisma.category.findMany({
       orderBy: { createdAt: "asc" },
-      select: { slug: true, name: true, icon: true },
+      select: { id: true, slug: true, name: true, icon: true, parentId: true, parent: { select: { name: true } } },
     }),
     getSessionUser(),
   ]);

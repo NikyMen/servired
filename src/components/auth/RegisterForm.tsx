@@ -17,7 +17,7 @@ import {
 import { initials } from "@/lib/format";
 import type { Mode } from "@/lib/types";
 
-type Category = { slug: string; name: string; icon: string };
+type Category = { id: string; slug: string; name: string; icon: string; parentId: string | null; parent: { name: string } | null };
 
 const FIELD = "glass-field px-3.5 py-3 text-sm";
 
@@ -232,11 +232,7 @@ export function RegisterForm({
                   <option value="" disabled>
                     Elegí tu rubro…
                   </option>
-                  {categories.map((c) => (
-                    <option key={c.slug} value={c.slug}>
-                      {c.icon} {c.name}
-                    </option>
-                  ))}
+                  {categories.filter((c) => !c.parentId).map((c) => <optgroup key={c.slug} label={`${c.icon} ${c.name}`}><option value={c.slug}>{c.name} (general)</option>{categories.filter((child) => child.parentId === c.id).map((child) => <option key={child.slug} value={child.slug}>↳ {child.name}</option>)}</optgroup>)}
                 </select>
               </div>
 

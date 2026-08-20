@@ -19,7 +19,7 @@ export default async function CrearCuentaPage({
 
   const categories = await prisma.category.findMany({
     orderBy: { createdAt: "asc" },
-    select: { slug: true, name: true, icon: true },
+    select: { id: true, slug: true, name: true, icon: true, parentId: true, parent: { select: { name: true } } },
   });
 
   return <RegisterForm categories={categories} next={next} initialRole={role === "profesional" ? "profesional" : "cliente"} />;
