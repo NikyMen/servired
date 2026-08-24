@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
   if (!PREINSCRIPTION_HOSTS.has(hostname)) return NextResponse.next();
   const { pathname } = request.nextUrl;
   if (pathname === "/") return NextResponse.rewrite(new URL("/landing-preinscripcion", request.url));
-  if (pathname === "/landing-preinscripcion" || pathname === "/api/preinscripciones" || pathname.startsWith("/_next/") || pathname.startsWith("/uploads/") || /\.[^/]+$/.test(pathname)) return NextResponse.next();
+  if (pathname === "/landing-preinscripcion" || pathname === "/api/preinscripciones" || pathname === "/admin" || pathname.startsWith("/admin/") || pathname.startsWith("/_next/") || pathname.startsWith("/uploads/") || /\.[^/]+$/.test(pathname)) return NextResponse.next();
   return NextResponse.redirect(new URL("/", request.url));
 }
 

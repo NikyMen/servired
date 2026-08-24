@@ -17,13 +17,14 @@ function duration(seconds: number) {
 
 export default async function AdminPage() {
   await requireAdmin();
-  const [ads, categories, sessions, searches, sourceGroups, countryGroups] = await Promise.all([
+  const [ads, categories, sessions, searches, sourceGroups, countryGroups, preregistrations] = await Promise.all([
     prisma.ad.findMany(),
     prisma.category.findMany({ include: { parent: true, _count: { select: { professionals: true, requests: true, children: true } } }, orderBy: [{ parentId: "asc" }, { name: "asc" }] }),
     prisma.analyticsSession.findMany({ select: { visitorKey: true, durationSeconds: true } }),
     prisma.searchMetric.findMany({ include: { category: true } }),
     prisma.analyticsSession.groupBy({ by: ["source"], _count: true, orderBy: { _count: { source: "desc" } }, take: 8 }),
     prisma.analyticsSession.groupBy({ by: ["country"], _count: true, orderBy: { _count: { country: "desc" } }, take: 8 }),
+    prisma.preregistration.findMany({ orderBy: { createdAt: "desc" } }),
   ]);
   const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
   const rootCategories = categories.filter((category) => !category.parentId);
@@ -57,6 +58,19 @@ export default async function AdminPage() {
             <Ranking title="Categorías más usadas" rows={top(categoryCounts)} empty="Todavía no hay usos." />
             <Ranking title="Origen" rows={sourceGroups.map((x) => [x.source, x._count] as [string, number])} empty="Todavía no hay visitas." />
             <Ranking title="País" rows={countryGroups.map((x) => [x.country || "Sin dato", x._count] as [string, number])} empty="Disponible al desplegar con geolocalización del proveedor." />
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div><h2 className="text-xl font-bold">Preinscripciones</h2><p className="mt-1 text-sm text-slate-500">Personas anotadas para recibir novedades del lanzamiento.</p></div>
+            <span className="rounded-xl bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800">{preregistrations.length} registros</span>
+          </div>
+          <div className="overflow-x-auto rounded-2xl border bg-white shadow-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="border-b bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Fecha</th><th className="px-4 py-3">Nombre</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Teléfono</th><th className="px-4 py-3">Interés</th><th className="px-4 py-3">Oficio</th></tr></thead>
+              <tbody className="divide-y">{preregistrations.map((item) => <tr key={item.id}><td className="whitespace-nowrap px-4 py-3 text-slate-500">{item.createdAt.toLocaleString("es-AR")}</td><td className="px-4 py-3 font-medium">{item.name}</td><td className="px-4 py-3">{item.email}</td><td className="px-4 py-3">{item.phone}</td><td className="px-4 py-3 capitalize">{item.type}</td><td className="px-4 py-3">{item.occupation || "—"}</td></tr>)}{!preregistrations.length && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Todavía no hay preinscripciones.</td></tr>}</tbody>
+            </table>
           </div>
         </section>
 
