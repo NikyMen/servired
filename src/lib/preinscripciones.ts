@@ -1,6 +1,9 @@
+import { MongoClient, type Collection } from "mongodb";
 import { prisma } from "@/lib/prisma";
 
-export type PreinscriptionType = "cliente" | "profesional";
+export const PREINSCRIPTION_TYPES = ["cliente", "profesional"] as const;
+export type PreinscriptionType = (typeof PREINSCRIPTION_TYPES)[number];
+
 export type PreinscriptionInput = {
   name: string;
   email: string;
@@ -8,6 +11,21 @@ export type PreinscriptionInput = {
   occupation: string | null;
   type: PreinscriptionType;
 };
+
+export type Preinscription = PreinscriptionInput & { id: string; createdAt: Date };
+type MongoPreinscription = PreinscriptionInput & { createdAt: Date };
+
+const mongoUri = process.env.MONGODB_URI;
+const mongoDbName = process.env.MONGODB_DB || "servired";
+const globalForMongo = globalThis as unknown as { mongoClientPromise?: Promise<MongoClient> };
+
+async function getMongoCollection(): Promise<Collection<MongoPreinscription>> {
+  if (!mongoUri) throw new Error("MONGODB_URI no está configurado.");
+  if (!globalForMongo.mongoClientPromise) globalForMongo.mongoClientPromise = new MongoClient(mongoUri).connect();
+  return (await globalForMongo.mongoClientPromise).db(mongoDbName).collection("preinscripciones");
+}
+
+export function hasMongoStorage() { return Boolean(mongoUri); }
 
 export function normalizePhone(raw: string) {
   const plus = raw.trim().startsWith("+") ? "+" : "";
@@ -29,10 +47,30 @@ export function parsePreinscription(input: unknown) {
 }
 
 export function isDuplicatePreinscriptionError(error: unknown) {
-  return typeof error === "object" && error !== null && "code" in error && (error as { code?: unknown }).code === "P2002";
+  const code = typeof error === "object" && error !== null && "code" in error ? (error as { code?: unknown }).code : undefined;
+  return code === "P2002" || code === 11000;
 }
 
-export async function createPreinscription(data: PreinscriptionInput) {
+export async function createPreinscription(data: PreinscriptionInput): Promise<Preinscription> {
+  if (hasMongoStorage()) {
+    const createdAt = new Date();
+    const result = await (await getMongoCollection()).insertOne({ ...data, createdAt });
+    return { ...data, id: result.insertedId.toString(), createdAt };
+  }
   const created = await prisma.preregistration.create({ data });
-  return { ...created, type: created.type as PreinscriptionType };
+  return { ...created, type: created.type === "profesional" ? "profesional" : "cliente" };
+}
+
+export async function listPreinscriptions(): Promise<Preinscription[]> {
+  const mongoRows = hasMongoStorage()
+    ? (await (await getMongoCollection()).find().sort({ createdAt: -1 }).toArray()).map(({ _id, name, email, phone, occupation, type, createdAt }) => ({ id: _id.toString(), name, email, phone, occupation: occupation ?? null, type: type === "profesional" ? "profesional" as const : "cliente" as const, createdAt }))
+    : [];
+  const sqliteRows = await prisma.preregistration.findMany({ orderBy: { createdAt: "desc" } });
+  const allRows: Preinscription[] = [...mongoRows, ...sqliteRows.map((row) => ({ id: row.id, name: row.name, email: row.email, phone: row.phone, occupation: row.occupation, type: row.type === "profesional" ? "profesional" as const : "cliente" as const, createdAt: row.createdAt }))].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  const unique = new Map<string, Preinscription>();
+  for (const row of allRows) {
+    const key = row.email.trim().toLowerCase();
+    if (!unique.has(key)) unique.set(key, row);
+  }
+  return [...unique.values()];
 }
