@@ -51,8 +51,13 @@ export type SessionUser = {
   avatarColor: string;
   /** Foto de perfil, si subió una. */
   avatarUrl: string | null;
-  /** Perfil público, solo si la cuenta es profesional. */
+  /** Perfil público de Ofrezco, si completó el alta correspondiente. */
   professionalId: string | null;
+  emailVerified: boolean;
+  accountStatus: string;
+  kycStatus: string;
+  canInteract: boolean;
+  professionalStatus: string | null;
 };
 
 /**
@@ -66,7 +71,14 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 
   const session = await prisma.session.findUnique({
     where: { token },
-    include: { user: { include: { professional: { select: { id: true } } } } },
+    include: {
+      user: {
+        include: {
+          professional: { select: { id: true, profileStatus: true } },
+          kycCase: { select: { status: true } },
+        },
+      },
+    },
   });
   if (!session) return null;
 
@@ -84,8 +96,30 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     avatarColor: user.avatarColor,
     avatarUrl: user.avatarUrl,
     professionalId: user.professional?.id ?? null,
+    emailVerified: user.emailVerifiedAt != null,
+    accountStatus: user.accountStatus,
+    kycStatus: user.kycCase?.status ?? "draft",
+    canInteract: user.emailVerifiedAt != null && user.accountStatus === "approved",
+    professionalStatus: user.professional?.profileStatus ?? null,
   };
 });
+
+export type InteractionAccess =
+  | { user: SessionUser; error?: never; status?: never }
+  | { user?: never; error: string; status: 401 | 403 };
+
+/** Guard común para toda escritura social/comercial. */
+export async function interactionAccess(): Promise<InteractionAccess> {
+  const user = await getSessionUser();
+  if (!user) return { error: "Entrá para continuar.", status: 401 };
+  if (!user.canInteract) {
+    return {
+      error: "Tu cuenta todavía necesita verificación y aprobación.",
+      status: 403,
+    };
+  }
+  return { user };
+}
 
 /*
  * Acá vivían requireUser() y requirePro(), que cortaban el render y mandaban

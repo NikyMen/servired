@@ -1,67 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { interactionAccess } from "@/lib/auth";
 import { UPLOAD_URL } from "@/lib/uploads";
 
-export const dynamic = "force-dynamic";
+const MAX_SAMPLES = 24;
+const MAX_IMAGES = 5;
 
-/** Tope por perfil: la galería es una muestra, no un álbum sin fondo. */
-const MAX_FOTOS = 24;
-
-// POST /api/pro/trabajos — suma una foto de un trabajo particular a la galería
 export async function POST(req: NextRequest) {
-  const user = await getSessionUser();
-  if (!user?.professionalId) {
-    return NextResponse.json(
-      { error: "Necesitás un perfil profesional para cargar trabajos." },
-      { status: 401 }
-    );
-  }
-
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "JSON inválido" }, { status: 400 });
-  }
-
-  const { url, title, description, address, latitude, longitude } = (body ?? {}) as Record<string, unknown>;
-
-  if (typeof url !== "string" || !UPLOAD_URL.test(url)) {
-    return NextResponse.json({ error: "Falta la foto del trabajo." }, { status: 422 });
-  }
-  const cleanTitle = typeof title === "string" ? title.trim().slice(0, 80) : "";
-  if (cleanTitle.length < 3) {
-    return NextResponse.json(
-      { error: "Poné un título, aunque sea corto: “Instalación de termotanque”." },
-      { status: 422 }
-    );
-  }
-
-  const total = await prisma.workPhoto.count({
-    where: { professionalId: user.professionalId },
-  });
-  if (total >= MAX_FOTOS) {
-    return NextResponse.json(
-      { error: `Podés mostrar hasta ${MAX_FOTOS} trabajos. Borrá alguno para subir otro.` },
-      { status: 422 }
-    );
-  }
-
-  const photo = await prisma.workPhoto.create({
-    data: {
-      url,
-      title: cleanTitle,
-      description:
-        typeof description === "string" && description.trim()
-          ? description.trim().slice(0, 400)
-          : null,
-      address: typeof address === "string" ? address.trim().slice(0, 180) || "Corrientes" : "Corrientes",
-      latitude: Number.isFinite(Number(latitude)) ? Number(latitude) : -27.4692,
-      longitude: Number.isFinite(Number(longitude)) ? Number(longitude) : -58.8306,
-      professionalId: user.professionalId,
-    },
-  });
-
-  return NextResponse.json(photo, { status: 201 });
+  const access = await interactionAccess();
+  if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
+  const user = access.user;
+  if (!user.professionalId || user.professionalStatus !== "approved") return NextResponse.json({ error: "Necesitás un perfil profesional aprobado." }, { status: 403 });
+  const body = await req.json().catch(() => null) as Record<string, unknown> | null;
+  const urls = Array.isArray(body?.urls) ? [...new Set(body.urls.filter((url): url is string => typeof url === "string" && UPLOAD_URL.test(url)))] : [];
+  const title = typeof body?.title === "string" ? body.title.trim().slice(0, 80) : "";
+  const description = typeof body?.description === "string" ? body.description.trim().slice(0, 600) : "";
+  if (title.length < 3) return NextResponse.json({ error: "Poné un título de al menos 3 caracteres." }, { status: 422 });
+  if (urls.length < 1 || urls.length > MAX_IMAGES) return NextResponse.json({ error: "Cada muestra necesita entre 1 y 5 fotos." }, { status: 422 });
+  if (await prisma.workSample.count({ where: { professionalId: user.professionalId } }) >= MAX_SAMPLES) return NextResponse.json({ error: `Podés publicar hasta ${MAX_SAMPLES} muestras.` }, { status: 422 });
+  const sample = await prisma.workSample.create({ data: { title, description: description || null, professionalId: user.professionalId, images: { create: urls.map((url, position) => ({ url, position })) } }, include: { images: { orderBy: { position: "asc" } } } });
+  return NextResponse.json(sample, { status: 201 });
 }

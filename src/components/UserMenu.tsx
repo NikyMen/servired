@@ -6,8 +6,9 @@ import { Avatar } from "@/components/ui";
 import { LogOutIcon } from "@/components/icons";
 import { logoutAction } from "@/app/(auth)/actions";
 import type { SessionUser } from "@/lib/auth";
+import type { Mode } from "@/lib/types";
 
-export function UserMenu({ user }: { user: SessionUser | null }) {
+export function UserMenu({ user, mode }: { user: SessionUser | null; mode: Mode }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -36,7 +37,7 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
     );
   }
 
-  const isPro = user.role === "profesional";
+  const isPro = mode === "pro";
 
   return (
     <div ref={ref} className="relative shrink-0">

@@ -5,6 +5,7 @@ import { formatARS } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 export default async function PagoDemoPage({ params }: { params: Promise<{ token: string }> }) {
+  if (process.env.NODE_ENV === "production") notFound();
   const user = await getSessionUser(); if (!user) redirect("/entrar");
   const { token } = await params; const payment = await prisma.payment.findUnique({ where: { checkoutToken: token }, include: { professional: true } });
   if (!payment || payment.userId !== user.id) notFound();

@@ -11,10 +11,12 @@ const DEBOUNCE_MS = 220;
 export function SearchBox({
   defaultQuery = "",
   categoria,
+  tipo,
   variant = "hero",
 }: {
   defaultQuery?: string;
   categoria?: string;
+  tipo?: "profesional" | "oficio";
   variant?: "hero" | "nav";
 }) {
   const router = useRouter();
@@ -39,7 +41,10 @@ export function SearchBox({
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/buscar/sugerencias?q=${encodeURIComponent(text)}`, {
+        const params = new URLSearchParams({ q: text });
+        if (categoria) params.set("categoria", categoria);
+        if (tipo) params.set("tipo", tipo);
+        const res = await fetch(`/api/buscar/sugerencias?${params}`, {
           signal: controller.signal,
         });
         if (!res.ok || id !== requestId.current) return;
@@ -57,7 +62,7 @@ export function SearchBox({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [q]);
+  }, [categoria, q, tipo]);
 
   // Cerrar al clickear afuera.
   useEffect(() => {
@@ -77,6 +82,11 @@ export function SearchBox({
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && (!visible || highlighted < 0)) {
+      e.preventDefault();
+      e.currentTarget.form?.requestSubmit();
+      return;
+    }
     if (!visible) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -95,9 +105,21 @@ export function SearchBox({
 
   const inNav = variant === "nav";
 
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const currentQuery = String(new FormData(e.currentTarget).get("q") ?? "").trim();
+    const params = new URLSearchParams();
+    if (currentQuery) params.set("q", currentQuery);
+    if (categoria) params.set("categoria", categoria);
+    if (tipo) params.set("tipo", tipo);
+    const queryString = params.toString();
+    router.push(`/${queryString ? `?${queryString}` : ""}#resultados`);
+    setOpen(false);
+  }
+
   return (
     <form
-      action="/"
+      onSubmit={submit}
       className={inNav
         ? "flex min-w-0 flex-1 items-center rounded-full border border-slate-200 bg-white px-2 shadow-sm"
         : "glass glass-dark mt-5 flex flex-col gap-2 rounded-[1.25rem] p-2 md:flex-row"}
@@ -155,6 +177,7 @@ export function SearchBox({
       </div>
 
       {categoria && <input type="hidden" name="categoria" value={categoria} />}
+      {tipo && <input type="hidden" name="tipo" value={tipo} />}
 
       <button type="submit" aria-label="Buscar" className={inNav ? "flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white" : "glass-btn px-5 py-2.5 text-sm"}>
         {inNav ? <SearchIcon width={16} height={16} /> : "Buscar"}

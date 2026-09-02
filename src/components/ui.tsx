@@ -132,6 +132,13 @@ export function StatusPill({ status }: { status: string }) {
   const amber = "bg-amber-400/15 text-amber-700 ring-amber-400/35";
   const grey = "bg-slate-400/12 text-slate-500 ring-slate-400/25";
   const map: Record<string, string> = {
+    requested: blue,
+    in_progress: green,
+    finished: amber,
+    payment_reported: amber,
+    paid_awaiting_review: green,
+    completed: green,
+    cancelled: grey,
     solicitada: blue,
     presupuestada: amber,
     abierta: blue,
@@ -144,6 +151,13 @@ export function StatusPill({ status }: { status: string }) {
   };
   const cls = map[status.toLowerCase()] ?? grey;
   const labels: Record<string, string> = {
+    requested: "Solicitud enviada",
+    in_progress: "Trabajo en curso",
+    finished: "Terminado · pago habilitado",
+    payment_reported: "Pago informado",
+    paid_awaiting_review: "Pendiente de calificación",
+    completed: "Completado",
+    cancelled: "Cancelado",
     solicitada: "Pendiente",
     presupuestada: "Presupuesto enviado",
     aceptada: "Aceptada",

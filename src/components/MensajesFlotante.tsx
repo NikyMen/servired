@@ -81,7 +81,7 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
           onClick={() => setOpen(true)}
           aria-label={total > 0 ? `Abrir mensajes, ${total} sin leer` : "Abrir mensajes"}
           title="Mensajes"
-          className={`fixed right-4 bottom-40 z-40 flex size-13 items-center justify-center rounded-full text-white shadow-lg transition-all hover:shadow-xl active:scale-95 md:bottom-22 ${accent} ${accentHover}`}
+          className={`fixed right-4 bottom-[calc(7.5rem+env(safe-area-inset-bottom))] z-40 flex size-13 items-center justify-center rounded-full text-white shadow-lg transition-all hover:shadow-xl active:scale-95 md:bottom-22 ${accent} ${accentHover}`}
         >
           <span className="relative">
             <ChatIcon width={20} height={20} />
@@ -104,7 +104,7 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
           <div
             role="dialog"
             aria-label="Mensajes"
-            className="glass glass-solid animate-sheet-up fixed inset-x-3 bottom-3 z-50 flex max-h-[85vh] flex-col overflow-hidden rounded-3xl md:inset-auto md:right-6 md:bottom-6 md:max-h-[80vh] md:w-[640px]"
+            className="glass glass-solid animate-sheet-up fixed inset-x-3 bottom-[max(.75rem,env(safe-area-inset-bottom))] z-50 flex max-h-[88dvh] flex-col overflow-hidden rounded-3xl md:inset-auto md:right-6 md:bottom-6 md:max-h-[80vh] md:w-[640px]"
           >
             <header className={`flex items-center gap-3 px-4 py-3.5 text-white ${accent}`}>
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/15">
@@ -145,7 +145,7 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
               </button>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-3">
+            <div className="min-h-0 flex-1 overflow-hidden p-3">
               {error ? (
                 <p
                   role="alert"

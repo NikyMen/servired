@@ -33,18 +33,18 @@ function clientEmail(name: string): string {
 }
 
 const categories = [
-  { slug: "hogar", name: "Hogar", icon: "🏠" },
-  { slug: "plomeria", name: "Plomería", icon: "🔧" },
-  { slug: "electricidad", name: "Electricidad", icon: "⚡" },
-  { slug: "limpieza", name: "Limpieza", icon: "🧽" },
-  { slug: "jardineria", name: "Jardinería", icon: "🌿" },
-  { slug: "pintura", name: "Pintura", icon: "🎨" },
-  { slug: "gasista", name: "Gasista", icon: "🔥" },
-  { slug: "carpinteria", name: "Carpintería", icon: "🪚" },
-  { slug: "abogado", name: "Abogados", icon: "⚖️" },
-  { slug: "contador", name: "Contadores", icon: "📊" },
-  { slug: "diseno", name: "Diseño", icon: "🖌️" },
-  { slug: "otro", name: "Otro", icon: "+" },
+  { slug: "hogar", name: "Hogar", icon: "🏠", kind: "oficio" },
+  { slug: "plomeria", name: "Plomería", icon: "🔧", kind: "oficio" },
+  { slug: "electricidad", name: "Electricidad", icon: "⚡", kind: "oficio" },
+  { slug: "limpieza", name: "Limpieza", icon: "🧽", kind: "oficio" },
+  { slug: "jardineria", name: "Jardinería", icon: "🌿", kind: "oficio" },
+  { slug: "pintura", name: "Pintura", icon: "🎨", kind: "oficio" },
+  { slug: "gasista", name: "Gasista", icon: "🔥", kind: "oficio" },
+  { slug: "carpinteria", name: "Carpintería", icon: "🪚", kind: "oficio" },
+  { slug: "abogado", name: "Abogados", icon: "⚖️", kind: "profesional" },
+  { slug: "contador", name: "Contadores", icon: "📊", kind: "profesional" },
+  { slug: "diseno", name: "Diseño", icon: "🖌️", kind: "profesional" },
+  { slug: "otro", name: "Otro", icon: "+", kind: "oficio" },
 ];
 
 type ProSeed = {
@@ -276,6 +276,8 @@ async function main() {
       name: DEMO_CLIENT_NAME,
       role: "cliente",
       avatarColor: "#2563eb", // azul: busca servicios
+      emailVerifiedAt: new Date(),
+      accountStatus: "approved",
     },
   });
 
@@ -301,6 +303,8 @@ async function main() {
         name: p.name,
         role: "profesional",
         avatarColor: p.avatarColor,
+        emailVerifiedAt: new Date(),
+        accountStatus: "approved",
       },
     });
 
@@ -318,9 +322,14 @@ async function main() {
         longitude: -58.8306 + (proIndex % 5) * 0.014,
         priceFrom: p.priceFrom,
         verified: p.verified,
+        profileStatus: "approved",
+        paymentAlias: `${slug(p.name)}.servired`,
+        paymentCvu: "2850590940090418135201",
+        providerType: categories.find((category) => category.slug === p.categorySlug)?.kind || "oficio",
         featured: p.featured,
         yearsExperience: p.yearsExperience,
         categoryId,
+        categoryLinks: { create: { categoryId, isPrimary: true } },
         userId: proUser.id,
         services: {
           create: p.services.map((s) => ({
@@ -362,6 +371,8 @@ async function main() {
         name: r.contactName,
         role: "cliente",
         avatarColor: "#2563eb",
+        emailVerifiedAt: new Date(),
+        accountStatus: "approved",
       },
     });
 
@@ -392,7 +403,7 @@ async function main() {
       professionalId: electricista.id,
       serviceId: electricista.serviceIds.get("Colocación de luminarias") ?? null,
       note: "Son 3 plafones LED para living y pasillo.",
-      status: "solicitada",
+      status: "requested",
     },
   });
 
@@ -405,7 +416,8 @@ async function main() {
       serviceId: plomero.serviceIds.get("Reparación de pérdidas") ?? null,
       finalPrice: 22000,
       workSummary: "Detectó la filtración debajo de la bacha y reemplazó la conexión dañada.",
-      status: "completada",
+      status: "completed",
+      completedAt: new Date(),
     },
   });
 

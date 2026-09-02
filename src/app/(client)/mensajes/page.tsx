@@ -42,6 +42,8 @@ export default async function MensajesPage({ searchParams }: { searchParams: Pro
           id: c.id,
           withName: c.professional.name,
           withColor: c.professional.avatarColor || PRO_GREEN,
+          avatarUrl: c.professional.avatarUrl,
+          profileHref: `/profesionales/${c.professional.id}`,
           noLeidos: contarNoLeidos(c.messages, "cliente", c.leidoCliente),
           messages: c.messages.map((m) => ({
             id: m.id,

@@ -83,7 +83,8 @@ export async function createCategoryAction(formData: FormData) {
     const parent = await prisma.category.findUnique({ where: { id: parentId }, select: { parentId: true } });
     if (!parent || parent.parentId) return;
   }
-  await prisma.category.create({ data: { name, slug, icon: text(formData, "icon") || "🛠️", parentId } });
+  const kind = text(formData, "kind") === "profesional" ? "profesional" : "oficio";
+  await prisma.category.create({ data: { name, slug, icon: text(formData, "icon") || "🛠️", parentId, kind } });
   revalidatePath("/");
   revalidatePath("/admin");
 }
@@ -91,7 +92,8 @@ export async function createCategoryAction(formData: FormData) {
 export async function updateCategoryAction(formData: FormData) {
   await requireAdmin();
   const id = text(formData, "id");
-  const parentId = text(formData, "parentId") || null;
+  const current = id ? await prisma.category.findUnique({ where: { id }, select: { parentId: true } }) : null;
+  const parentId = formData.has("parentId") ? text(formData, "parentId") || null : current?.parentId || null;
   if (!id || parentId === id) return;
   if (parentId) {
     const parent = await prisma.category.findUnique({ where: { id: parentId }, select: { parentId: true } });
@@ -105,7 +107,7 @@ export async function updateCategoryAction(formData: FormData) {
   }
   await prisma.category.update({
     where: { id },
-    data: { name: text(formData, "name"), slug: slugify(text(formData, "slug") || text(formData, "name")), icon: text(formData, "icon") || "🛠️", parentId },
+    data: { name: text(formData, "name"), slug: slugify(text(formData, "slug") || text(formData, "name")), icon: text(formData, "icon") || "🛠️", parentId, kind: text(formData, "kind") === "profesional" ? "profesional" : "oficio" },
   });
   revalidatePath("/");
   revalidatePath("/admin");
@@ -121,4 +123,33 @@ export async function deleteCategoryAction(formData: FormData) {
   await prisma.category.delete({ where: { id } });
   revalidatePath("/");
   revalidatePath("/admin");
+}
+
+export async function reviewKycAction(formData: FormData) {
+  await requireAdmin();
+  const id = text(formData, "id");
+  const action = text(formData, "action");
+  const reason = text(formData, "reason").slice(0, 1000);
+  if (!id || !["approve", "changes", "reject"].includes(action)) return;
+  if ((action === "changes" || action === "reject") && reason.length < 5) return;
+  const kyc = await prisma.kycCase.findUnique({ where: { id }, include: { user: { include: { professional: { include: { categoryLinks: true } } } } } });
+  if (!kyc) return;
+  const reviewer = process.env.ADMIN_EMAIL || "admin";
+  await prisma.$transaction(async (tx) => {
+    if (action === "approve") {
+      if (kyc.user.professional) {
+        const categoryIds = kyc.user.professional.categoryLinks.map((link) => link.categoryId);
+        await tx.category.updateMany({ where: { id: { in: categoryIds }, approvalStatus: "pending", createdByUserId: kyc.userId }, data: { approvalStatus: "approved" } });
+        await tx.professional.update({ where: { id: kyc.user.professional.id }, data: { profileStatus: "approved", verified: true } });
+      }
+      await tx.kycCase.update({ where: { id }, data: { status: "approved", reviewReason: null, reviewedBy: reviewer, reviewedAt: new Date() } });
+      if (kyc.user.accountStatus !== "suspended") await tx.user.update({ where: { id: kyc.userId }, data: { accountStatus: "approved" } });
+    } else {
+      const status = action === "changes" ? "changes_requested" : "rejected";
+      await tx.kycCase.update({ where: { id }, data: { status, reviewReason: reason, reviewedBy: reviewer, reviewedAt: new Date() } });
+      if (kyc.user.professional) await tx.professional.update({ where: { id: kyc.user.professional.id }, data: { profileStatus: status, verified: false } });
+    }
+  });
+  revalidatePath("/admin");
+  revalidatePath("/");
 }

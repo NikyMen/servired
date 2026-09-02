@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
 import { CLIENT_BLUE } from "@/lib/brand";
 import { contarNoLeidos } from "@/lib/mensajes";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mensajes" };
@@ -12,6 +13,9 @@ export const metadata: Metadata = { title: "Mensajes" };
 export default async function ProMensajesPage({ searchParams }: { searchParams: Promise<{ conversacion?: string }> }) {
   const { conversacion } = await searchParams;
   const user = await getSessionUser();
+  if (!user) redirect("/entrar?next=/pro/mensajes");
+  if (!user.canInteract) redirect("/onboarding");
+  if (!user.professionalId || user.professionalStatus !== "approved") redirect("/pro");
   const professionalId = user?.professionalId ?? null;
 
   // Sin perfil profesional propio no hay bandeja: la de otro no se muestra.
@@ -20,7 +24,7 @@ export default async function ProMensajesPage({ searchParams }: { searchParams: 
         where: { professionalId },
         orderBy: { updatedAt: "desc" },
         include: {
-          user: { select: { avatarColor: true } },
+          user: { select: { avatarColor: true, avatarUrl: true } },
           messages: { orderBy: { createdAt: "asc" } },
         },
       })
@@ -44,6 +48,7 @@ export default async function ProMensajesPage({ searchParams }: { searchParams: 
           id: c.id,
           withName: c.clientName,
           withColor: c.user.avatarColor || CLIENT_BLUE,
+          avatarUrl: c.user.avatarUrl,
           noLeidos: contarNoLeidos(c.messages, "profesional", c.leidoPro),
           messages: c.messages.map((m) => ({
             id: m.id,

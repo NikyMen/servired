@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 
@@ -10,17 +9,15 @@ export const metadata: Metadata = { title: "Crear cuenta" };
 export default async function CrearCuentaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; role?: string }>;
+  searchParams: Promise<{ next?: string; role?: string; tipo?: string }>;
 }) {
-  const { next, role } = await searchParams;
+  const { next, role, tipo } = await searchParams;
+  const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
 
   const user = await getSessionUser();
-  if (user) redirect(user.role === "profesional" ? "/pro" : "/");
+  if (user) redirect(safeNext || "/");
 
-  const categories = await prisma.category.findMany({
-    orderBy: { createdAt: "asc" },
-    select: { id: true, slug: true, name: true, icon: true, parentId: true, parent: { select: { name: true } } },
-  });
-
-  return <RegisterForm categories={categories} next={next} initialRole={role === "profesional" ? "profesional" : "cliente"} />;
+  const providerType = tipo === "profesional" || tipo === "oficio" ? tipo : undefined;
+  const intendedNext = safeNext || (role === "profesional" || providerType ? `/pro${providerType ? `?tipo=${providerType}` : ""}` : undefined);
+  return <RegisterForm next={intendedNext} providerType={providerType} />;
 }

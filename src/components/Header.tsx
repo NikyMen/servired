@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { ModeSwitch } from "@/components/ModeSwitch";
 import { UserMenu } from "@/components/UserMenu";
@@ -32,8 +32,13 @@ const proNav: NavItem[] = [
 
 export function Header({ mode, user }: { mode: Mode; user: SessionUser | null }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const nav = mode === "pro" ? proNav : clientNav;
   const { total } = useNoLeidos();
+  const rawType = searchParams.get("tipo");
+  const searchType = rawType === "profesional" || rawType === "oficio" ? rawType : undefined;
+  const searchCategory = searchParams.get("categoria") || undefined;
+  const searchQuery = searchParams.get("q") || "";
 
   return (
     // glass-bar y no glass: una barra pegada no lleva borde completo ni
@@ -54,7 +59,7 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
 
         {mode === "cliente" && (
           <div className="order-3 w-full md:order-none md:max-w-xs md:flex-1">
-            <SearchBox variant="nav" />
+            <SearchBox key={`${searchType || "todos"}:${searchCategory || "todos"}:${searchQuery}`} variant="nav" defaultQuery={searchQuery} categoria={searchCategory} tipo={searchType} />
           </div>
         )}
 
@@ -93,7 +98,7 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
               juntos, porque .mode-switch estaba fuera de @layer y le ganaba al
               `hidden` de Tailwind. Ahora achica con clases responsive. */}
           <ModeSwitch mode={mode} />
-          <UserMenu user={user} />
+          <UserMenu user={user} mode={mode} />
         </div>
       </div>
     </header>

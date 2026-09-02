@@ -25,6 +25,9 @@ export async function PATCH(req: NextRequest) {
       { status: 401 }
     );
   }
+  if (!user.canInteract || user.professionalStatus !== "approved") {
+    return NextResponse.json({ error: "Tu perfil profesional todavía no fue aprobado." }, { status: 403 });
+  }
 
   let body: unknown;
   try {

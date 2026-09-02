@@ -15,7 +15,7 @@ export async function participantIn(conversationId: string) {
 
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
-    include: { professional: { select: { userId: true } } },
+    include: { professional: { select: { userId: true, profileStatus: true, user: { select: { accountStatus: true } } } } },
   });
   if (!conversation) return { user, role: null, conversation: null } as const;
 

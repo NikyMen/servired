@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { interactionAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 // POST /api/solicitudes — crea una nueva solicitud de presupuesto
 export async function POST(req: NextRequest) {
   // Con sesión: la solicitud tiene que tener dueño para que le puedan contestar.
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "Entrá para publicar una solicitud." }, { status: 401 });
-  }
+  const access = await interactionAccess();
+  if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
+  const user = access.user;
 
   let body: unknown;
   try {
@@ -34,8 +33,9 @@ export async function POST(req: NextRequest) {
 
   let categoryId: string | null = null;
   if (typeof categorySlug === "string" && categorySlug) {
-    const cat = await prisma.category.findUnique({ where: { slug: categorySlug } });
-    categoryId = cat?.id ?? null;
+    const cat = await prisma.category.findFirst({ where: { slug: categorySlug, approvalStatus: "approved" }, select: { id: true } });
+    if (!cat) return NextResponse.json({ error: "Elegí un rubro habilitado." }, { status: 422 });
+    categoryId = cat.id;
   }
 
   const lat = Number(latitude);

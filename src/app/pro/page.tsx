@@ -10,31 +10,48 @@ import { BookingActions } from "@/components/BookingActions";
 import { SolicitudCard } from "@/components/pro/SolicitudCard";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
 import { ChatIcon, ChevronLeftIcon } from "@/components/icons";
+import { expirePendingProposals } from "@/lib/workflow";
+import { ProfessionalOnboardingForm } from "@/components/ProfessionalOnboardingForm";
+import { redirect } from "next/navigation";
+import { decryptKyc } from "@/lib/kyc";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Panel del profesional" };
 
-export default async function ProPanelPage() {
-  // El panel se puede mirar sin cuenta: se ve la estructura y el tablero de
-  // solicitudes abiertas, que es lo que hace que valga la pena darse de alta.
-  // Lo que NO se ve sin ser el dueño es su bandeja: pedidos recibidos y
-  // servicios salen vacíos, porque son de alguien.
+export default async function ProPanelPage({ searchParams }: { searchParams: Promise<{ tipo?: string; editarKyc?: string }> }) {
   const user = await getSessionUser();
+  if (!user) redirect("/entrar?next=/pro");
+  if (!user.emailVerified || !user.canInteract) redirect("/onboarding?next=/pro");
+  const { tipo, editarKyc } = await searchParams;
+  await expirePendingProposals();
   const pro = user?.professionalId
-    ? await prisma.professional.findUnique({ where: { id: user.professionalId } })
+    ? await prisma.professional.findUnique({ where: { id: user.professionalId }, include: { categoryLinks: { where: { category: { approvalStatus: "approved" } } }, user: { select: { kycCase: { select: { status: true, reviewReason: true, legalName: true, phone: true, birthDate: true, cuilEncrypted: true, dniEncrypted: true, address: true } } } } } })
     : null;
+  if (!pro || pro.profileStatus === "changes_requested" || (pro.profileStatus === "approved" && editarKyc === "1")) {
+    const categories = await prisma.category.findMany({ where: { approvalStatus: "approved" }, include: { parent: { select: { name: true } } }, orderBy: [{ kind: "asc" }, { name: "asc" }] });
+    const providerType = pro?.providerType === "profesional" || pro?.providerType === "oficio"
+      ? pro.providerType
+      : tipo === "profesional" || tipo === "oficio" ? tipo : undefined;
+    const existingKyc = pro?.user?.kycCase;
+    return <ProfessionalOnboardingForm categories={categories.map(({ id, name, icon, kind, parent }) => ({ id, name, icon, kind, parent }))} initial={{
+      name: user.name, email: user.email, avatarUrl: user.avatarUrl, providerType, status: pro?.profileStatus, reason: existingKyc?.reviewReason,
+      categoryIds: pro?.categoryLinks.map((link) => link.categoryId), headline: pro?.headline, bio: pro?.bio ?? "", paymentAlias: pro?.paymentAlias ?? "", paymentCvu: pro?.paymentCvu ?? "",
+      legalName: existingKyc?.legalName, phone: existingKyc?.phone, birthDate: existingKyc?.birthDate.toISOString().slice(0, 10), cuil: existingKyc ? decryptKyc(existingKyc.cuilEncrypted) : undefined, dni: existingKyc ? decryptKyc(existingKyc.dniEncrypted) : undefined, address: existingKyc?.address,
+    }} />;
+  }
+  if (pro.profileStatus !== "approved") return <section className="glass glass-solid rounded-2xl p-6"><h1 className="text-2xl font-bold text-slate-900">Perfil {pro.profileStatus === "rejected" ? "rechazado" : "en revisión"}</h1><p className="mt-2 text-slate-600">Podés seguir usando Busco. Para ofrecer, responder o recibir trabajos primero debe aprobarte administración.</p>{pro.user?.kycCase?.reviewReason && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{pro.user.kycCase.reviewReason}</p>}<Link href="/" className="glass-btn glass-btn-ghost mt-4 px-4 py-2.5 text-sm">Volver a Busco</Link></section>;
 
-  const [bookings, requests, services, workPhotos, conversations] = await Promise.all([
+  const [bookings, requests, services, workSamples, conversations] = await Promise.all([
     pro
       ? prisma.booking.findMany({
           where: { professionalId: pro.id },
           orderBy: { createdAt: "desc" },
-          include: { user: true, service: true, attachments: true, payments: { orderBy: { createdAt: "desc" } } },
+          include: { user: true, service: true, attachments: true, proposals: { orderBy: { createdAt: "desc" } }, payments: { orderBy: { createdAt: "desc" } } },
         })
       : [],
     prisma.serviceRequest.findMany({
       // Las propias no: no tiene sentido ofrecerse a responderse a uno mismo.
-      where: { status: "abierta", ...(user ? { NOT: { userId: user.id } } : {}) },
+      where: { status: "abierta", ...(user ? { NOT: { userId: user.id } } : {}), ...(pro ? { categoryId: { in: pro.categoryLinks.map((link) => link.categoryId) } } : {}) },
       orderBy: { createdAt: "desc" },
       include: { category: true },
     }),
@@ -45,10 +62,10 @@ export default async function ProPanelPage() {
         })
       : [],
     pro
-      ? prisma.workPhoto.findMany({
+      ? prisma.workSample.findMany({
           where: { professionalId: pro.id },
           orderBy: { createdAt: "desc" },
-          select: { id: true, url: true, title: true, description: true, address: true, latitude: true, longitude: true },
+          include: { images: { orderBy: { position: "asc" } } },
         })
       : [],
     pro
@@ -57,7 +74,7 @@ export default async function ProPanelPage() {
   ]);
   const conversationByUser = new Map(conversations.map((conversation) => [conversation.userId, conversation.id]));
 
-  const pendientes = bookings.filter((b) => b.status === "solicitada").length;
+  const pendientes = bookings.filter((b) => b.status === "requested").length;
 
   return (
     <div className="space-y-8">
@@ -97,13 +114,13 @@ export default async function ProPanelPage() {
       {/* Propuestas recibidas */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">Peticiones recibidas</h2>
+          <h2 className="text-lg font-bold text-slate-900">Solicitudes recibidas</h2>
           <span className="text-sm text-slate-500">Revisá, rechazá o cotizá</span>
         </div>
         {bookings.length === 0 ? (
           <p className="glass rounded-2xl border-dashed border-white/70 p-6 text-sm text-slate-500">
             {pro
-              ? "Cuando alguien te envíe una propuesta, aparece acá con sus imágenes."
+              ? "Cuando alguien te envíe una solicitud, aparece acá con sus imágenes."
               : "Acá aparecen los pedidos que te mandan los clientes, con las fotos que adjuntan."}
           </p>
         ) : (
@@ -120,13 +137,13 @@ export default async function ProPanelPage() {
                     <ChevronLeftIcon width={18} height={18} className="rotate-[-90deg] text-slate-400 transition-transform group-open:rotate-90" />
                   </summary>
                   <div className="space-y-4 border-t border-white/60 p-4">
-                    <div className="rounded-2xl bg-white/50 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Usuario que creó la propuesta</p><div className="mt-2 flex items-center gap-2"><Avatar name={b.user.name} color={b.user.avatarColor} src={b.user.avatarUrl} size={38} /><div><p className="text-sm font-semibold text-slate-800">{b.user.name}</p><p className="text-xs text-slate-500">Cliente de ServiRed</p></div></div></div>
+                    <div className="rounded-2xl bg-white/50 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Usuario que creó la solicitud</p><div className="mt-2 flex items-center gap-2"><Avatar name={b.user.name} color={b.user.avatarColor} src={b.user.avatarUrl} size={38} /><div><p className="text-sm font-semibold text-slate-800">{b.user.name}</p><p className="text-xs text-slate-500">Cliente de ServiRed</p></div></div></div>
                     <div><p className="text-xs font-semibold text-slate-500">Detalle del pedido</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{b.note || "Sin descripción adicional."}</p></div>
                     <p className="text-xs text-slate-400">Recibida el {new Date(b.createdAt).toLocaleString("es-AR")}</p>
                     {b.workSummary && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-pro-dark">{b.workSummary}</p>}
-                    {b.payments.map((payment) => <p key={payment.id} className={`rounded-xl px-3 py-2 text-sm font-semibold ${payment.status === "pagado" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>Mercado Pago: {formatARS(payment.amount)} · {payment.status}{payment.status === "pagado" ? ` · recibís ${formatARS(payment.netAmount)}` : ""}</p>)}
+                    {b.payments.map((payment) => <p key={payment.id} className={`rounded-xl px-3 py-2 text-sm font-semibold ${payment.status === "pagado" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>Pago por alias: {formatARS(payment.amount)} · {payment.status}</p>)}
                     {b.attachments.length > 0 && <div className="flex flex-wrap gap-2">{b.attachments.map((attachment) => <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer"><img src={attachment.url} alt={attachment.name} className="size-20 rounded-xl object-cover ring-1 ring-slate-200" /></a>)}</div>}
-                    <div className="flex flex-wrap items-center justify-between gap-3">{conversationId ? <Link href={`/pro/mensajes?conversacion=${conversationId}`} className="inline-flex items-center gap-2 rounded-xl bg-pro px-4 py-2 text-sm font-semibold text-white"><ChatIcon width={17} height={17} />Chatear</Link> : <span />}<BookingActions bookingId={b.id} status={b.status} viewer="profesional" /></div>
+                    <div className="flex flex-wrap items-center justify-between gap-3">{conversationId ? <Link href={`/pro/mensajes?conversacion=${conversationId}`} className="inline-flex items-center gap-2 rounded-xl bg-pro px-4 py-2 text-sm font-semibold text-white"><ChatIcon width={17} height={17} />Chatear</Link> : <span />}<BookingActions bookingId={b.id} status={b.status} viewer="profesional" proposal={b.proposals[0] ?? null} finalPrice={b.finalPrice} paidPaymentId={b.payments.find((payment) => payment.status === "pagado")?.id} /></div>
                   </div>
                 </details>
               </li>;
@@ -184,14 +201,12 @@ export default async function ProPanelPage() {
       {/* Trabajos particulares: los que hizo por fuera de la plataforma. No
           tienen calificación porque no hubo contratación que calificar. */}
       {pro ? (
-        <TrabajosParticulares fotos={workPhotos} />
+        <TrabajosParticulares fotos={workSamples} />
       ) : (
         <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900">Historial fuera de ServiRed</h2>
+          <h2 className="text-lg font-bold text-slate-900">Muestra del profesional</h2>
           <p className="glass rounded-2xl border-dashed border-white/70 p-6 text-sm text-slate-500">
-            Acá subís fotos de trabajos que hiciste por fuera de ServiRed. Aparecen
-            en tu perfil como muestra, sin calificación, hasta que empieces a
-            cerrar trabajos por la plataforma.
+            Acá publicás muestras con hasta cinco fotos y una descripción.
           </p>
         </section>
       )}

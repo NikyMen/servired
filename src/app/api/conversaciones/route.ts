@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, interactionAccess } from "@/lib/auth";
 import { CLIENT_BLUE, PRO_GREEN } from "@/lib/brand";
 import { contarNoLeidos } from "@/lib/mensajes";
 
@@ -24,8 +24,8 @@ export async function GET(req: NextRequest) {
     where: comoPro ? { professionalId: user.professionalId! } : { userId: user.id },
     orderBy: { updatedAt: "desc" },
     include: {
-      professional: { select: { name: true, avatarColor: true } },
-      user: { select: { avatarColor: true } },
+      professional: { select: { id: true, name: true, avatarColor: true, avatarUrl: true } },
+      user: { select: { avatarColor: true, avatarUrl: true } },
       messages: { orderBy: { createdAt: "asc" } },
     },
   });
@@ -40,6 +40,8 @@ export async function GET(req: NextRequest) {
       withColor: comoPro
         ? c.user.avatarColor || CLIENT_BLUE
         : c.professional.avatarColor || PRO_GREEN,
+      avatarUrl: comoPro ? c.user.avatarUrl : c.professional.avatarUrl,
+      profileHref: comoPro ? null : `/profesionales/${c.professional.id}`,
       noLeidos: contarNoLeidos(c.messages, viewer, comoPro ? c.leidoPro : c.leidoCliente),
       messages: c.messages.map((m) => ({
         id: m.id,
@@ -57,10 +59,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/conversaciones — abre (o retoma) una conversación y envía un mensaje
 export async function POST(req: NextRequest) {
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "Entrá para poder escribir." }, { status: 401 });
-  }
+  const access = await interactionAccess();
+  if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
+  const user = access.user;
 
   let body: unknown;
   try {
@@ -87,6 +88,14 @@ export async function POST(req: NextRequest) {
   }
   if (professional.userId === user.id) {
     return NextResponse.json({ error: "No podés escribirte a vos mismo." }, { status: 422 });
+  }
+
+  const relatedRequest = await prisma.booking.findFirst({
+    where: { userId: user.id, professionalId },
+    select: { id: true },
+  });
+  if (!relatedRequest) {
+    return NextResponse.json({ error: "Primero enviá una solicitud de trabajo desde el perfil." }, { status: 409 });
   }
 
   // Un hilo por par cliente-profesional: si ya existe, se retoma.

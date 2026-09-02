@@ -8,30 +8,31 @@ import { MapView } from "@/components/MapView";
 import { rankProfessionals } from "@/lib/search";
 import { AdPlate } from "@/components/AdPlate";
 import { getSessionUser } from "@/lib/auth";
+import { SearchBox } from "@/components/SearchBox";
 
 export const dynamic = "force-dynamic";
 
-type Search = { q?: string; categoria?: string };
+type Search = { q?: string; categoria?: string; tipo?: "profesional" | "oficio" };
 
-async function getData({ q, categoria }: Search) {
+async function getData({ q, categoria, tipo }: Search) {
   // Categoría y ubicación filtran en la base; el texto libre se rankea en memoria
   // (ver src/lib/search.ts: LIKE de SQLite no ignora acentos ni tolera typos).
-  const where: Prisma.ProfessionalWhereInput = {};
-  if (categoria) where.category = { OR: [{ slug: categoria }, { parent: { slug: categoria } }] };
+  const filters: Prisma.ProfessionalWhereInput[] = [
+    { profileStatus: "approved" },
+    { OR: [{ userId: null }, { user: { accountStatus: "approved" } }] },
+  ];
+  if (categoria) filters.push({ OR: [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }, { categoryLinks: { some: { category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }], approvalStatus: "approved" } } } }] });
+  if (tipo) filters.push({ providerType: tipo });
+  const where: Prisma.ProfessionalWhereInput = { AND: filters };
 
   const [categories, found, requests, workPhotos, ads] = await Promise.all([
-    prisma.category.findMany({ include: { parent: true }, orderBy: [{ parentId: "asc" }, { createdAt: "asc" }] }),
+    prisma.category.findMany({ where: { approvalStatus: "approved", ...(tipo ? { kind: tipo } : {}) }, include: { parent: true }, orderBy: [{ parentId: "asc" }, { createdAt: "asc" }] }),
     prisma.professional.findMany({
       where,
       include: {
         category: true,
-        _count: { select: { bookings: { where: { status: "completada" } } } },
-        bookings: {
-          where: { status: "completada" },
-          orderBy: { updatedAt: "desc" },
-          take: 1,
-          select: { finalPrice: true, service: { select: { priceFrom: true } } },
-        },
+        categoryLinks: { where: { category: { approvalStatus: "approved" } }, include: { category: true } },
+        _count: { select: { bookings: { where: { status: "completed" } }, workSamples: true } },
         services: {
           where: { status: "activo" },
           select: { title: true, description: true, categoryLabel: true },
@@ -39,7 +40,7 @@ async function getData({ q, categoria }: Search) {
       },
     }),
     prisma.serviceRequest.findMany({
-      where: { status: "abierta", ...(categoria ? { category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } } : {}) },
+      where: { status: "abierta", user: { accountStatus: "approved" }, AND: [...(categoria ? [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }] : []), ...(tipo ? [{ category: { kind: tipo } }] : [])] },
       orderBy: { createdAt: "desc" },
       include: { category: true },
     }),
@@ -54,15 +55,16 @@ async function getData({ q, categoria }: Search) {
   const contactedUserIds = user?.professionalId
     ? new Set((await prisma.conversation.findMany({ where: { professionalId: user.professionalId }, select: { userId: true } })).map((conversation) => conversation.userId))
     : new Set<string>();
-  return { categories, pros: rankProfessionals(found, q ?? ""), requests, workPhotos, ads, contactedUserIds };
+  return { categories, pros: rankProfessionals(found.map((professional) => ({ ...professional, categories: professional.categoryLinks.map((link) => link.category) })), q ?? ""), requests, workPhotos, ads, contactedUserIds };
 }
 
 function chipHref(params: Search, categoria: string) {
   const sp = new URLSearchParams();
   if (params.q) sp.set("q", params.q);
+  if (params.tipo) sp.set("tipo", params.tipo);
   if (categoria) sp.set("categoria", categoria);
   const qs = sp.toString();
-  return qs ? `/?${qs}` : "/";
+  return qs ? `/?${qs}#resultados` : "/#resultados";
 }
 
 export default async function HomePage({
@@ -94,18 +96,22 @@ export default async function HomePage({
         <section className="hero-weld relative z-10 min-h-[215px] rounded-[1.5rem] p-5 text-white sm:min-h-[470px] sm:p-8 md:min-h-[235px] md:p-10">
           <HeroFondo />
 
-          <div className="hero-weld-content flex min-h-[175px] flex-col justify-center sm:min-h-[406px] sm:justify-between md:min-h-[155px]">
+          <div className="absolute inset-0 z-[3] grid grid-cols-2 overflow-hidden rounded-[1.5rem]" aria-label="Filtrar prestadores">
+            <Link href="/?tipo=profesional#resultados" className="group flex items-start justify-center border-r border-white/25 px-2 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70 sm:justify-start sm:px-6 sm:pt-6" aria-label="Ver solo profesionales"><span className="rounded-full bg-blue-600/90 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm transition-transform group-hover:-translate-y-1">Profesionales</span></Link>
+            <Link href="/?tipo=oficio#resultados" className="group flex items-start justify-center px-2 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70 sm:justify-end sm:px-6 sm:pt-6" aria-label="Ver solo oficios"><span className="rounded-full bg-emerald-600/90 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm transition-transform group-hover:-translate-y-1">Oficios</span></Link>
+          </div>
+
+          <div className="hero-weld-content pointer-events-none flex min-h-[175px] flex-col justify-center sm:min-h-[406px] sm:justify-between md:min-h-[155px]">
             <div className="max-w-2xl">
-              <span className="glass glass-thin glass-dark hero-arc-glow inline-flex rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.2em] uppercase">
-                ServiRed · oficios que resuelven
-              </span>
-              <h1 className="mt-5 max-w-xl text-3xl leading-[1.1] font-bold tracking-tight drop-shadow-[0_2px_18px_rgba(2,6,23,0.8)] sm:text-4xl md:text-5xl">
+              <h1 className="hidden max-w-xl text-3xl leading-[1.1] font-bold tracking-tight drop-shadow-[0_2px_18px_rgba(2,6,23,0.8)] sm:block sm:text-4xl md:text-5xl">
                 Tu problema tiene solución. Encontrala acá.
               </h1>
             </div>
 
           </div>
         </section>
+
+        <div className="relative z-20 mx-3 -mt-3 sm:mx-8 sm:-mt-16"><SearchBox defaultQuery={params.q} categoria={params.categoria} tipo={params.tipo} /></div>
 
         <div className="absolute inset-y-0 left-full ml-4 hidden w-28 grid-rows-2 gap-4 xl:grid 2xl:w-44">
           <AdPlate ad={adMap.get("right-1") || null} label="Publicidad lateral derecha 1" />
@@ -142,6 +148,7 @@ export default async function HomePage({
         ))}
       </div>
 
+      <div id="resultados" className="scroll-mt-28" />
       <ClientResultSwitch
         requests={requests.map((r) => ({
           ...r,
@@ -173,9 +180,11 @@ export default async function HomePage({
                 avatarUrl: p.avatarUrl,
                 rating: p.rating,
                 reviewsCount: p.reviewsCount,
+                bio: p.bio,
                 zone: p.zone,
-                lastWorkPrice: p.bookings[0]?.finalPrice ?? p.bookings[0]?.service?.priceFrom ?? null,
                 completedJobs: p._count.bookings,
+                externalJobs: p._count.workSamples,
+                providerType: p.providerType === "profesional" ? "profesional" : "oficio",
                 verified: p.verified,
                 featured: p.featured,
                 yearsExperience: p.yearsExperience,

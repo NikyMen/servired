@@ -12,7 +12,7 @@ type UploadedAttachment = { url: string; name: string; type: string; size: numbe
 const MAX_FILES = 6;
 const MAX_BYTES = 8 * 1024 * 1024;
 
-/** Formulario de propuesta: el cliente explica el trabajo y el profesional cotiza. */
+/** Solicitud del cliente: explica el trabajo y luego el oferente cotiza. */
 export function ContratarBox({
   professionalId,
   services,
@@ -27,7 +27,7 @@ export function ContratarBox({
   const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [sending, setSending] = useState<"propuesta" | "consultar" | null>(null);
+  const [sending, setSending] = useState<"solicitud" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function pedirLogin() {
@@ -55,13 +55,13 @@ export function ContratarBox({
     if (fileInput.current) fileInput.current.value = "";
   }
 
-  async function enviarPropuesta() {
+  async function enviarSolicitud() {
     setError(null);
     if (text.trim().length < 5 && files.length === 0) {
       setError("Contá qué necesitás o adjuntá una imagen del trabajo.");
       return;
     }
-    setSending("propuesta");
+    setSending("solicitud");
     try {
       const attachments: UploadedAttachment[] = [];
       for (const file of files) {
@@ -93,7 +93,7 @@ export function ContratarBox({
       }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "No pudimos enviar la propuesta.");
+        throw new Error(data.error ?? "No pudimos enviar la solicitud.");
       }
       router.push("/contrataciones?nueva=1");
     } catch (err) {
@@ -103,38 +103,9 @@ export function ContratarBox({
     }
   }
 
-  async function consultar() {
-    setError(null);
-    if (text.trim().length < 2) {
-      setError("Escribí tu consulta antes de enviar el mensaje.");
-      return;
-    }
-    setSending("consultar");
-    try {
-      const res = await fetch("/api/conversaciones", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ professionalId, text }),
-      });
-      if (res.status === 401) {
-        pedirLogin();
-        return;
-      }
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "No pudimos enviar el mensaje.");
-      }
-      router.push("/mensajes");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Ocurrió un error.");
-    } finally {
-      setSending(null);
-    }
-  }
-
   return (
     <div className={`space-y-3 ${frame ? "glass glass-solid rounded-2xl p-5" : ""}`}>
-      {frame && <h2 className="font-bold text-slate-900">Enviar propuesta</h2>}
+      {frame && <h2 className="font-bold text-slate-900">Enviar solicitud de trabajo</h2>}
 
       {services.length > 0 && (
         <select
@@ -189,11 +160,8 @@ export function ContratarBox({
       {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
       <div className="flex flex-col gap-2">
-        <Button variant="cliente" onClick={enviarPropuesta} disabled={sending != null} className="w-full disabled:opacity-60">
-          {sending === "propuesta" ? "Enviando…" : "Enviar propuesta"}
-        </Button>
-        <Button variant="outline" onClick={consultar} disabled={sending != null} className="w-full disabled:opacity-60">
-          {sending === "consultar" ? "Enviando…" : "Solo consultar"}
+        <Button variant="cliente" onClick={enviarSolicitud} disabled={sending != null} className="w-full disabled:opacity-60">
+          {sending === "solicitud" ? "Enviando…" : "Enviar solicitud de trabajo"}
         </Button>
       </div>
 

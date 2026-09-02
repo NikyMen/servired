@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { interactionAccess } from "@/lib/auth";
+import { OPEN_BOOKING_STATUSES } from "@/lib/workflow";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +10,9 @@ const UPLOAD_URL = /^\/uploads\/[a-f0-9]{32}\.[a-z]{3,4}$/;
 
 // POST /api/contrataciones — el cliente contrata a un profesional
 export async function POST(req: NextRequest) {
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "Entrá para poder contratar." }, { status: 401 });
-  }
+  const access = await interactionAccess();
+  if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
+  const user = access.user;
 
   let body: unknown;
   try {
@@ -27,18 +27,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Falta el profesional." }, { status: 422 });
   }
 
-  const professional = await prisma.professional.findUnique({ where: { id: professionalId } });
+  const professional = await prisma.professional.findUnique({ where: { id: professionalId }, include: { user: { select: { accountStatus: true } } } });
   if (!professional) {
     return NextResponse.json({ error: "El profesional no existe." }, { status: 404 });
   }
   if (professional.userId === user.id) {
     return NextResponse.json({ error: "No podés contratarte a vos mismo." }, { status: 422 });
   }
+  if (professional.profileStatus !== "approved" || (professional.user && professional.user.accountStatus !== "approved")) return NextResponse.json({ error: "Ese perfil todavía no está habilitado para recibir trabajos." }, { status: 409 });
+  const existing = await prisma.booking.findFirst({ where: { userId: user.id, professionalId, status: { in: OPEN_BOOKING_STATUSES } } });
+  if (existing) return NextResponse.json({ error: "Ya tenés una solicitud o trabajo activo con este profesional." }, { status: 409 });
 
   let service = null;
   if (typeof serviceId === "string" && serviceId) {
     service = await prisma.service.findFirst({
-      where: { id: serviceId, professionalId },
+      where: { id: serviceId, professionalId, status: "activo" },
     });
     if (!service) {
       return NextResponse.json({ error: "El servicio no existe." }, { status: 404 });
@@ -72,6 +75,9 @@ export async function POST(req: NextRequest) {
       size: typeof attachment.size === "number" && attachment.size >= 0 ? attachment.size : null,
     });
   }
+  if ((!cleanNote || cleanNote.length < 5) && attachments.length === 0) {
+    return NextResponse.json({ error: "Contá qué trabajo necesitás o adjuntá una imagen." }, { status: 422 });
+  }
 
   const booking = await prisma.booking.create({
     data: {
@@ -80,6 +86,7 @@ export async function POST(req: NextRequest) {
       professionalId,
       serviceId: service?.id ?? null,
       note: cleanNote,
+      status: "requested",
       attachments: { create: attachments },
     },
   });
@@ -92,8 +99,8 @@ export async function POST(req: NextRequest) {
   });
 
   const intro = service
-    ? `Hola, te envié una propuesta para "${service.title}".`
-    : "Hola, te envié una propuesta de trabajo.";
+    ? `Hola, te envié una solicitud para "${service.title}".`
+    : "Hola, te envié una solicitud de trabajo.";
 
   await prisma.message.create({
     data: {

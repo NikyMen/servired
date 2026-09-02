@@ -17,6 +17,7 @@ export type SearchablePro = {
   verified: boolean;
   featured: boolean;
   category: { slug: string; name: string };
+  categories?: { slug: string; name: string }[];
   services: { title: string; description: string; categoryLabel?: string }[];
 };
 
@@ -231,6 +232,7 @@ function scorePro(pro: SearchablePro, query: ParsedQuery): number {
     };
 
     consider(matchQuality(token, `${pro.category.name} ${pro.category.slug}`), FIELD_WEIGHTS.category);
+    for (const category of pro.categories ?? []) consider(matchQuality(token, `${category.name} ${category.slug}`), FIELD_WEIGHTS.category);
     consider(matchQuality(token, pro.headline), FIELD_WEIGHTS.headline);
     consider(matchQuality(token, pro.name), FIELD_WEIGHTS.name);
     consider(matchQuality(token, pro.zone), FIELD_WEIGHTS.zone);
@@ -243,7 +245,7 @@ function scorePro(pro: SearchablePro, query: ParsedQuery): number {
 
     // El token no aparece por ningún lado. ¿Lo salva el rubro deducido?
     // "destapar" no está escrito en el perfil del plomero, pero implica plomería.
-    if (best === 0 && TERM_TO_SLUG.get(token) === pro.category.slug) {
+    if (best === 0 && (TERM_TO_SLUG.get(token) === pro.category.slug || (pro.categories ?? []).some((category) => TERM_TO_SLUG.get(token) === category.slug))) {
       best = FIELD_WEIGHTS.category * 0.8;
     }
 
@@ -280,7 +282,7 @@ export function rankProfessionals<T extends SearchablePro>(pros: T[], raw: strin
   // más vale mostrar plomeros que una pantalla vacía.
   if (scored.length === 0 && query.slugs.length > 0) {
     return pros
-      .filter((p) => query.slugs.includes(p.category.slug))
+      .filter((p) => query.slugs.includes(p.category.slug) || (p.categories ?? []).some((category) => query.slugs.includes(category.slug)))
       .sort((a, b) => Number(b.featured) - Number(a.featured) || b.rating - a.rating);
   }
 
@@ -299,7 +301,8 @@ export function suggest(
   pros: SearchablePro[],
   categories: { slug: string; name: string; icon: string }[],
   raw: string,
-  limit = 6
+  limit = 6,
+  filters: { tipo?: "profesional" | "oficio"; categoria?: string } = {}
 ): Suggestion[] {
   const query = parseQuery(raw);
   if (query.empty) return [];
@@ -314,19 +317,26 @@ export function suggest(
     out.push({ s, score });
   };
 
+  const filteredHref = (values: Record<string, string>) => {
+    const params = new URLSearchParams(values);
+    if (filters.tipo) params.set("tipo", filters.tipo);
+    if (filters.categoria && !params.has("categoria")) params.set("categoria", filters.categoria);
+    return `/?${params}#resultados`;
+  };
+
   for (const c of categories) {
     let q = 0;
     for (const t of query.tokens) q = Math.max(q, matchQuality(t, `${c.name} ${c.slug}`));
     // El rubro deducido por sinónimo también se ofrece: "caño" sugiere Plomería.
     if (q === 0 && query.slugs.includes(c.slug)) q = 0.85;
-    if (q > 0) push({ label: `${c.icon} ${c.name}`, kind: "rubro", href: `/?categoria=${c.slug}` }, q * 3);
+    if (q > 0) push({ label: `${c.icon} ${c.name}`, kind: "rubro", href: filteredHref({ categoria: c.slug }) }, q * 3);
   }
 
   for (const p of pros) {
     for (const s of p.services) {
       let q = 0;
       for (const t of query.tokens) q = Math.max(q, matchQuality(t, s.title));
-      if (q > 0) push({ label: s.title, kind: "servicio", href: `/?q=${encodeURIComponent(s.title)}` }, q * 2);
+      if (q > 0) push({ label: s.title, kind: "servicio", href: filteredHref({ q: s.title }) }, q * 2);
     }
     let q = 0;
     for (const t of query.tokens) q = Math.max(q, matchQuality(t, p.name));

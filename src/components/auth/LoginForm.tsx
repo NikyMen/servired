@@ -20,6 +20,12 @@ export function LoginForm({ next }: { next?: string }) {
       <form action={formAction} className="glass glass-solid mt-5 space-y-5 rounded-[1.5rem] p-5 sm:p-6">
         {next && <input type="hidden" name="next" value={next} />}
 
+        <div className="grid gap-2 sm:grid-cols-2">
+          <a href={`/api/auth/oauth/google${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="glass-btn glass-btn-ghost justify-center px-3 py-2.5 text-sm">Continuar con Google</a>
+          <a href={`/api/auth/oauth/facebook${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="glass-btn glass-btn-ghost justify-center px-3 py-2.5 text-sm">Continuar con Facebook</a>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" /><span>o con email</span><span className="h-px flex-1 bg-slate-200" /></div>
+
         <div className="space-y-1.5">
           <label htmlFor="email" className="text-sm font-medium text-slate-700">
             Email

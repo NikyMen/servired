@@ -15,14 +15,15 @@ cruza de uno al otro con una cortina de color.
 - **Tailwind CSS 4**
 - **Prisma** + **SQLite** (base de datos local, sin configuración externa)
 - **PNPM** como gestor de paquetes
-- Sin dependencias de auth ni de IA: sesiones propias con `node:crypto` y
-  DeepSeek vía `fetch`.
+- Sesiones propias, OAuth Google/Facebook con `arctic`, correo SMTP con
+  `nodemailer` y DeepSeek vía `fetch`.
 
 ## Puesta en marcha
 
 ```bash
 pnpm install        # instala dependencias (genera el cliente de Prisma)
 pnpm setup          # crea la base de datos SQLite y carga datos de ejemplo
+pnpm migrate:servired # migra datos existentes sin borrarlos
 pnpm dev            # levanta el servidor en http://localhost:3000
 ```
 
@@ -35,25 +36,30 @@ pnpm dev            # levanta el servidor en http://localhost:3000
 | Archivo      | Qué va                    | ¿Git?               |
 | ------------ | ------------------------- | ------------------- |
 | `.env`       | `DATABASE_URL`, sin secretos | Sí, está trackeado |
-| `.env.local` | `DEEPSEEK_API_KEY`        | **No**, lo ignora `.gitignore` |
+| `.env.local` | OAuth, SMTP, KYC, administración e IA | **No**, lo ignora `.gitignore` |
 
 Copiá `.env.example` como referencia. **La API key va en `.env.local`**: `.env`
 está trackeado por git y terminaría publicada.
 
 ## Cuentas
 
-El panel administrativo está en `/admin` y permite gestionar anuncios, categorías y métricas. Requiere `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+El panel administrativo está en `/admin` y permite gestionar KYC, usuarios, trabajos, anuncios, categorías y preinscripciones. Requiere `ADMIN_EMAIL`, `ADMIN_PASSWORD`
 y `ADMIN_SESSION_SECRET` en `.env.local`.
 
-Autenticación propia, sin librerías externas:
+Autenticación y aprobación:
 
 - Contraseñas con **scrypt** (`node:crypto`), con sal por usuario.
 - Sesiones con **token opaco en la base** y cookie `httpOnly` — se pueden revocar
   de verdad, a diferencia de un JWT.
-- `src/lib/auth.ts` expone `getSessionUser()`, `requireUser()` y `requirePro()`.
+- Google y Facebook con `state`; Google además usa PKCE.
+- El registro por email usa código y enlace de un solo uso con vencimiento.
+- Una cuenta con email verificado puede usar Busco sin KYC.
+- Para usar Ofrezco se exigen foto de cara, CUIL, DNI frente/dorso, video guiado,
+  datos profesionales y aprobación administrativa.
+- `src/lib/auth.ts` expone `getSessionUser()` e `interactionAccess()`.
 
-Al registrarse, quien elige **ofrecer** carga rubro, titular, zona y precio: la
-cuenta arranca con su perfil público creado y ya aparece en las búsquedas.
+Los perfiles profesionales admiten varios rubros y aparecen en búsquedas solo
+cuando cuenta, KYC y perfil están aprobados.
 
 ### Cuentas de demo (clave para todas: `servired123`)
 
@@ -98,17 +104,18 @@ configurarla.
 | Ruta            | Descripción                                       |
 | --------------- | ------------------------------------------------- |
 | `/entrar`       | Login                                             |
-| `/crear-cuenta` | Registro, con las dos vías (contratar / ofrecer)  |
+| `/crear-cuenta` | Registro mínimo por email, Google o Facebook      |
+| `/onboarding`   | Verificación del email                            |
 
 ### Cliente (azul)
 
 | Ruta                  | Descripción                                                       |
 | --------------------- | ----------------------------------------------------------------- |
 | `/`                   | Búsqueda de profesionales (texto, ubicación, categoría)           |
-| `/profesionales/[id]` | Perfil del profesional + contratar o consultar                    |
+| `/profesionales/[id]` | Perfil del profesional + solicitud de trabajo                     |
 | `/publicar-solicitud` | Publicar una solicitud de presupuesto                             |
 | `/solicitudes`        | Solicitudes abiertas                                              |
-| `/contrataciones`     | Mis contrataciones (solicitada → aceptada → completada)           |
+| `/contrataciones`     | Solicitud → propuesta → trabajo → pago → reseña                  |
 | `/mensajes`           | Chat con los profesionales                                        |
 
 ### Profesional (verde)
@@ -117,6 +124,7 @@ configurarla.
 | --------------- | ------------------------------------------------------------------ |
 | `/pro`          | Panel: contrataciones recibidas, solicitudes de clientes, servicios |
 | `/pro/mensajes` | Chat con los clientes                                              |
+| `/pro/mi-perfil` | Perfil, ubicación y datos de cobro                                |
 
 ## API (Route Handlers)
 
@@ -130,8 +138,10 @@ Todo lo que escribe pide sesión, y **el rol sale de la sesión, nunca del body*
 | `POST /api/solicitudes`                  | Publica una solicitud                           |
 | `POST /api/solicitudes/[id]/responder`   | El profesional le contesta a quien la publicó   |
 | `POST /api/contrataciones`               | Crea una contratación (y abre la conversación)  |
-| `PATCH /api/contrataciones/[id]`         | Cambia el estado (aceptar/completar/cancelar)   |
-| `POST /api/conversaciones`               | Abre una conversación y envía el primer mensaje |
+| `PATCH /api/contrataciones/[id]`         | Propuesta, trabajo, pago por alias y cierre     |
+| `POST /api/onboarding`                    | Envía perfil y KYC de oferente para revisión     |
+| `POST /api/kyc/video-challenge`           | Emite la frase firmada del video guiado          |
+| `POST /api/conversaciones`                | Envía mensajes solo si existe una solicitud asociada |
 | `GET·POST /api/conversaciones/[id]/mensajes` | Lee (polling) y envía mensajes con adjunto |
 
 ## Mensajes
@@ -142,6 +152,10 @@ abierto se refresca cada 5 s y se frena con la pestaña en segundo plano.
 Los archivos van a `public/uploads/` (ignorado por git) con **nombre aleatorio y
 extensión derivada del tipo validado**, nunca del nombre que mandó el navegador.
 En producción con varias instancias esto pide almacenamiento externo (S3/R2).
+
+Los DNI y videos KYC no usan esa carpeta pública: se guardan en
+`PRIVATE_UPLOAD_DIR` y solo se sirven a una sesión administrativa. Las imágenes
+admiten hasta 8 MB y el video MP4/WEBM hasta 25 MB.
 
 ## Estructura
 
@@ -169,6 +183,8 @@ src/
 | `pnpm build`      | Build de producción                       |
 | `pnpm start`      | Sirve el build de producción              |
 | `pnpm setup`      | `db push` + `db seed`                     |
+| `pnpm migrate:servired` | Migra tipos de oferente, cuentas, muestras y contrataciones existentes |
+| `pnpm test`       | Pruebas de reglas con `tsx --test`        |
 | `pnpm db:studio`  | Prisma Studio (explorar la base de datos) |
 
 ## Pendientes conocidos

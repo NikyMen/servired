@@ -11,9 +11,11 @@ export type ProCard = {
   avatarUrl?: string | null;
   rating: number;
   reviewsCount: number;
+  bio: string | null;
   zone: string;
-  lastWorkPrice: number | null;
   completedJobs: number;
+  externalJobs: number;
+  providerType: "profesional" | "oficio";
   verified: boolean;
   featured: boolean;
   yearsExperience: number;

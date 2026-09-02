@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Avatar } from "@/components/ui";
 import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
 import { ChevronLeftIcon, PaperclipIcon, SendIcon, FileIcon, XIcon } from "@/components/icons";
@@ -22,6 +23,8 @@ export type ChatConversation = {
   id: string;
   withName: string; // con quién habla el que mira la pantalla
   withColor: string;
+  avatarUrl?: string | null;
+  profileHref?: string | null;
   messages: ChatMessage[];
   /** Sin leer según el servidor al renderizar. Después manda el poll del globito. */
   noLeidos: number;
@@ -254,15 +257,15 @@ export function Chat({
         <p className="text-lg font-semibold text-slate-900">Sin mensajes todavía</p>
         <p className="mt-1 text-slate-500">
           {isPro
-            ? "Cuando un cliente te contrate o te consulte, la conversación aparece acá."
-            : "Escribile a un profesional desde su perfil y la conversación aparece acá."}
+            ? "Cuando un cliente te envíe una solicitud, la conversación aparece acá."
+            : "Enviá una solicitud de trabajo desde un perfil y la conversación aparece acá."}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="glass glass-solid grid min-h-[480px] grid-cols-1 overflow-hidden rounded-2xl md:grid-cols-[260px_1fr]">
+    <div className={`glass glass-solid grid grid-cols-1 overflow-hidden md:grid-cols-[260px_1fr] ${threadOpen ? "fixed inset-0 z-50 h-dvh min-h-0 rounded-none md:static md:z-auto md:h-[min(72dvh,680px)] md:min-h-[480px] md:rounded-2xl" : "h-[min(72dvh,680px)] min-h-[480px] rounded-2xl"}`}>
       {/* Lista de conversaciones */}
       <aside
         className={`${threadOpen ? "hidden md:block" : ""} divide-y divide-white/60 md:border-r md:border-white/60`}
@@ -286,7 +289,7 @@ export function Chat({
               } ${sinLeer > 0 ? "bg-[rgb(var(--accent-rgb)/0.06)]" : ""} hover:bg-white/60`}
             >
               <span className="relative shrink-0">
-                <Avatar name={c.withName} color={c.withColor} size={42} />
+                <Avatar name={c.withName} color={c.withColor} src={c.avatarUrl} size={42} />
                 {/* Punto sobre la foto: se ve quién escribió aunque la fila
                     esté cortada por el ancho de la columna. */}
                 {sinLeer > 0 && (
@@ -329,10 +332,10 @@ export function Chat({
       </aside>
 
       {/* Hilo */}
-      <section className={`${threadOpen ? "flex" : "hidden md:flex"} min-w-0 flex-col`}>
+      <section className={`${threadOpen ? "flex bg-slate-50 pt-[env(safe-area-inset-top)] md:bg-transparent md:pt-0" : "hidden md:flex"} min-w-0 flex-col`}>
         {selected && (
           <>
-            <div className="flex items-center gap-2 border-b border-white/60 px-3 py-3 sm:px-4">
+            <div className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b border-white/60 bg-white/75 px-3 py-3 backdrop-blur-xl sm:px-4">
               <button
                 onClick={() => setThreadOpen(false)}
                 aria-label="Volver a conversaciones"
@@ -340,11 +343,10 @@ export function Chat({
               >
                 <ChevronLeftIcon width={22} height={22} />
               </button>
-              <Avatar name={selected.withName} color={selected.withColor} size={34} />
-              <p className="font-semibold text-slate-900">{selected.withName}</p>
+              {selected.profileHref ? <Link href={selected.profileHref} className="flex items-center gap-2 rounded-xl hover:opacity-80"><Avatar name={selected.withName} color={selected.withColor} src={selected.avatarUrl} size={34} /><span className="font-semibold text-slate-900">{selected.withName}</span></Link> : <><Avatar name={selected.withName} color={selected.withColor} src={selected.avatarUrl} size={34} /><p className="font-semibold text-slate-900">{selected.withName}</p></>}
             </div>
 
-            <div className="max-h-[52vh] flex-1 space-y-3 overflow-y-auto p-4 md:max-h-none">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
               {messages.map((m) => {
                 const own = m.sender === viewer;
                 const system = m.sender === "sistema";
@@ -425,7 +427,7 @@ export function Chat({
                 e.preventDefault();
                 send();
               }}
-              className="flex items-center gap-2 border-t border-white/60 p-3"
+              className="sticky bottom-0 z-10 flex min-w-0 shrink-0 items-center gap-2 border-t border-white/60 bg-white/90 p-3 pb-[max(.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl"
             >
               <input
                 ref={fileInput}
@@ -460,7 +462,7 @@ export function Chat({
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Escribí un mensaje…"
-                className="glass-field min-w-0 px-3 py-2.5 text-sm"
+                className="glass-field min-w-0 flex-1 px-3 py-2.5 text-sm text-slate-950 caret-slate-950 placeholder:text-slate-500"
               />
               <button
                 type="submit"

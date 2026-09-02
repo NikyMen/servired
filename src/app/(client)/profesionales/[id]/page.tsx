@@ -12,15 +12,15 @@ import { MapView } from "@/components/MapView";
 export const dynamic = "force-dynamic";
 
 async function getPro(id: string) {
-  return prisma.professional.findUnique({
-    where: { id },
+  return prisma.professional.findFirst({
+    where: { id, profileStatus: "approved", OR: [{ userId: null }, { user: { accountStatus: "approved" } }] },
     include: {
       category: true,
       services: { where: { status: "activo" }, orderBy: { createdAt: "asc" } },
       reviews: { orderBy: { createdAt: "desc" } },
-      workPhotos: { orderBy: { createdAt: "desc" } },
+      workSamples: { orderBy: { createdAt: "desc" }, include: { images: { orderBy: { position: "asc" } } } },
       bookings: {
-        where: { status: "completada" },
+        where: { status: "completed" },
         orderBy: { updatedAt: "desc" },
         include: {
           user: { select: { name: true, avatarColor: true } },
@@ -90,7 +90,7 @@ export default async function ProfesionalPage({
                 {pro.verified && <VerifiedBadge className="[&>svg]:h-6 [&>svg]:w-6" />}
               </div>
               <p className="hidden text-slate-500 sm:block">
-                {pro.headline} · {pro.category.icon} {pro.category.name}
+                {pro.headline} · {pro.category.icon} {pro.category.name} · {pro.providerType === "profesional" ? "Profesional" : "Oficio"}
               </p>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 sm:mt-1">
                 <Rating value={pro.rating} count={pro.reviewsCount} />
@@ -109,6 +109,12 @@ export default async function ProfesionalPage({
           )}
           {pro.latitude != null && pro.longitude != null && <div className="mt-4"><MapView className="h-64" points={[{ id: pro.id, type: "profesional", title: pro.businessName || pro.name, subtitle: pro.address || pro.zone, latitude: pro.latitude, longitude: pro.longitude }]} /></div>}
         </div>
+      </section>
+
+      <section className="glass glass-solid grid gap-3 rounded-2xl p-4 sm:grid-cols-3 sm:p-5" aria-label="Resumen del perfil">
+        <div className="rounded-xl bg-amber-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-amber-700">Calificaciones y opiniones</p><div className="mt-1 flex items-end gap-2"><strong className="text-3xl text-slate-900">{pro.rating.toFixed(1)}</strong><Rating value={pro.rating} count={pro.reviewsCount} /></div></div>
+        <div className="rounded-xl bg-emerald-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Hechos en ServiRed</p><strong className="mt-1 block text-3xl text-slate-900">{pro.bookings.length}</strong></div>
+        <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Muestras externas</p><strong className="mt-1 block text-2xl text-slate-800">{pro.workSamples.length}</strong><p className="text-xs text-slate-400">Sin calificación de ServiRed</p></div>
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -180,32 +186,24 @@ export default async function ProfesionalPage({
           {/* Trabajos particulares: los sube el propio profesional, de trabajos
               hechos fuera de ServiRed. Van en su propia sección y con el aviso a
               la vista: no hubo contratación, así que nadie los calificó. */}
-          {pro.workPhotos.length > 0 && (
+          {pro.workSamples.length > 0 && (
             <section className="glass glass-solid rounded-2xl p-4 sm:p-6">
               <div className="mb-4 flex items-end justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold tracking-[0.16em] text-slate-400 uppercase">
                     Muestra del profesional
                   </p>
-                  <h2 className="mt-1 text-lg font-bold text-slate-900">Historial fuera de ServiRed</h2>
+                  <h2 className="mt-1 text-lg font-bold text-slate-900">Muestra del profesional</h2>
                 </div>
                 <span className="rounded-full bg-slate-400/12 px-2.5 py-1 text-xs font-semibold text-slate-500 ring-1 ring-slate-400/25 ring-inset backdrop-blur-sm">
                   Sin calificación
                 </span>
               </div>
-              <p className="mb-4 text-sm text-slate-500">
-                Fotos que cargó {pro.name} de trabajos hechos por fuera de ServiRed.
-                No pasaron por una contratación de la plataforma, así que no tienen
-                opinión de un cliente verificado.
-              </p>
+              <p className="mb-4 text-sm text-slate-500">Trabajos seleccionados por {pro.name} para mostrar su experiencia.</p>
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {pro.workPhotos.map((foto) => (
+                {pro.workSamples.map((foto) => (
                   <li key={foto.id} className="glass glass-thin overflow-hidden rounded-2xl">
-                    <img
-                      src={foto.url}
-                      alt={foto.title}
-                      className="h-32 w-full object-cover sm:h-36"
-                    />
+                    <div className="grid grid-cols-5 gap-0.5">{foto.images.map((image, index) => <img key={image.id} src={image.url} alt={`${foto.title} ${index + 1}`} className={`h-32 w-full object-cover sm:h-36 ${foto.images.length === 1 ? "col-span-5" : ""}`} />)}</div>
                     <div className="p-3">
                       <p className="truncate text-sm font-semibold text-slate-900">{foto.title}</p>
                       {foto.description && (
@@ -225,6 +223,7 @@ export default async function ProfesionalPage({
               Opiniones ({pro.reviews.length})
             </h2>
             <ul className="space-y-5">
+              {pro.reviews.length === 0 && <li className="rounded-xl bg-white/60 p-5 text-center text-sm text-slate-500">Todavía no recibió opiniones verificadas.</li>}
               {pro.reviews.map((r) => (
                 <li key={r.id} className="flex gap-3">
                   <Avatar name={r.authorName} color="#94a3b8" size={40} />

@@ -10,28 +10,100 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// Cuenta de usuario. `role` define con qué cara entra a la app:
-/// cliente (azul, contrata) o profesional (verde, ofrece).
+/// Cuenta base. Toda persona puede usar Busco; `role` queda por compatibilidad
+/// y la autorización de Ofrezco depende del perfil y su KYC.
 model User {
-  id           String  @id @default(cuid())
-  email        String  @unique
-  passwordHash String // scrypt: "salt:hash" (ver src/lib/auth.ts)
-  name         String
-  role         String  @default("cliente") // cliente | profesional
-  avatarColor  String  @default("#2563eb")
-  avatarUrl    String? // foto de perfil subida a /uploads; si falta, van las iniciales
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String? // null para cuentas creadas solo con OAuth
+  name            String
+  role            String    @default("cliente") // cliente | profesional
+  avatarColor     String    @default("#2563eb")
+  avatarUrl       String? // foto de perfil subida a /uploads; si falta, van las iniciales
+  emailVerifiedAt DateTime?
+  accountStatus   String    @default("email_pending") // email_pending | approved | suspended
 
-  /// Perfil público. Solo lo tienen las cuentas con role = profesional.
+  /// Perfil público de Ofrezco, creado recién al iniciar ese alta.
   professional Professional?
 
-  sessions      Session[]
-  conversations Conversation[]
-  bookings      Booking[]
-  requests      ServiceRequest[]
-  payments      Payment[]
-  reviews       Review[]
+  sessions           Session[]
+  conversations      Conversation[]
+  bookings           Booking[]
+  requests           ServiceRequest[]
+  payments           Payment[]
+  reviews            Review[]
+  oauthAccounts      OAuthAccount[]
+  emailVerifications EmailVerification[]
+  kycCase            KycCase?
+  createdCategories  Category[]          @relation("CategoryCreator")
 
   createdAt DateTime @default(now())
+}
+
+/// Identidad externa. No se guardan access/refresh tokens: solo el vínculo.
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  provider          String
+  providerAccountId String
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+}
+
+/// Código y enlace de activación comparten el mismo vencimiento y son de un uso.
+model EmailVerification {
+  id        String    @id @default(cuid())
+  codeHash  String
+  tokenHash String    @unique
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+}
+
+model KycCase {
+  id                      String        @id @default(cuid())
+  status                  String        @default("draft") // draft | pending | changes_requested | approved | rejected
+  legalName               String
+  phone                   String
+  birthDate               DateTime
+  address                 String
+  country                 String        @default("Argentina")
+  province                String        @default("Corrientes")
+  locality                String        @default("Corrientes Capital")
+  cuilEncrypted           String
+  cuilHash                String        @unique
+  dniEncrypted            String
+  dniHash                 String        @unique
+  profilePhotoConfirmed   Boolean       @default(false)
+  videoChallenge          String?
+  videoChallengeExpiresAt DateTime?
+  reviewReason            String?
+  reviewedBy              String?
+  reviewedAt              DateTime?
+  submittedAt             DateTime?
+  userId                  String        @unique
+  user                    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents               KycDocument[]
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+}
+
+model KycDocument {
+  id        String   @id @default(cuid())
+  kind      String // dni_front | dni_back | identity_video
+  filename  String
+  mimeType  String
+  size      Int
+  kycCaseId String
+  kycCase   KycCase  @relation(fields: [kycCaseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([kycCaseId, kind])
 }
 
 /// Sesión activa. El token vive en una cookie httpOnly; al salir se borra la fila.
@@ -59,16 +131,21 @@ model Preregistration {
 
 /// Categorías de servicio (Plomería, Electricidad, Limpieza, etc.)
 model Category {
-  id            String           @id @default(cuid())
-  slug          String           @unique
-  name          String
-  icon          String // nombre de ícono / emoji para la UI
-  professionals Professional[]
-  requests      ServiceRequest[]
-  parentId      String?
-  parent        Category?        @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children      Category[]       @relation("CategoryTree")
-  analytics     SearchMetric[]
+  id                String                 @id @default(cuid())
+  slug              String                 @unique
+  name              String
+  icon              String // nombre de ícono / emoji para la UI
+  professionals     Professional[]
+  professionalLinks ProfessionalCategory[]
+  requests          ServiceRequest[]
+  parentId          String?
+  parent            Category?              @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children          Category[]             @relation("CategoryTree")
+  analytics         SearchMetric[]
+  kind              String                 @default("oficio") // profesional | oficio
+  approvalStatus    String                 @default("approved") // pending | approved | rejected
+  createdByUserId   String?
+  createdBy         User?                  @relation("CategoryCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 }
@@ -153,11 +230,14 @@ model Professional {
   longitude       Float?
   priceFrom       Int // precio publicado en ARS
   verified        Boolean @default(false)
+  profileStatus   String  @default("approved") // pending | approved | changes_requested | rejected
   featured        Boolean @default(false)
   yearsExperience Int     @default(0)
+  providerType    String  @default("oficio") // profesional | oficio
 
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId    String
+  category      Category               @relation(fields: [categoryId], references: [id])
+  categoryLinks ProfessionalCategory[]
 
   /// Cuenta dueña del perfil. Opcional: el seed puede crear perfiles sin cuenta.
   userId String? @unique
@@ -168,9 +248,23 @@ model Professional {
   bookings      Booking[]
   conversations Conversation[]
   workPhotos    WorkPhoto[]
+  workSamples   WorkSample[]
   payments      Payment[]
+  paymentAlias  String?
+  paymentCvu    String?
 
   createdAt DateTime @default(now())
+}
+
+model ProfessionalCategory {
+  professionalId String
+  categoryId     String
+  isPrimary      Boolean      @default(false)
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  category       Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@id([professionalId, categoryId])
 }
 
 /// Foto de un trabajo particular, cargada por el propio profesional.
@@ -193,15 +287,45 @@ model WorkPhoto {
   createdAt DateTime @default(now())
 }
 
+model WorkSample {
+  id             String            @id @default(cuid())
+  title          String
+  description    String?
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  professionalId String
+  professional   Professional      @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  images         WorkSampleImage[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model WorkSampleImage {
+  id        String     @id @default(cuid())
+  url       String
+  position  Int        @default(0)
+  sampleId  String
+  sample    WorkSample @relation(fields: [sampleId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([sampleId, position])
+}
+
 /// Contratación: un cliente contrata a un profesional
 model Booking {
-  id          String  @id @default(cuid())
-  clientName  String // nombre mostrado; la identidad real es userId
-  note        String?
-  finalPrice  Int? // monto acordado al cerrar el trabajo (ARS)
-  quotedPrice Int? // presupuesto que propone el profesional (ARS)
-  workSummary String? // breve resumen del trabajo realizado
-  status      String  @default("solicitada") // solicitada | presupuestada | aceptada | completada | cancelada
+  id                 String    @id @default(cuid())
+  clientName         String // nombre mostrado; la identidad real es userId
+  note               String?
+  finalPrice         Int? // monto acordado al cerrar el trabajo (ARS)
+  quotedPrice        Int? // presupuesto que propone el profesional (ARS)
+  workSummary        String? // breve resumen del trabajo realizado
+  status             String    @default("requested") // requested | in_progress | finished | payment_reported | paid_awaiting_review | completed | cancelled
+  acceptedProposalId String?
+  finishedAt         DateTime?
+  paymentReportedAt  DateTime?
+  paidAt             DateTime?
+  completedAt        DateTime?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -215,9 +339,25 @@ model Booking {
   attachments ProposalAttachment[]
   payments    Payment[]
   reviews     Review[]
+  proposals   Proposal[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Proposal {
+  id        String    @id @default(cuid())
+  amount    Int
+  message   String?
+  status    String    @default("pending") // pending | accepted | rejected | expired
+  expiresAt DateTime
+  decidedAt DateTime?
+  bookingId String
+  booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([bookingId, status])
 }
 
 /// Imagen adjunta a una propuesta enviada desde el perfil público.
@@ -334,6 +474,8 @@ model Payment {
   provider      String    @default("mercadopago-demo")
   checkoutToken String    @unique @default(cuid())
   paidAt        DateTime?
+  reportedAt    DateTime?
+  confirmedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

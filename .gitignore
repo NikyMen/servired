@@ -15,6 +15,7 @@ next-env.d.ts
 *.db
 *.db-journal
 /prisma/dev.db*
+/prisma/*.db.bak
 
 # env
 .env*.local
@@ -22,6 +23,7 @@ next-env.d.ts
 # archivos que suben los usuarios en los mensajes
 /public/uploads/*
 !/public/uploads/.gitkeep
+/data/
 
 # misc
 .DS_Store
@@ -31,3 +33,5 @@ yarn-debug.log*
 yarn-error.log*
 .vercel
 *.tsbuildinfo
+/.playwright-cli/
+/output/playwright/

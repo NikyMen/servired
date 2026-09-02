@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { WelderScene } from "@/components/WelderScene";
-import { FondoLiquido } from "@/components/FondoLiquido";
 
 /** Dónde va la foto del hero. Un solo lugar: si cambia el archivo, cambia acá. */
 export const HERO_FOTO = "/servired-panel-entrada.png";
@@ -44,10 +43,6 @@ export function HeroFondo() {
           onError={() => setFoto("falta")}
         />
       )}
-
-      {/* Va después de la foto a propósito: comparten z-index y el orden del
-          DOM es lo que lo deja encima (ver .hero-weld-liquid en globals.css). */}
-      <FondoLiquido className="hero-weld-liquid" variante="portada" />
 
       <div className="hero-weld-veil" />
       <div className="hero-weld-grain" />

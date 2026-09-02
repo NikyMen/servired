@@ -37,7 +37,7 @@ export function ContratarSheet({
           onClick={() => setOpen(true)}
           className="glass-btn min-h-[48px] w-full text-sm"
         >
-          Enviar propuesta
+          Enviar solicitud de trabajo
         </button>
       </div>
 
@@ -50,7 +50,7 @@ export function ContratarSheet({
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300" aria-hidden />
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">Propuesta para {proName}</h2>
+              <h2 className="text-lg font-bold text-slate-900">Solicitud para {proName}</h2>
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Cerrar"

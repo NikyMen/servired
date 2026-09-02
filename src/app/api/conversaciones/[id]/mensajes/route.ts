@@ -55,9 +55,11 @@ export async function POST(
   const { user, role, conversation } = await participantIn(id);
 
   if (!user) return NextResponse.json({ error: "Entrá para poder escribir." }, { status: 401 });
+  if (!user.canInteract) return NextResponse.json({ error: "Tu cuenta todavía no fue aprobada." }, { status: 403 });
   if (!conversation || !role) {
     return NextResponse.json({ error: "La conversación no existe." }, { status: 404 });
   }
+  if (role === "profesional" && user.professionalStatus !== "approved") return NextResponse.json({ error: "Tu perfil profesional todavía no fue aprobado." }, { status: 403 });
 
   let body: unknown;
   try {

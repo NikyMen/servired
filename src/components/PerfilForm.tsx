@@ -13,8 +13,12 @@ type Perfil = {
   address?: string | null;
   zone?: string;
   categoryId?: string;
+  categoryIds?: string[];
   latitude?: number | null;
   longitude?: number | null;
+  providerType?: "profesional" | "oficio";
+  paymentAlias?: string | null;
+  paymentCvu?: string | null;
 };
 
 export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; categories?: { id: string; name: string; icon: string; parentId?: string | null; parent?: { name: string } | null }[] }) {
@@ -28,8 +32,11 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
     address: perfil.address ?? "Corrientes, Argentina",
     latitude: perfil.latitude ?? -27.4692,
     longitude: perfil.longitude ?? -58.8306,
+    paymentAlias: perfil.paymentAlias ?? "",
+    paymentCvu: perfil.paymentCvu ?? "",
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [categoryIds, setCategoryIds] = useState<string[]>(perfil.categoryIds?.length ? perfil.categoryIds : perfil.categoryId ? [perfil.categoryId] : []);
   const [preview, setPreview] = useState<string | null>(perfil.avatarUrl);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -51,7 +58,7 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
       const res = await fetch("/api/perfil", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, avatarUrl }),
+        body: JSON.stringify({ ...form, avatarUrl, categoryIds }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "No pudimos guardar el perfil.");
@@ -76,7 +83,8 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
       </div>
 
       <label className="block text-sm font-medium text-slate-900">Nombre
-        <input required minLength={2} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`${field} mt-1`} />
+        <input required minLength={2} readOnly={isPro} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`${field} mt-1 ${isPro ? "cursor-not-allowed opacity-70" : ""}`} />
+        {isPro && <span className="mt-1 block text-xs font-normal text-slate-500">El nombre legal se modifica mediante una nueva verificación.</span>}
       </label>
 
       {isPro && <>
@@ -84,11 +92,7 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
           <label className="text-sm font-medium text-slate-900">Nombre del local o negocio
             <input value={form.businessName ?? ""} onChange={(e) => setForm({ ...form, businessName: e.target.value })} placeholder="Ej: Electricidad Gómez" className={`${field} mt-1`} />
           </label>
-          <label className="text-sm font-medium text-slate-900">Rubro
-            <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className={`${field} mt-1`}>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.parent ? `↳ ${c.name}` : `${c.icon} ${c.name}`}</option>)}
-            </select>
-          </label>
+          <fieldset className="text-sm font-medium text-slate-900"><legend>Rubros</legend><div className="mt-1 max-h-40 space-y-1 overflow-y-auto rounded-xl bg-white/50 p-2">{categories.map((c) => <label key={c.id} className="block text-xs font-normal"><input type="checkbox" checked={categoryIds.includes(c.id)} onChange={(e) => setCategoryIds((current) => e.target.checked ? [...current, c.id] : current.filter((id) => id !== c.id))} className="mr-2" />{c.parent ? `↳ ${c.name}` : `${c.icon} ${c.name}`}</label>)}</div></fieldset>
           <label className="text-sm font-medium text-slate-900">Actividad
             <input required value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} className={`${field} mt-1`} />
           </label>
@@ -96,9 +100,10 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
             <input required value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Calle y altura, Corrientes" className={`${field} mt-1`} />
           </label>
         </div>
-        <label className="block text-sm font-medium text-slate-900">Descripción
-          <textarea rows={4} value={form.bio ?? ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} className={`${field} mt-1 resize-none`} />
+        <label className="block text-sm font-medium text-slate-900">Descripción de los trabajos que ofrecés
+          <textarea required minLength={20} rows={4} value={form.bio ?? ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} className={`${field} mt-1 resize-none`} />
         </label>
+        <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-slate-900">Alias de cobro<input required minLength={6} value={form.paymentAlias} onChange={(e) => setForm({ ...form, paymentAlias: e.target.value })} className={`${field} mt-1`} /></label><label className="text-sm font-medium text-slate-900">CVU<input required inputMode="numeric" value={form.paymentCvu} onChange={(e) => setForm({ ...form, paymentCvu: e.target.value.replace(/\D/g, "").slice(0, 22) })} placeholder="22 dígitos" className={`${field} mt-1 font-mono`} /></label></div>
         <div className="space-y-2"><div><p className="text-sm font-medium text-slate-900">Ubicación pública</p><p className="text-xs text-slate-500">Marcá el local o zona de trabajo. Esta ficha aparecerá en el mapa.</p></div>
           <MapPicker latitude={form.latitude} longitude={form.longitude} onChange={(latitude, longitude) => setForm({ ...form, latitude, longitude })} />
         </div>

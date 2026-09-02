@@ -12,10 +12,11 @@ export default async function EntrarPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const { next } = await searchParams;
+  const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
 
   // Si ya hay sesión no tiene sentido mostrar el login.
   const user = await getSessionUser();
-  if (user) redirect(user.role === "profesional" ? "/pro" : "/");
+  if (user) redirect(safeNext || "/");
 
-  return <LoginForm next={next} />;
+  return <LoginForm next={safeNext} />;
 }

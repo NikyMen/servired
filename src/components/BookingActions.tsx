@@ -1,176 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
+import { formatARS } from "@/lib/format";
+import { canRevealPaymentDetails } from "@/lib/payments";
 
-/** Acciones de una propuesta según el lado que la está viendo. */
-export function BookingActions({
-  bookingId,
-  status,
-  viewer,
-}: {
-  bookingId: string;
-  status: string;
-  viewer: "cliente" | "profesional";
-}) {
+type Proposal = { id: string; amount: number; status: string; expiresAt: string | Date; message?: string | null };
+
+export function BookingActions({ bookingId, status, viewer, proposal, finalPrice, paymentAlias, paymentCvu, paidPaymentId }: { bookingId: string; status: string; viewer: "cliente" | "profesional"; proposal?: Proposal | null; finalPrice?: number | null; paymentAlias?: string | null; paymentCvu?: string | null; paidPaymentId?: string | null }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [quoteOpen, setQuoteOpen] = useState(false);
-  const [quotedPrice, setQuotedPrice] = useState("");
-  const [completeOpen, setCompleteOpen] = useState(false);
-  const [finalPrice, setFinalPrice] = useState("");
-  const [workSummary, setWorkSummary] = useState("");
+  const [open, setOpen] = useState<"quote" | "finish" | "review" | null>(null);
+  const [amount, setAmount] = useState("");
+  const [summary, setSummary] = useState("");
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  async function setStatus(next: string, details: Record<string, unknown> = {}) {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/contrataciones/${bookingId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: next, ...details }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "No pudimos actualizar la propuesta.");
-        return;
-      }
-      router.refresh();
-    } finally {
-      setBusy(false);
-    }
-  }
+  async function action(name: string, details: Record<string, unknown> = {}) { setBusy(true); setError(null); const res = await fetch(`/api/contrataciones/${bookingId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: name, ...details }) }); const data = await res.json().catch(() => ({})); if (!res.ok) setError(data.error || "No pudimos actualizar el trabajo."); else { setOpen(null); router.refresh(); } setBusy(false); }
+  async function review() { if (!paidPaymentId) return; setBusy(true); const res = await fetch(`/api/pagos/${paidPaymentId}/resena`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating, comment }) }); const data = await res.json().catch(() => ({})); if (!res.ok) setError(data.error || "No pudimos publicar la reseña."); else { setOpen(null); router.refresh(); } setBusy(false); }
 
-  function quoteBooking(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const amount = Number(quotedPrice);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setError("Ingresá un presupuesto válido.");
-      return;
-    }
-    void setStatus("presupuestada", { quotedPrice: Math.round(amount) });
-  }
-
-  function completeBooking(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const amount = Number(finalPrice);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setError("Ingresá el monto final del trabajo.");
-      return;
-    }
-    if (workSummary.trim().length < 8) {
-      setError("Agregá una breve explicación del trabajo realizado.");
-      return;
-    }
-    void setStatus("completada", { finalPrice: Math.round(amount), workSummary: workSummary.trim() });
-  }
-
-  if (viewer === "cliente" && status === "solicitada") {
-    return (
-      <Button variant="outline" disabled={busy} onClick={() => setStatus("cancelada")} className="!py-1.5 !text-xs">
-        Cancelar pedido
-      </Button>
-    );
-  }
-
-  if (viewer === "cliente" && status === "presupuestada") {
-    return (
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button variant="cliente" disabled={busy} onClick={() => setStatus("aceptada")} className="!py-1.5 !text-xs">
-          Aceptar propuesta
-        </Button>
-        <Button variant="outline" disabled={busy} onClick={() => setStatus("cancelada")} className="!py-1.5 !text-xs">
-          No aceptar
-        </Button>
-      </div>
-    );
-  }
-
-  if (viewer === "profesional" && status === "solicitada") {
-    if (!quoteOpen) {
-      return (
-        <div className="flex flex-wrap gap-2">
-          <Button variant="pro" disabled={busy} onClick={() => setQuoteOpen(true)} className="!py-1.5 !text-xs">
-            Dar presupuesto
-          </Button>
-          <Button variant="outline" disabled={busy} onClick={() => setStatus("cancelada")} className="!py-1.5 !text-xs">
-            No puedo hacerlo
-          </Button>
-        </div>
-      );
-    }
-    return (
-      <form onSubmit={quoteBooking} className="w-64 space-y-2 rounded-2xl border border-emerald-200 bg-pro-bg2 p-3">
-        <p className="text-xs font-semibold text-pro-dark">Tu presupuesto aproximado</p>
-        <input
-          type="number"
-          min="1"
-          step="1"
-          value={quotedPrice}
-          onChange={(event) => setQuotedPrice(event.target.value)}
-          placeholder="Monto en ARS"
-          required
-          className="glass-field px-3 py-2 text-sm"
-        />
-        {error && <p className="text-xs text-red-600">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={() => setQuoteOpen(false)} className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-colors hover:bg-white/70">
-            Volver
-          </button>
-          <Button type="submit" variant="pro" disabled={busy} className="!px-3 !py-2 !text-xs">
-            {busy ? "Enviando…" : "Enviar presupuesto"}
-          </Button>
-        </div>
-      </form>
-    );
-  }
-
-  if (viewer === "profesional" && status === "aceptada") {
-    return (
-      <div className="flex flex-col items-end gap-2">
-        {!completeOpen ? (
-          <Button variant="pro" disabled={busy} onClick={() => setCompleteOpen(true)} className="!py-1.5 !text-xs">
-            Marcar completada
-          </Button>
-        ) : (
-          <form onSubmit={completeBooking} className="w-64 space-y-2 rounded-2xl border border-emerald-200 bg-pro-bg2 p-3">
-            <p className="text-xs font-semibold text-pro-dark">Cerrar trabajo</p>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={finalPrice}
-              onChange={(event) => setFinalPrice(event.target.value)}
-              placeholder="Monto final"
-              required
-              className="glass-field px-3 py-2 text-sm"
-            />
-            <textarea
-              rows={2}
-              value={workSummary}
-              onChange={(event) => setWorkSummary(event.target.value)}
-              placeholder="Qué hiciste y cómo quedó"
-              required
-              className="glass-field resize-none px-3 py-2 text-sm"
-            />
-            {error && <p className="text-xs text-red-600">{error}</p>}
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setCompleteOpen(false)} className="rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-colors hover:bg-white/70">
-                Volver
-              </button>
-              <Button type="submit" variant="pro" disabled={busy} className="!px-3 !py-2 !text-xs">
-                {busy ? "Guardando…" : "Guardar trabajo"}
-              </Button>
-            </div>
-          </form>
-        )}
-        {error && !completeOpen && <p className="text-xs text-red-600">{error}</p>}
-      </div>
-    );
-  }
-
-  return null;
+  const activeProposal = proposal?.status === "pending" && new Date(proposal.expiresAt) > new Date() ? proposal : null;
+  const paymentDetails = viewer === "cliente" && canRevealPaymentDetails(status) && paymentAlias && paymentCvu ? <div className="select-all rounded-lg bg-white px-3 py-2 text-left text-sm"><p><span className="text-xs text-slate-400">Alias</span><br /><strong>{paymentAlias}</strong></p><p className="mt-2"><span className="text-xs text-slate-400">CVU</span><br /><strong className="font-mono">{paymentCvu}</strong></p></div> : null;
+  let content: React.ReactNode = null;
+  if (viewer === "cliente" && status === "requested") content = activeProposal ? <div className="space-y-2 text-right"><p className="text-sm font-bold text-slate-900">Propuesta: {formatARS(activeProposal.amount)}</p><p className="text-xs text-slate-500">Vence {new Date(activeProposal.expiresAt).toLocaleString("es-AR")}</p><div className="flex justify-end gap-2"><Button variant="cliente" disabled={busy} onClick={() => action("accept_proposal")} className="!py-1.5 !text-xs">Aceptar</Button><Button variant="outline" disabled={busy} onClick={() => action("reject_proposal")} className="!py-1.5 !text-xs">Rechazar</Button></div></div> : <Button variant="outline" disabled={busy} onClick={() => action("cancel")} className="!py-1.5 !text-xs">Cancelar solicitud</Button>;
+  if (viewer === "profesional" && status === "requested") content = activeProposal ? <p className="text-xs font-semibold text-amber-700">Esperando aceptación o rechazo del cliente.</p> : open === "quote" ? <div className="w-64 space-y-2 rounded-2xl bg-emerald-50 p-3"><input type="number" min="100" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Monto en ARS" className="glass-field w-full px-3 py-2 text-sm" /><textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Detalle opcional" className="glass-field w-full resize-none px-3 py-2 text-sm" /><Button variant="pro" disabled={busy} onClick={() => action("send_proposal", { amount, message: summary })} className="!py-2 !text-xs">Enviar propuesta (vence en 3 días)</Button></div> : <div className="flex gap-2"><Button variant="pro" onClick={() => setOpen("quote")} className="!py-1.5 !text-xs">Enviar propuesta</Button><Button variant="outline" onClick={() => action("cancel")} className="!py-1.5 !text-xs">No puedo hacerlo</Button></div>;
+  if (viewer === "profesional" && status === "in_progress") content = open === "finish" ? <div className="w-64 space-y-2 rounded-2xl bg-emerald-50 p-3"><input type="number" min="1" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Monto final" className="glass-field w-full px-3 py-2 text-sm" /><textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Qué trabajo realizaste" className="glass-field w-full resize-none px-3 py-2 text-sm" /><Button variant="pro" disabled={busy} onClick={() => action("finish", { finalPrice: amount, workSummary: summary })} className="!py-2 !text-xs">Marcar como trabajo terminado</Button></div> : <Button variant="pro" onClick={() => setOpen("finish")} className="!py-1.5 !text-xs">Marcar como trabajo terminado</Button>;
+  if (viewer === "cliente" && status === "finished") content = <div className="space-y-2 text-right"><p className="text-xs text-slate-500">Transferí {formatARS(finalPrice || 0)} usando estos datos</p>{paymentDetails}<Button variant="cliente" disabled={busy} onClick={() => action("report_payment")} className="!py-1.5 !text-xs">Ya realicé el pago</Button></div>;
+  if (viewer === "profesional" && status === "payment_reported") content = <Button variant="pro" disabled={busy} onClick={() => action("confirm_payment")} className="!py-1.5 !text-xs">Confirmar recepción del pago</Button>;
+  if (viewer === "cliente" && status === "paid_awaiting_review" && paidPaymentId) content = open === "review" ? <div className="w-72 space-y-2 rounded-2xl bg-blue-50 p-3"><select value={rating} onChange={(e) => setRating(Number(e.target.value))} className="glass-field w-full px-3 py-2 text-sm">{[5,4,3,2,1].map((n) => <option key={n} value={n}>{n} estrellas</option>)}</select><textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Contá cómo fue el trabajo" className="glass-field w-full resize-none px-3 py-2 text-sm" /><Button variant="cliente" disabled={busy} onClick={review} className="!py-2 !text-xs">Publicar opinión y finalizar</Button></div> : <Button variant="cliente" onClick={() => setOpen("review")} className="!py-1.5 !text-xs">Calificar y finalizar</Button>;
+  return <div className="space-y-2">{status !== "finished" && paymentDetails}{content}{error && <p className="max-w-72 text-xs text-red-600">{error}</p>}</div>;
 }

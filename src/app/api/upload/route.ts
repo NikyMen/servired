@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { interactionAccess } from "@/lib/auth";
 import { UploadError, saveUpload } from "@/lib/uploads";
 
 export const runtime = "nodejs";
@@ -7,10 +7,8 @@ export const runtime = "nodejs";
 // POST /api/upload — sube una imagen o PDF y devuelve su URL pública
 export async function POST(req: NextRequest) {
   // Con sesión nomás: si no, cualquiera llena el disco desde afuera.
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ error: "Entrá para poder adjuntar archivos." }, { status: 401 });
-  }
+  const access = await interactionAccess();
+  if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
 
   let form: FormData;
   try {

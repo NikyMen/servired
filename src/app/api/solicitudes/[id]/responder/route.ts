@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { interactionAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +17,9 @@ export async function POST(
 ) {
   const { id } = await params;
 
-  const user = await getSessionUser();
-  if (!user) return NextResponse.json({ error: "Entrá para responder." }, { status: 401 });
+  const access = await interactionAccess();
+  if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
+  const user = access.user;
 
   let body: unknown;
   try {
@@ -53,39 +54,11 @@ export async function POST(
     return NextResponse.json({ error: "Esa solicitud es tuya." }, { status: 422 });
   }
 
-  // Entrar al lado "Ofrezco" no exige haber elegido ese rol al registrarse.
-  // En la primera respuesta se crea el perfil mínimo, asociado a la cuenta de
-  // la sesión y al rubro de la solicitud. Después puede completarlo desde el panel.
-  let professionalId = user.professionalId;
-  if (!professionalId) {
-    const categoryId = request.categoryId ?? (await prisma.category.findFirst({ select: { id: true } }))?.id;
-    if (!categoryId) {
-      return NextResponse.json({ error: "No hay un rubro disponible para crear tu perfil." }, { status: 422 });
-    }
-
-    const professional = await prisma.$transaction(async (tx) => {
-      const profile = await tx.professional.upsert({
-        where: { userId: user.id },
-        create: {
-          userId: user.id,
-          name: user.name,
-          headline: request.category ? `Profesional de ${request.category.name}` : "Profesional de servicios",
-          zone: "Corrientes",
-          priceFrom: 0,
-          categoryId,
-          avatarColor: "#059669",
-          avatarUrl: user.avatarUrl,
-        },
-        update: {},
-        select: { id: true },
-      });
-      await tx.user.update({
-        where: { id: user.id },
-        data: { role: "profesional", avatarColor: "#059669" },
-      });
-      return profile;
-    });
-    professionalId = professional.id;
+  const professionalId = user.professionalId;
+  if (!professionalId || user.professionalStatus !== "approved") return NextResponse.json({ error: "Necesitás un perfil profesional aprobado." }, { status: 403 });
+  if (request.categoryId) {
+    const belongs = await prisma.professionalCategory.findUnique({ where: { professionalId_categoryId: { professionalId, categoryId: request.categoryId } } });
+    if (!belongs) return NextResponse.json({ error: "Esta solicitud no corresponde a tus rubros aprobados." }, { status: 403 });
   }
 
   // Retoma el hilo si ya se habían escrito antes.

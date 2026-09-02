@@ -10,26 +10,21 @@
     "setup": "prisma db push && prisma db seed",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
+    "migrate:servired": "tsx prisma/migrate-servired.ts",
     "db:studio": "prisma studio",
+    "test": "tsx --test tests/**/*.test.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@prisma/client",
-      "@prisma/engines",
-      "prisma",
-      "esbuild",
-      "sharp"
-    ]
-  },
   "dependencies": {
     "@prisma/client": "^6.2.1",
+    "arctic": "^3.7.0",
     "leaflet": "^1.9.4",
     "mongodb": "6.21.0",
     "next": "15.5.22",
+    "nodemailer": "^9.0.5",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-leaflet": "^5.0.0",

@@ -6,6 +6,7 @@ import { UPLOAD_URL } from "@/lib/uploads";
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Sin sesión." }, { status: 401 });
+  if (!user.canInteract) return NextResponse.json({ error: "Tu cuenta todavía no fue aprobada." }, { status: 403 });
   const { id } = await params;
   const payment = await prisma.payment.findUnique({ where: { id }, include: { review: true } });
   if (!payment || payment.userId !== user.id) return NextResponse.json({ error: "El pago no existe." }, { status: 404 });
@@ -21,8 +22,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const created = await tx.review.create({ data: { authorName: user.name, rating, comment, imageUrl, userId: user.id, professionalId: payment.professionalId, bookingId: payment.bookingId, paymentId: payment.id, serviceTag: "Pago verificado" } });
     const aggregate = await tx.review.aggregate({ where: { professionalId: payment.professionalId }, _avg: { rating: true }, _count: true });
     await tx.professional.update({ where: { id: payment.professionalId }, data: { rating: aggregate._avg.rating ?? 0, reviewsCount: aggregate._count } });
+    if (payment.bookingId) await tx.booking.update({ where: { id: payment.bookingId }, data: { status: "completed", completedAt: new Date() } });
     return created;
   });
   return NextResponse.json(review, { status: 201 });
 }
-

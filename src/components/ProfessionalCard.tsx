@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { ProCard } from "@/lib/types";
-import { formatARS } from "@/lib/format";
 import { Avatar, Rating, VerifiedBadge } from "@/components/ui";
 import { MapPinIcon } from "@/components/icons";
 
@@ -26,23 +25,20 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
       </div>
 
       <div className="mt-3 flex items-center justify-between text-sm">
-        <Rating value={pro.rating} count={pro.reviewsCount} />
+        <span className="rounded-full bg-amber-50 px-2.5 py-1 font-bold text-amber-800"><Rating value={pro.rating} count={pro.reviewsCount} /></span>
         <span className="flex items-center gap-1 text-slate-500">
           <MapPinIcon width={14} height={14} className="text-slate-400" />
           {pro.zone}
         </span>
       </div>
 
-      <div className="mt-3 space-y-1 border-t border-white/70 pt-3 text-sm">
-        <p className="flex items-center justify-between text-slate-500">
-          <span>Último trabajo realizado</span>
-          <span className="font-semibold text-slate-900">
-            {pro.lastWorkPrice != null ? formatARS(pro.lastWorkPrice) : "A convenir"}
-          </span>
-        </p>
-        <p className="text-xs text-pro-dark">
-          {pro.completedJobs} {pro.completedJobs === 1 ? "trabajo realizado" : "trabajos realizados"} en ServiRed
-        </p>
+      <p className="mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-slate-600">
+        {pro.bio || `Servicios de ${pro.headline} en ${pro.zone}.`}
+      </p>
+
+      <div className="mt-3 border-t border-white/70 pt-3">
+        <p className="text-base font-extrabold text-pro-dark">{pro.completedJobs} {pro.completedJobs === 1 ? "trabajo hecho" : "trabajos hechos"} en ServiRed</p>
+        <p className="mt-0.5 text-[11px] text-slate-400">{pro.externalJobs} {pro.externalJobs === 1 ? "trabajo mostrado" : "trabajos mostrados"} fuera de ServiRed · {pro.providerType}</p>
       </div>
     </Link>
   );

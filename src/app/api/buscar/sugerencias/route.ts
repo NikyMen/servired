@@ -7,10 +7,18 @@ export const dynamic = "force-dynamic";
 // GET /api/buscar/sugerencias?q=... — autocompletado del buscador
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q") ?? "";
+  const rawType = req.nextUrl.searchParams.get("tipo");
+  const tipo = rawType === "profesional" || rawType === "oficio" ? rawType : undefined;
+  const categoria = req.nextUrl.searchParams.get("categoria") || undefined;
   if (q.trim().length < 2) return NextResponse.json({ suggestions: [] });
 
   const [pros, categories] = await Promise.all([
     prisma.professional.findMany({
+      where: {
+        profileStatus: "approved",
+        ...(tipo ? { providerType: tipo } : {}),
+        OR: [{ userId: null }, { user: { accountStatus: "approved" } }],
+      },
       include: {
         category: { select: { slug: true, name: true } },
         services: {
@@ -20,10 +28,11 @@ export async function GET(req: NextRequest) {
       },
     }),
     prisma.category.findMany({
+      where: { approvalStatus: "approved", ...(tipo ? { kind: tipo } : {}) },
       orderBy: { createdAt: "asc" },
       select: { slug: true, name: true, icon: true },
     }),
   ]);
 
-  return NextResponse.json({ suggestions: suggest(pros, categories, q) });
+  return NextResponse.json({ suggestions: suggest(pros, categories, q, 6, { tipo, categoria }) });
 }
