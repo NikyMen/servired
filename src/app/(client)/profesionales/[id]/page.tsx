@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatARS } from "@/lib/format";
+import { formatARS, formatDate } from "@/lib/format";
 import { Avatar, Rating, VerifiedBadge } from "@/components/ui";
 import { ContratarBox } from "@/components/ContratarBox";
 import { ContratarSheet } from "@/components/ContratarSheet";
@@ -231,7 +231,7 @@ export default async function ProfesionalPage({
                     <div className="flex items-center justify-between">
                       <p className="font-medium text-slate-900">{r.authorName}</p>
                       <span className="text-xs text-slate-400">
-                        {new Date(r.createdAt).toLocaleDateString("es-AR")}
+                        {formatDate(r.createdAt)}
                       </span>
                     </div>
                     <div className="flex items-center gap-0.5 text-amber-400">

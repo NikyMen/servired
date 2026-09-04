@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { formatARS } from "@/lib/format";
+import { formatARS, formatDateTime } from "@/lib/format";
 import { Avatar, StatusPill } from "@/components/ui";
 import { EncabezadoPerfil } from "@/components/pro/EncabezadoPerfil";
 import { TrabajosParticulares } from "@/components/pro/TrabajosParticulares";
@@ -139,7 +139,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
                   <div className="space-y-4 border-t border-white/60 p-4">
                     <div className="rounded-2xl bg-white/50 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Usuario que creó la solicitud</p><div className="mt-2 flex items-center gap-2"><Avatar name={b.user.name} color={b.user.avatarColor} src={b.user.avatarUrl} size={38} /><div><p className="text-sm font-semibold text-slate-800">{b.user.name}</p><p className="text-xs text-slate-500">Cliente de ServiRed</p></div></div></div>
                     <div><p className="text-xs font-semibold text-slate-500">Detalle del pedido</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{b.note || "Sin descripción adicional."}</p></div>
-                    <p className="text-xs text-slate-400">Recibida el {new Date(b.createdAt).toLocaleString("es-AR")}</p>
+                    <p className="text-xs text-slate-400">Recibida el {formatDateTime(b.createdAt)}</p>
                     {b.workSummary && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-pro-dark">{b.workSummary}</p>}
                     {b.payments.map((payment) => <p key={payment.id} className={`rounded-xl px-3 py-2 text-sm font-semibold ${payment.status === "pagado" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>Pago por alias: {formatARS(payment.amount)} · {payment.status}</p>)}
                     {b.attachments.length > 0 && <div className="flex flex-wrap gap-2">{b.attachments.map((attachment) => <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer"><img src={attachment.url} alt={attachment.name} className="size-20 rounded-xl object-cover ring-1 ring-slate-200" /></a>)}</div>}
