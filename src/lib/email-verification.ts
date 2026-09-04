@@ -55,9 +55,9 @@ export async function issueEmailVerification(userId: string) {
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
   const token = randomBytes(32).toString("hex");
-  await prisma.$transaction(async (tx) => {
+  const verification = await prisma.$transaction(async (tx) => {
     await tx.emailVerification.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date() } });
-    await tx.emailVerification.create({
+    return tx.emailVerification.create({
       data: {
         userId,
         codeHash: digest(code),
@@ -66,7 +66,17 @@ export async function issueEmailVerification(userId: string) {
       },
     });
   });
-  await deliver(user.email, code, token);
+
+  try {
+    await deliver(user.email, code, token);
+  } catch (error) {
+    console.error("[email-verification] no se pudo enviar el correo", { userId, email: user.email, error });
+    // Invalida la fila recién creada para que un reintento no choque con el cooldown de RESEND_MS
+    // por un envío que nunca salió.
+    await prisma.emailVerification.update({ where: { id: verification.id }, data: { usedAt: new Date() } });
+    return { ok: false as const, error: "No pudimos enviar el correo. Probá de nuevo en unos minutos." };
+  }
+
   return {
     ok: true as const,
     ...(process.env.NODE_ENV !== "production" ? { devCode: code, devToken: token } : {}),
