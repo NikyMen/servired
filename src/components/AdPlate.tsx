@@ -1,6 +1,11 @@
 import Link from "next/link";
 
-type Ad = { title: string; imageUrl: string | null; linkUrl: string | null; enabled: boolean } | null;
+type Ad = { title: string; imageUrl: string | null; whatsappPhone: string | null; whatsappMessage: string | null; enabled: boolean } | null;
+
+function whatsappLink(phone: string, message: string | null) {
+  const query = message ? `?text=${encodeURIComponent(message)}` : "";
+  return `https://wa.me/549${phone}${query}`;
+}
 
 export function AdPlate({ ad, label, className = "" }: { ad: Ad; label: string; className?: string }) {
   const content = ad?.enabled ? (
@@ -11,7 +16,8 @@ export function AdPlate({ ad, label, className = "" }: { ad: Ad; label: string; 
   ) : <span className="text-xs font-semibold tracking-[0.2em] text-slate-400">ADS</span>;
 
   const style = `relative flex overflow-hidden items-center justify-center rounded-[1.5rem] border border-slate-200 bg-white/70 shadow-sm ${className}`;
-  return ad?.enabled && ad.linkUrl
-    ? <Link href={ad.linkUrl} aria-label={label} className={style}>{content}</Link>
+  const href = ad?.enabled && ad.whatsappPhone ? whatsappLink(ad.whatsappPhone, ad.whatsappMessage) : null;
+  return href
+    ? <Link href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className={style}>{content}</Link>
     : <aside aria-label={label} className={style}>{content}</aside>;
 }

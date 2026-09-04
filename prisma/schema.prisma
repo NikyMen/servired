@@ -152,11 +152,16 @@ model Category {
 
 /// Placas publicitarias administrables de la portada.
 model Ad {
-  id        String   @id @default(cuid())
-  slot      String   @unique
-  title     String
-  imageUrl  String?
-  linkUrl   String?
+  id     String  @id @default(cuid())
+  slot   String  @unique
+  title  String
+  imageUrl String?
+
+  /// Solo los 10 dígitos locales (característica + número): el +549 es fijo y
+  /// se agrega al armar el link de WhatsApp, nunca se guarda acá.
+  whatsappPhone   String?
+  whatsappMessage String?
+
   enabled   Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

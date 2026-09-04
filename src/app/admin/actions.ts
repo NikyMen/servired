@@ -9,6 +9,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
+import { saveUpload } from "@/lib/uploads";
 
 export type AdminAuthState = { error?: string } | undefined;
 
@@ -50,24 +51,29 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function safeUrl(value: string) {
-  if (!value) return null;
-  if (value.startsWith("/")) return value;
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:" ? value : null;
-  } catch { return null; }
-}
-
 export async function saveAdAction(formData: FormData) {
   await requireAdmin();
   const slot = text(formData, "slot");
   const title = text(formData, "title");
   if (!slot || !title) return;
+
+  const existing = await prisma.ad.findUnique({ where: { slot } });
+  let imageUrl = existing?.imageUrl ?? null;
+  const file = formData.get("image");
+  if (file instanceof File && file.size > 0) {
+    const saved = await saveUpload(file, { imagesOnly: true });
+    imageUrl = saved.url;
+  }
+
+  const areaCode = text(formData, "whatsappAreaCode").replace(/\D/g, "");
+  const number = text(formData, "whatsappNumber").replace(/\D/g, "");
+  const whatsappPhone = areaCode.length === 4 && number.length === 6 ? `${areaCode}${number}` : null;
+  const whatsappMessage = text(formData, "whatsappMessage") || null;
+
   await prisma.ad.upsert({
     where: { slot },
-    create: { slot, title, imageUrl: safeUrl(text(formData, "imageUrl")), linkUrl: safeUrl(text(formData, "linkUrl")), enabled: formData.get("enabled") === "on" },
-    update: { title, imageUrl: safeUrl(text(formData, "imageUrl")), linkUrl: safeUrl(text(formData, "linkUrl")), enabled: formData.get("enabled") === "on" },
+    create: { slot, title, imageUrl, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
+    update: { title, imageUrl, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
   });
   revalidatePath("/");
   revalidatePath("/admin");
