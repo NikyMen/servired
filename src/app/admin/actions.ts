@@ -142,10 +142,11 @@ export async function deleteCategoryAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
-export async function reviewKycAction(formData: FormData) {
+export type KycDecision = "approve" | "changes" | "reject";
+
+export async function reviewKycAction(action: KycDecision, formData: FormData) {
   await requireAdmin();
   const id = text(formData, "id");
-  const action = text(formData, "action");
   const reason = text(formData, "reason").slice(0, 1000);
   if (!id || !["approve", "changes", "reject"].includes(action)) return;
   if ((action === "changes" || action === "reject") && reason.length < 5) return;
