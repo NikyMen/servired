@@ -31,8 +31,9 @@ export function PaymentControls({ conversationId, viewer }: { conversationId: st
 
   const activeProposal = booking?.proposals.find((proposal) => proposal.status === "pending") ?? null;
   const paidPaymentId = booking?.payments.find((payment) => payment.status === "pagado")?.id;
+  const buttonLabel = viewer === "profesional" ? "Enviar propuesta" : "Propuesta";
   return <>
-    <button type="button" onClick={() => setOpen(true)} title="Trabajo y pago" aria-label="Trabajo y pago" className="relative flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-500 transition-colors hover:bg-white/70"><BriefcaseIcon width={17} height={17} /><span className="hidden sm:inline">Trabajo</span></button>
+    <button type="button" onClick={() => setOpen(true)} title={buttonLabel} aria-label={buttonLabel} className="relative flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-500 transition-colors hover:bg-white/70"><BriefcaseIcon width={17} height={17} /><span className="hidden sm:inline">{buttonLabel}</span></button>
     {open && typeof document !== "undefined" && createPortal(<div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/30 p-3 sm:items-center" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
       <section role="dialog" aria-modal="true" aria-label="Trabajo, propuesta y pago" className="glass glass-solid animate-sheet-up max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-3xl border-t-4 border-t-[var(--accent)] p-5 text-left shadow-2xl">
         <header className="mb-4 flex items-start justify-between gap-3"><div><p className="text-lg font-bold text-slate-900">Trabajo, propuesta y pago</p><p className="text-xs text-slate-500">Todo el acuerdo queda asociado a este hilo.</p></div><button type="button" onClick={() => setOpen(false)} aria-label="Cerrar" className="rounded-full p-2 text-slate-400 hover:bg-white"><XIcon width={18} height={18} /></button></header>
