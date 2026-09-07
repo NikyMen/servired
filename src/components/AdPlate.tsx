@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-type Ad = { title: string; imageUrl: string | null; whatsappPhone: string | null; whatsappMessage: string | null; enabled: boolean } | null;
+type Ad = { title: string; imageUrl: string | null; imageScale: number; imageX: number; imageY: number; whatsappPhone: string | null; whatsappMessage: string | null; enabled: boolean } | null;
 
 function whatsappLink(phone: string, message: string | null) {
   const query = message ? `?text=${encodeURIComponent(message)}` : "";
@@ -10,7 +10,14 @@ function whatsappLink(phone: string, message: string | null) {
 export function AdPlate({ ad, label, className = "" }: { ad: Ad; label: string; className?: string }) {
   const content = ad?.enabled ? (
     <>
-      {ad.imageUrl ? <img src={ad.imageUrl} alt={ad.title} className="absolute inset-0 size-full object-cover" /> : null}
+      {ad.imageUrl ? (
+        <img
+          src={ad.imageUrl}
+          alt={ad.title}
+          style={{ transform: `translate(${ad.imageX * 100}%, ${ad.imageY * 100}%) scale(${ad.imageScale})`, transformOrigin: "center" }}
+          className="absolute inset-0 size-full object-contain"
+        />
+      ) : null}
       <span className={`relative z-10 px-3 text-center text-xs font-semibold ${ad.imageUrl ? "rounded bg-black/55 py-1 text-white" : "text-slate-500"}`}>{ad.title}</span>
     </>
   ) : <span className="text-xs font-semibold tracking-[0.2em] text-slate-400">ADS</span>;

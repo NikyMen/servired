@@ -42,6 +42,11 @@ function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
+function num(formData: FormData, key: string, fallback: number, min: number, max: number) {
+  const parsed = parseFloat(String(formData.get(key) ?? ""));
+  return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+}
+
 function slugify(value: string) {
   return value
     .normalize("NFD")
@@ -65,6 +70,10 @@ export async function saveAdAction(formData: FormData) {
     imageUrl = saved.url;
   }
 
+  const imageScale = num(formData, "imageScale", 1, 0.2, 6);
+  const imageX = num(formData, "imageX", 0, -3, 3);
+  const imageY = num(formData, "imageY", 0, -3, 3);
+
   const areaCode = text(formData, "whatsappAreaCode").replace(/\D/g, "");
   const number = text(formData, "whatsappNumber").replace(/\D/g, "");
   const whatsappPhone = areaCode.length === 4 && number.length === 6 ? `${areaCode}${number}` : null;
@@ -72,8 +81,8 @@ export async function saveAdAction(formData: FormData) {
 
   await prisma.ad.upsert({
     where: { slot },
-    create: { slot, title, imageUrl, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
-    update: { title, imageUrl, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
+    create: { slot, title, imageUrl, imageScale, imageX, imageY, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
+    update: { title, imageUrl, imageScale, imageX, imageY, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
   });
   revalidatePath("/");
   revalidatePath("/admin");
