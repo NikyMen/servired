@@ -4,7 +4,7 @@ import { useState } from "react";
 import { WelderScene } from "@/components/WelderScene";
 
 /** Dónde va la foto del hero. Un solo lugar: si cambia el archivo, cambia acá. */
-export const HERO_FOTO = "/servired-panel-entrada.png";
+export const HERO_FOTO = "/servired-panel-entrada2.jpeg";
 
 /**
  * El fondo del banner de inicio.

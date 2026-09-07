@@ -4,13 +4,16 @@ import { useEffect, useRef, useState } from "react";
 
 const MIN_SCALE = 0.2;
 const MAX_SCALE = 6;
+const MIN_STRETCH = 0.3;
+const MAX_STRETCH = 4;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 /**
  * Sube y encuadra la imagen de una placa publicitaria. El recuadro de abajo se ve
  * EXACTAMENTE igual que la placa en la portada (mismo object-contain + transform),
  * así que lo que se acomoda acá es lo que se publica. Se puede alejar más allá de
- * los bordes de la imagen (scale < 1) para dejar aire alrededor.
+ * los bordes de la imagen (scale < 1) para dejar aire alrededor, y estirarla a lo
+ * ancho o a lo alto (stretchX / stretchY) para taparla entera aunque se deforme.
  */
 export function AdImageEditor({
   name,
@@ -18,18 +21,23 @@ export function AdImageEditor({
   scale: initialScale,
   x: initialX,
   y: initialY,
+  stretchX: initialStretchX,
+  stretchY: initialStretchY,
 }: {
   name: string;
   currentUrl: string | null;
   scale: number;
   x: number;
   y: number;
+  stretchX: number;
+  stretchY: number;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const [preview, setPreview] = useState<string | null>(currentUrl);
   const [dragging, setDragging] = useState(false);
   const [scale, setScale] = useState(initialScale || 1);
+  const [stretch, setStretch] = useState({ x: initialStretchX || 1, y: initialStretchY || 1 });
   const [pos, setPos] = useState({ x: initialX || 0, y: initialY || 0 });
   const pan = useRef<{ id: number; startX: number; startY: number; baseX: number; baseY: number } | null>(null);
 
@@ -40,11 +48,13 @@ export function AdImageEditor({
     inputRef.current.files = transfer.files;
     setPreview(URL.createObjectURL(file));
     setScale(1);
+    setStretch({ x: 1, y: 1 });
     setPos({ x: 0, y: 0 });
   }
 
   function reset() {
     setScale(1);
+    setStretch({ x: 1, y: 1 });
     setPos({ x: 0, y: 0 });
   }
 
@@ -81,7 +91,7 @@ export function AdImageEditor({
     if (pan.current?.id === e.pointerId) pan.current = null;
   }
 
-  const transform = `translate(${pos.x * 100}%, ${pos.y * 100}%) scale(${scale})`;
+  const transform = `translate(${pos.x * 100}%, ${pos.y * 100}%) scale(${scale * stretch.x}, ${scale * stretch.y})`;
 
   return (
     <div className="space-y-2">
@@ -114,24 +124,38 @@ export function AdImageEditor({
       </div>
 
       {preview && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Alejar</span>
-          <input
-            type="range"
-            min={MIN_SCALE}
-            max={MAX_SCALE}
-            step={0.01}
-            value={scale}
-            onChange={(e) => setScale(clamp(parseFloat(e.target.value), MIN_SCALE, MAX_SCALE))}
-            className="flex-1 accent-cliente"
-          />
-          <span className="text-xs text-slate-500">Acercar</span>
-          <button type="button" onClick={reset} className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-white">
-            Restablecer
-          </button>
-          <button type="button" onClick={() => inputRef.current?.click()} className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-white">
-            Cambiar
-          </button>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="w-14 text-xs text-slate-500">Zoom</span>
+            <input
+              type="range" min={MIN_SCALE} max={MAX_SCALE} step={0.01} value={scale}
+              onChange={(e) => setScale(clamp(parseFloat(e.target.value), MIN_SCALE, MAX_SCALE))}
+              className="flex-1 accent-cliente"
+            />
+            <button type="button" onClick={reset} className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-white">
+              Restablecer
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-14 text-xs text-slate-500">Ancho ↔</span>
+            <input
+              type="range" min={MIN_STRETCH} max={MAX_STRETCH} step={0.01} value={stretch.x}
+              onChange={(e) => setStretch((s) => ({ ...s, x: clamp(parseFloat(e.target.value), MIN_STRETCH, MAX_STRETCH) }))}
+              className="flex-1 accent-cliente"
+            />
+            <button type="button" onClick={() => inputRef.current?.click()} className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-white">
+              Cambiar
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-14 text-xs text-slate-500">Alto ↕</span>
+            <input
+              type="range" min={MIN_STRETCH} max={MAX_STRETCH} step={0.01} value={stretch.y}
+              onChange={(e) => setStretch((s) => ({ ...s, y: clamp(parseFloat(e.target.value), MIN_STRETCH, MAX_STRETCH) }))}
+              className="flex-1 accent-cliente"
+            />
+            <span className="w-[3.75rem]" />
+          </div>
         </div>
       )}
 
@@ -139,6 +163,8 @@ export function AdImageEditor({
       <input type="hidden" name="imageScale" value={scale} />
       <input type="hidden" name="imageX" value={pos.x} />
       <input type="hidden" name="imageY" value={pos.y} />
+      <input type="hidden" name="imageStretchX" value={stretch.x} />
+      <input type="hidden" name="imageStretchY" value={stretch.y} />
     </div>
   );
 }

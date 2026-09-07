@@ -60,7 +60,7 @@ export async function saveAdAction(formData: FormData) {
   await requireAdmin();
   const slot = text(formData, "slot");
   const title = text(formData, "title");
-  if (!slot || !title) return;
+  if (!slot) return;
 
   const existing = await prisma.ad.findUnique({ where: { slot } });
   let imageUrl = existing?.imageUrl ?? null;
@@ -73,6 +73,8 @@ export async function saveAdAction(formData: FormData) {
   const imageScale = num(formData, "imageScale", 1, 0.2, 6);
   const imageX = num(formData, "imageX", 0, -3, 3);
   const imageY = num(formData, "imageY", 0, -3, 3);
+  const imageStretchX = num(formData, "imageStretchX", 1, 0.2, 5);
+  const imageStretchY = num(formData, "imageStretchY", 1, 0.2, 5);
 
   const areaCode = text(formData, "whatsappAreaCode").replace(/\D/g, "");
   const number = text(formData, "whatsappNumber").replace(/\D/g, "");
@@ -81,8 +83,8 @@ export async function saveAdAction(formData: FormData) {
 
   await prisma.ad.upsert({
     where: { slot },
-    create: { slot, title, imageUrl, imageScale, imageX, imageY, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
-    update: { title, imageUrl, imageScale, imageX, imageY, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
+    create: { slot, title, imageUrl, imageScale, imageX, imageY, imageStretchX, imageStretchY, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
+    update: { title, imageUrl, imageScale, imageX, imageY, imageStretchX, imageStretchY, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
   });
   revalidatePath("/");
   revalidatePath("/admin");

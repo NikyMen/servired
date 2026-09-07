@@ -154,16 +154,21 @@ model Category {
 model Ad {
   id     String  @id @default(cuid())
   slot   String  @unique
-  title  String
+  /// Opcional: si queda vacío la placa muestra solo la imagen, sin cartel.
+  title  String @default("")
   imageUrl String?
 
   /// Encuadre de la imagen dentro de la placa, WYSIWYG con el editor del admin.
   /// scale 1 = imagen entera visible (object-contain); <1 la aleja y deja ver
   /// fondo alrededor; >1 la acerca. x/y = desplazamiento como fracción del lado
-  /// de la placa (positivo = hacia la derecha / abajo).
-  imageScale Float @default(1)
-  imageX     Float @default(0)
-  imageY     Float @default(0)
+  /// de la placa (positivo = hacia la derecha / abajo). stretchX/stretchY
+  /// deforman la imagen (1 = sin deformar): permiten estirarla a lo ancho o
+  /// a lo alto para tapar la placa entera.
+  imageScale   Float @default(1)
+  imageX       Float @default(0)
+  imageY       Float @default(0)
+  imageStretchX Float @default(1)
+  imageStretchY Float @default(1)
 
   /// Solo los 10 dígitos locales (característica + número): el +549 es fijo y
   /// se agrega al armar el link de WhatsApp, nunca se guarda acá.

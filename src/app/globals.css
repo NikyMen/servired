@@ -747,11 +747,11 @@
     box-shadow: 0 30px 70px -30px rgb(2 6 23 / 0.85);
   }
 
-  /* De tablet para arriba el banner toma la proporción exacta de la foto
-     (1656×944). Con object-fit: cover eso significa recorte cero: entra la
-     escena completa, los dos oficios centrados y "más atrás", en vez de un
-     primer plano recortado arriba y abajo. Si el contenido pide más alto que
-     la proporción, la caja crece igual — aspect-ratio no lo achica. */
+  /* De tablet para arriba el banner queda como una franja apaisada. La foto
+     (servired-panel-entrada2.jpeg, 1600×900) se recorta con object-fit: cover
+     centrada; en desktop el alto lo fija esta proporción y en móvil manda el
+     contenido. Si el contenido pide más alto que la proporción, la caja crece
+     igual — aspect-ratio no lo achica. */
   @media (min-width: 768px) {
     .hero-weld {
       aspect-ratio: 1656 / 472;
