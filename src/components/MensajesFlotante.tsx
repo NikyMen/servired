@@ -145,7 +145,7 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
               </button>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-hidden p-3">
+            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden p-3">
               {error ? (
                 <p
                   role="alert"
@@ -156,7 +156,7 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
               ) : conversations === null ? (
                 <p className="p-8 text-center text-sm text-slate-400">Cargando tus mensajes…</p>
               ) : (
-                <Chat viewer={isPro ? "profesional" : "cliente"} conversations={conversations} />
+                <Chat viewer={isPro ? "profesional" : "cliente"} conversations={conversations} embedded />
               )}
             </div>
           </div>

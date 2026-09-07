@@ -57,10 +57,14 @@ export function Chat({
   conversations,
   viewer,
   initialConversationId,
+  embedded = false,
 }: {
   conversations: ChatConversation[];
   viewer: "cliente" | "profesional";
   initialConversationId?: string;
+  /** Dentro del popup flotante: en vez de imponer una altura fija, llena a su
+   *  contenedor. Así el hilo y la barra de escribir nunca quedan cortados. */
+  embedded?: boolean;
 }) {
   const initialId = conversations.some((conversation) => conversation.id === initialConversationId) ? initialConversationId! : conversations[0]?.id ?? null;
   const [selectedId, setSelectedId] = useState(initialId);
@@ -265,7 +269,15 @@ export function Chat({
   }
 
   return (
-    <div className={`glass glass-solid grid grid-cols-1 overflow-hidden md:grid-cols-[260px_1fr] ${threadOpen ? "fixed inset-0 z-50 h-dvh min-h-0 rounded-none md:static md:z-auto md:h-[min(72dvh,680px)] md:min-h-[480px] md:rounded-2xl" : "h-[min(72dvh,680px)] min-h-[480px] rounded-2xl"}`}>
+    <div className={`glass glass-solid grid grid-cols-1 overflow-hidden md:grid-cols-[260px_1fr] ${
+      threadOpen
+        ? embedded
+          ? "absolute inset-0 z-50 min-h-0 rounded-none md:static md:z-auto md:h-full"
+          : "fixed inset-0 z-50 h-dvh min-h-0 rounded-none md:static md:z-auto md:h-[min(72dvh,680px)] md:min-h-[480px] md:rounded-2xl"
+        : embedded
+        ? "h-full min-h-0 rounded-none"
+        : "h-[min(72dvh,680px)] min-h-[480px] rounded-2xl"
+    }`}>
       {/* Lista de conversaciones */}
       <aside
         className={`${threadOpen ? "hidden md:block" : ""} divide-y divide-white/60 md:border-r md:border-white/60`}
