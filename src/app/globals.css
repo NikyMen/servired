@@ -860,6 +860,23 @@
     position: relative;
     z-index: 4;
   }
+
+  /* Los dos filtros de la portada (Profesionales / Oficios). Al pasar el mouse
+     por uno, ese brilla y se levanta un poco y el otro se apaga: deja claro
+     cuál vas a tocar. Se hace con CSS y no con group-hover de Tailwind porque
+     el efecto es entre hermanos (hover en uno afecta al otro). */
+  .hero-weld-filtro {
+    transition: filter 200ms ease, opacity 200ms ease, transform 200ms ease;
+  }
+  .hero-weld-filtros:hover .hero-weld-filtro {
+    filter: brightness(0.8) saturate(0.9);
+    opacity: 0.75;
+  }
+  .hero-weld-filtros .hero-weld-filtro:hover {
+    filter: brightness(1.18);
+    opacity: 1;
+    transform: translateY(-4px);
+  }
 }
 
 /* El pulso del arco lamiendo el borde del banner: el mismo parpadeo

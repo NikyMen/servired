@@ -32,7 +32,8 @@ function TipoSwitch() {
     router.push(`${pathname}${qs ? `?${qs}` : ""}#resultados`);
   };
 
-  const pad = "px-2.5 py-1.5 text-[11px] sm:px-3 sm:py-2 sm:text-xs";
+  // Mismo alto y tipografía que el toggle de al lado (Solicitudes / Perfiles).
+  const pad = "px-3 py-2 text-xs sm:text-sm";
 
   return (
     <div

@@ -8,7 +8,6 @@ import { MapView } from "@/components/MapView";
 import { rankProfessionals } from "@/lib/search";
 import { AdPlate } from "@/components/AdPlate";
 import { getSessionUser } from "@/lib/auth";
-import { SearchBox } from "@/components/SearchBox";
 
 export const dynamic = "force-dynamic";
 
@@ -78,11 +77,10 @@ export default async function HomePage({
 
   return (
     <div className="space-y-6">
-      {/* Hero: oficios trabajando de noche, con el buscador apoyado encima en
-          vidrio. El fondo es la foto de public/hero-soldador.jpg; si no está,
-          <HeroFondo> cae en la escena dibujada en canvas. */}
-      {/* z-10: el desplegable del buscador se sale del banner por abajo, y sin
-          esto lo taparían los chips de categoría que vienen después. */}
+      {/* Hero: banner con la foto de portada (public/servired-panel-entrada2.jpeg;
+          si no está, <HeroFondo> cae en la escena dibujada en canvas) y los dos
+          filtros Profesionales/Oficios apoyados encima. La búsqueda vive en el
+          header, no acá. */}
       <div className="relative">
         <div className="absolute inset-y-0 right-full mr-4 hidden w-28 grid-rows-2 gap-4 xl:grid 2xl:w-44">
           <AdPlate ad={adMap.get("left-1") || null} label="Publicidad lateral izquierda 1" />
@@ -96,22 +94,20 @@ export default async function HomePage({
         <section className="hero-weld relative z-10 min-h-[215px] rounded-[1.5rem] p-5 text-white sm:min-h-[470px] sm:p-8 md:min-h-[235px] md:p-10">
           <HeroFondo />
 
-          <div className="absolute inset-0 z-[3] grid grid-cols-2 overflow-hidden rounded-[1.5rem]" aria-label="Filtrar prestadores">
-            <Link href="/?tipo=profesional#resultados" className="group flex items-start justify-center border-r border-white/25 px-2 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70 sm:justify-start sm:px-6 sm:pt-6" aria-label="Ver solo profesionales"><span className="rounded-full bg-blue-600/90 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm transition-transform group-hover:-translate-y-1">Profesionales</span></Link>
-            <Link href="/?tipo=oficio#resultados" className="group flex items-start justify-center px-2 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70 sm:justify-end sm:px-6 sm:pt-6" aria-label="Ver solo oficios"><span className="rounded-full bg-emerald-600/90 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm transition-transform group-hover:-translate-y-1">Oficios</span></Link>
+          <div className="hero-weld-filtros absolute inset-0 z-[3] grid grid-cols-2 overflow-hidden rounded-[1.5rem]" aria-label="Filtrar prestadores">
+            <Link href="/?tipo=profesional#resultados" className="flex items-start justify-center border-r border-white/25 px-2 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70 sm:justify-start sm:px-6 sm:pt-6" aria-label="Ver solo profesionales"><span className="hero-weld-filtro rounded-full bg-blue-600/90 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm">Profesionales</span></Link>
+            <Link href="/?tipo=oficio#resultados" className="flex items-start justify-center px-2 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70 sm:justify-end sm:px-6 sm:pt-6" aria-label="Ver solo oficios"><span className="hero-weld-filtro rounded-full bg-emerald-600/90 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm">Oficios</span></Link>
           </div>
 
-          <div className="hero-weld-content pointer-events-none flex min-h-[175px] flex-col justify-center sm:min-h-[406px] sm:justify-between md:min-h-[155px]">
-            <div className="max-w-2xl">
-              <h1 className="hidden max-w-xl text-3xl leading-[1.1] font-bold tracking-tight drop-shadow-[0_2px_18px_rgba(2,6,23,0.8)] sm:block sm:text-4xl md:text-5xl">
-                Tu problema tiene solución. Encontrala acá.
+          <div className="hero-weld-content pointer-events-none flex min-h-[175px] flex-col justify-center pb-1 sm:min-h-[406px] sm:justify-end md:min-h-[155px]">
+            <div className="max-w-md">
+              <h1 className="hidden text-2xl leading-[1.15] font-bold tracking-tight drop-shadow-[0_2px_18px_rgba(2,6,23,0.8)] sm:block sm:text-3xl md:text-4xl">
+                <span className="block">Tu problema tiene solución.</span>
+                <span className="block">Encontrala acá.</span>
               </h1>
             </div>
-
           </div>
         </section>
-
-        <div className="relative z-20 mx-3 -mt-3 sm:mx-8 sm:-mt-16"><SearchBox defaultQuery={params.q} categoria={params.categoria} tipo={params.tipo} /></div>
 
         <div className="absolute inset-y-0 left-full ml-4 hidden w-28 grid-rows-2 gap-4 xl:grid 2xl:w-44">
           <AdPlate ad={adMap.get("right-1") || null} label="Publicidad lateral derecha 1" />
