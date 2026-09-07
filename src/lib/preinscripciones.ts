@@ -21,7 +21,15 @@ const globalForMongo = globalThis as unknown as { mongoClientPromise?: Promise<M
 
 async function getMongoCollection(): Promise<Collection<MongoPreinscription>> {
   if (!mongoUri) throw new Error("MONGODB_URI no está configurado.");
-  if (!globalForMongo.mongoClientPromise) globalForMongo.mongoClientPromise = new MongoClient(mongoUri).connect();
+  if (!globalForMongo.mongoClientPromise) {
+    const client = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 5000 });
+    globalForMongo.mongoClientPromise = client.connect().catch((error) => {
+      // Si la conexión falla (Mongo caído), no dejar cacheada una promesa rechazada:
+      // así el próximo request reintenta en vez de quedar en 500 hasta reiniciar el proceso.
+      globalForMongo.mongoClientPromise = undefined;
+      throw error;
+    });
+  }
   return (await globalForMongo.mongoClientPromise).db(mongoDbName).collection("preinscripciones");
 }
 
@@ -53,18 +61,31 @@ export function isDuplicatePreinscriptionError(error: unknown) {
 
 export async function createPreinscription(data: PreinscriptionInput): Promise<Preinscription> {
   if (hasMongoStorage()) {
-    const createdAt = new Date();
-    const result = await (await getMongoCollection()).insertOne({ ...data, createdAt });
-    return { ...data, id: result.insertedId.toString(), createdAt };
+    try {
+      const createdAt = new Date();
+      const result = await (await getMongoCollection()).insertOne({ ...data, createdAt });
+      return { ...data, id: result.insertedId.toString(), createdAt };
+    } catch (error) {
+      // Un email repetido sí debe cortar; cualquier otra falla (Mongo caído) cae a SQLite
+      // para no perder el lead. listPreinscriptions() ya mergea ambas fuentes.
+      if (isDuplicatePreinscriptionError(error)) throw error;
+      console.error("createPreinscription: Mongo no disponible, guardo en SQLite", error);
+    }
   }
   const created = await prisma.preregistration.create({ data });
   return { ...created, type: created.type === "profesional" ? "profesional" : "cliente" };
 }
 
 export async function listPreinscriptions(): Promise<Preinscription[]> {
-  const mongoRows = hasMongoStorage()
-    ? (await (await getMongoCollection()).find().sort({ createdAt: -1 }).toArray()).map(({ _id, name, email, phone, occupation, type, createdAt }) => ({ id: _id.toString(), name, email, phone, occupation: occupation ?? null, type: type === "profesional" ? "profesional" as const : "cliente" as const, createdAt }))
-    : [];
+  let mongoRows: Preinscription[] = [];
+  if (hasMongoStorage()) {
+    try {
+      mongoRows = (await (await getMongoCollection()).find().sort({ createdAt: -1 }).toArray()).map(({ _id, name, email, phone, occupation, type, createdAt }) => ({ id: _id.toString(), name, email, phone, occupation: occupation ?? null, type: type === "profesional" ? "profesional" as const : "cliente" as const, createdAt }));
+    } catch (error) {
+      // Mongo caído no debe voltear todo el panel admin: seguimos con lo que haya en SQLite.
+      console.error("listPreinscriptions: Mongo no disponible, sigo solo con SQLite", error);
+    }
+  }
   const sqliteRows = await prisma.preregistration.findMany({ orderBy: { createdAt: "desc" } });
   const allRows: Preinscription[] = [...mongoRows, ...sqliteRows.map((row) => ({ id: row.id, name: row.name, email: row.email, phone: row.phone, occupation: row.occupation, type: row.type === "profesional" ? "profesional" as const : "cliente" as const, createdAt: row.createdAt }))].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   const unique = new Map<string, Preinscription>();
