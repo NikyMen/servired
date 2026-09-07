@@ -861,21 +861,30 @@
     z-index: 4;
   }
 
-  /* Los dos filtros de la portada (Profesionales / Oficios). Al pasar el mouse
-     por uno, ese brilla y se levanta un poco y el otro se apaga: deja claro
-     cuál vas a tocar. Se hace con CSS y no con group-hover de Tailwind porque
-     el efecto es entre hermanos (hover en uno afecta al otro). */
+  /* Los dos filtros de la portada (Profesionales / Oficios). El banner está
+     partido al medio en dos <a>, uno por mitad. Al pasar el mouse por una
+     mitad, esa se ilumina apenas, su píldora se aviva y se levanta, y la
+     OTRA mitad se apaga. El disparador es el <a> (la mitad entera), no la
+     píldora chica: antes el hover caía sobre el <a> y las dos se apagaban
+     igual, así que no se notaba sobre cuál estabas. Se hace con CSS y no con
+     group-hover de Tailwind porque el efecto es entre hermanos. */
+  .hero-weld-filtros > a {
+    transition: background-color 200ms ease;
+  }
   .hero-weld-filtro {
     transition: filter 200ms ease, opacity 200ms ease, transform 200ms ease;
   }
-  .hero-weld-filtros:hover .hero-weld-filtro {
-    filter: brightness(0.8) saturate(0.9);
-    opacity: 0.75;
+  .hero-weld-filtros > a:hover {
+    background-color: rgb(255 255 255 / 0.07);
   }
-  .hero-weld-filtros .hero-weld-filtro:hover {
-    filter: brightness(1.18);
+  .hero-weld-filtros > a:hover .hero-weld-filtro {
+    filter: brightness(1.2);
     opacity: 1;
     transform: translateY(-4px);
+  }
+  .hero-weld-filtros:hover > a:not(:hover) .hero-weld-filtro {
+    filter: brightness(0.7) saturate(0.85);
+    opacity: 0.65;
   }
 }
 
