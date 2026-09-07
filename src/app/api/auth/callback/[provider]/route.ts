@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createSession } from "@/lib/auth";
 import { decodeChallenge, oauthClient, type OAuthProvider } from "@/lib/oauth";
 import { issueEmailVerification } from "@/lib/email-verification";
+import { setPendingVerification } from "@/lib/pending-verification";
 
 type SocialProfile = { id: string; email: string | null; emailVerified: boolean; name: string; picture: string | null };
 
@@ -70,9 +71,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     if (!account) {
       await prisma.oAuthAccount.create({ data: { provider, providerAccountId: profile.id, userId: user.id } });
     }
-    await createSession(user.id);
-    if (!user.emailVerifiedAt && !user.email.endsWith("@pending.servired.invalid")) {
-      await issueEmailVerification(user.id).catch((error) => console.error("[oauth-email]", error));
+    // Sin email verificado no hay sesión: queda como alta a medio hacer y la
+    // sesión se crea al confirmar el código en /onboarding.
+    if (user.emailVerifiedAt) {
+      await createSession(user.id);
+    } else {
+      if (!user.email.endsWith("@pending.servired.invalid")) {
+        await issueEmailVerification(user.id).catch((error) => console.error("[oauth-email]", error));
+      }
+      await setPendingVerification(user.id);
     }
     jar.delete("servired_oauth");
     const intended = challenge.providerType && challenge.next === "/" ? `/pro?tipo=${challenge.providerType}` : challenge.next;

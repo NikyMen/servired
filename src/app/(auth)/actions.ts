@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { issueEmailVerification } from "@/lib/email-verification";
+import { setPendingVerification } from "@/lib/pending-verification";
 
 export type AuthState = { error?: string; field?: string } | undefined;
 
@@ -37,6 +38,15 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
     return { error: "Email o contraseña incorrectos." };
   }
 
+  // Cuenta sin verificar: no se entra. Se reanuda el alta a medio hacer (código
+  // por email) y la persona sigue como invitado hasta que confirma el código.
+  if (!user.emailVerifiedAt) {
+    if (next) (await cookies()).set("servired_after_verify", next, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 });
+    await issueEmailVerification(user.id);
+    await setPendingVerification(user.id);
+    redirect(`/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`);
+  }
+
   const accountStatus = user.emailVerifiedAt && user.accountStatus !== "suspended" ? "approved" : user.accountStatus;
   if (accountStatus !== user.accountStatus) await prisma.user.update({ where: { id: user.id }, data: { accountStatus } });
   await createSession(user.id);
@@ -59,23 +69,43 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
 
   const passwordHash = await hashPassword(password);
 
-  let user;
+  // Ojo: acá NO se crea sesión. El alta queda "pendiente" (User en
+  // email_pending + cookie firmada de vida corta) y la persona sigue navegando
+  // como invitada. La sesión se crea recién cuando confirma el código en
+  // /onboarding — ver src/lib/pending-verification.ts y el endpoint de verify.
+  const pendingUserId = await createPendingUser({ email, passwordHash, name });
+  if (typeof pendingUserId !== "string") return pendingUserId;
+
+  if (next) (await cookies()).set("servired_after_verify", next, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 });
+  await issueEmailVerification(pendingUserId);
+  await setPendingVerification(pendingUserId);
+  redirect(`/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`);
+}
+
+/**
+ * Crea el User a medio hacer, o devuelve un AuthState con el error.
+ * Si ya hay una fila con ese email pero nunca se verificó, no tiene dueño
+ * todavía: se retoma con los datos nuevos en vez de rebotar.
+ */
+async function createPendingUser({ email, passwordHash, name }: { email: string; passwordHash: string; name: string }): Promise<string | AuthState> {
   try {
-    user = await prisma.user.create({
+    const user = await prisma.user.create({
       data: { email, passwordHash, name, role: "cliente", avatarColor: "#2563eb", accountStatus: "email_pending" },
     });
+    return user.id;
   } catch (e) {
-    // P2002 = choque de unique. Dos personas mandando el form a la vez llegan acá.
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      return { error: "Ya existe una cuenta con ese email. Probá entrar.", field: "email" };
+    // P2002 = choque de unique (dos altas del mismo email a la vez, o una previa).
+    if (!(e instanceof Prisma.PrismaClientKnownRequestError) || e.code !== "P2002") throw e;
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing && !existing.emailVerifiedAt) {
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: { name, passwordHash, role: "cliente", accountStatus: "email_pending" },
+      });
+      return existing.id;
     }
-    throw e;
+    return { error: "Ya existe una cuenta con ese email. Probá entrar.", field: "email" };
   }
-
-  await createSession(user.id);
-  if (next) (await cookies()).set("servired_after_verify", next, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 });
-  await issueEmailVerification(user.id);
-  redirect(`/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`);
 }
 
 export async function logoutAction() {
