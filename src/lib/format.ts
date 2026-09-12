@@ -24,6 +24,12 @@ export function formatDateTime(date: Date | string): string {
   return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
 }
 
+/** Mes y año en palabras: "marzo de 2026". Para antigüedades, donde el día no aporta */
+export function formatMonthYear(date: Date | string): string {
+  const value = typeof date === "string" ? new Date(date) : date;
+  return new Intl.DateTimeFormat("es-AR", { timeZone: BA_TZ, month: "long", year: "numeric" }).format(value);
+}
+
 /** Formatea un monto en pesos argentinos: 15000 -> "$15.000" */
 export function formatARS(amount: number): string {
   return new Intl.NumberFormat("es-AR", {

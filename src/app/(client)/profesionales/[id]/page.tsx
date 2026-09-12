@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatARS, formatDate } from "@/lib/format";
+import { formatARS, formatDate, formatMonthYear } from "@/lib/format";
+import { getSessionUser } from "@/lib/auth";
 import { Avatar, Rating, VerifiedBadge } from "@/components/ui";
 import { ContratarBox } from "@/components/ContratarBox";
 import { ContratarSheet } from "@/components/ContratarSheet";
@@ -47,8 +48,12 @@ export default async function ProfesionalPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const pro = await getPro(id);
+  const [pro, viewer] = await Promise.all([getPro(id), getSessionUser()]);
   if (!pro) notFound();
+  // El teléfono se muestra entero, pero no a cualquiera: una cuenta con el
+  // correo confirmado es el peaje mínimo para que la agenda de oferentes no se
+  // pueda levantar entera con un script.
+  const puedeVerTelefono = Boolean(viewer?.canInteract);
 
   return (
     <div className="space-y-6">
@@ -98,8 +103,31 @@ export default async function ProfesionalPage({
                   <MapPinIcon width={15} height={15} className="text-slate-400" />
                   {pro.zone}
                 </span>
-                <span>{pro.yearsExperience} años de experiencia</span>
+                <span>En ServiRed desde {formatMonthYear(pro.createdAt)}</span>
+                {pro.yearsExperience > 0 && (
+                  <span title="Años en el oficio declarados por la persona. ServiRed no los verifica.">
+                    {pro.yearsExperience} años en el oficio
+                  </span>
+                )}
               </div>
+              {pro.phone && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {puedeVerTelefono ? (
+                    <>
+                      <a href={`tel:${telLink(pro.phone)}`} className="glass-chip px-3 py-1.5 text-sm font-semibold text-slate-700">
+                        📞 {pro.phone}
+                      </a>
+                      <a href={whatsappLink(pro.phone)} target="_blank" rel="noopener noreferrer" className="glass-chip px-3 py-1.5 text-sm font-semibold text-pro-dark">
+                        WhatsApp
+                      </a>
+                    </>
+                  ) : (
+                    <Link href={`/entrar?next=/profesionales/${pro.id}`} className="glass-chip px-3 py-1.5 text-sm font-medium text-slate-600">
+                      📞 Entrá con tu cuenta para ver el teléfono
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           {pro.bio && (
@@ -114,7 +142,7 @@ export default async function ProfesionalPage({
       <section className="glass glass-solid grid gap-3 rounded-2xl p-4 sm:grid-cols-3 sm:p-5" aria-label="Resumen del perfil">
         <div className="rounded-xl bg-amber-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-amber-700">Calificaciones y opiniones</p><div className="mt-1 flex items-end gap-2"><strong className="text-3xl text-slate-900">{pro.rating.toFixed(1)}</strong><Rating value={pro.rating} count={pro.reviewsCount} /></div></div>
         <div className="rounded-xl bg-emerald-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Hechos en ServiRed</p><strong className="mt-1 block text-3xl text-slate-900">{pro.bookings.length}</strong></div>
-        <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Muestras externas</p><strong className="mt-1 block text-2xl text-slate-800">{pro.workSamples.length}</strong><p className="text-xs text-slate-400">Sin calificación de ServiRed</p></div>
+        <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Muestra</p><strong className="mt-1 block text-2xl text-slate-800">{pro.workSamples.length}</strong></div>
       </section>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -193,7 +221,7 @@ export default async function ProfesionalPage({
                   <p className="text-xs font-semibold tracking-[0.16em] text-slate-400 uppercase">
                     Muestra del profesional
                   </p>
-                  <h2 className="mt-1 text-lg font-bold text-slate-900">Muestra del profesional</h2>
+                  <h2 className="mt-1 text-lg font-bold text-slate-900">Muestra</h2>
                 </div>
                 <span className="rounded-full bg-slate-400/12 px-2.5 py-1 text-xs font-semibold text-slate-500 ring-1 ring-slate-400/25 ring-inset backdrop-blur-sm">
                   Sin calificación
@@ -281,4 +309,15 @@ export default async function ProfesionalPage({
       />
     </div>
   );
+}
+
+/** El teléfono se guarda como lo escribió la persona; para marcar hay que limpiarlo. */
+function telLink(phone: string) {
+  return phone.replace(/[^\d+]/g, "");
+}
+
+/** wa.me quiere el número con país y sin signos. Si no trae el 54, se lo ponemos. */
+function whatsappLink(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  return `https://wa.me/${digits.startsWith("54") ? digits : `549${digits}`}`;
 }

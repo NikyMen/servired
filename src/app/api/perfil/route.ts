@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UPLOAD_URL } from "@/lib/uploads";
-import { normalizeDigits, validCvu } from "@/lib/kyc";
+import { normalizeDigits, validCvu, validPhone } from "@/lib/kyc";
 
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
@@ -39,12 +39,16 @@ export async function PATCH(req: NextRequest) {
   const paymentAlias = String(body.paymentAlias ?? "").trim().slice(0, 80);
   const paymentCvu = normalizeDigits(String(body.paymentCvu ?? ""));
   if (paymentAlias.length < 6 || !validCvu(paymentCvu)) return NextResponse.json({ error: "Ingresá un alias y CVU válidos." }, { status: 422 });
+  const phone = String(body.phone ?? "").trim().slice(0, 40);
+  if (!validPhone(phone)) return NextResponse.json({ error: "Ingresá un teléfono de contacto válido." }, { status: 422 });
+  const yearsExperience = Math.trunc(Number(body.yearsExperience ?? 0));
+  if (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 60) return NextResponse.json({ error: "Los años en el oficio tienen que estar entre 0 y 60." }, { status: 422 });
   await prisma.$transaction(async (tx) => {
     await tx.professional.update({ where: { id: user.professionalId! }, data: {
       name, avatarUrl, businessName: String(body.businessName ?? "").trim().slice(0, 100) || null,
       headline, bio,
       address: String(body.address ?? "").trim().slice(0, 180) || "Corrientes, Argentina", zone: "Corrientes",
-      paymentAlias, paymentCvu,
+      paymentAlias, paymentCvu, phone, yearsExperience,
       latitude, longitude, categoryId,
     } });
     await tx.professionalCategory.deleteMany({ where: { professionalId: user.professionalId! } });

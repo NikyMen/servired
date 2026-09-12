@@ -19,6 +19,8 @@ type Perfil = {
   providerType?: "profesional" | "oficio";
   paymentAlias?: string | null;
   paymentCvu?: string | null;
+  phone?: string | null;
+  yearsExperience?: number;
 };
 
 export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; categories?: { id: string; name: string; icon: string; parentId?: string | null; parent?: { name: string } | null }[] }) {
@@ -34,6 +36,8 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
     longitude: perfil.longitude ?? -58.8306,
     paymentAlias: perfil.paymentAlias ?? "",
     paymentCvu: perfil.paymentCvu ?? "",
+    phone: perfil.phone ?? "",
+    yearsExperience: perfil.yearsExperience ?? 0,
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [categoryIds, setCategoryIds] = useState<string[]>(perfil.categoryIds?.length ? perfil.categoryIds : perfil.categoryId ? [perfil.categoryId] : []);
@@ -95,6 +99,14 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
           <fieldset className="text-sm font-medium text-slate-900"><legend>Rubros</legend><div className="mt-1 max-h-40 space-y-1 overflow-y-auto rounded-xl bg-white/50 p-2">{categories.map((c) => <label key={c.id} className="block text-xs font-normal"><input type="checkbox" checked={categoryIds.includes(c.id)} onChange={(e) => setCategoryIds((current) => e.target.checked ? [...current, c.id] : current.filter((id) => id !== c.id))} className="mr-2" />{c.parent ? `↳ ${c.name}` : `${c.icon} ${c.name}`}</label>)}</div></fieldset>
           <label className="text-sm font-medium text-slate-900">Actividad
             <input required value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} className={`${field} mt-1`} />
+          </label>
+          <label className="text-sm font-medium text-slate-900">Teléfono de contacto
+            <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} type="tel" placeholder="+54 9 379 412-3456" className={`${field} mt-1`} />
+            <span className="mt-1 block text-xs font-normal text-slate-500">Lo ven en tu perfil las personas con cuenta verificada.</span>
+          </label>
+          <label className="text-sm font-medium text-slate-900">Años en el oficio
+            <input value={form.yearsExperience} onChange={(e) => setForm({ ...form, yearsExperience: Number(e.target.value.replace(/\D/g, "").slice(0, 2) || 0) })} inputMode="numeric" className={`${field} mt-1`} />
+            <span className="mt-1 block text-xs font-normal text-slate-500">Aparte de tu antigüedad en ServiRed, que se calcula sola.</span>
           </label>
           <label className="text-sm font-medium text-slate-900">Dirección
             <input required value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Calle y altura, Corrientes" className={`${field} mt-1`} />
