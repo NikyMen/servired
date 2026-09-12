@@ -4,6 +4,7 @@ import { createVideoChallenge, cuilMatchesDni, parsePaymentHandle, validCuil, va
 import { ACTIVE_JOB_STATUSES, PROPOSAL_TTL_MS, hasJobCapacity, proposalIsActive } from "../src/lib/workflow";
 import { canRevealPaymentDetails } from "../src/lib/payments";
 import { MAX_REPUBLISH, REQUEST_TTL_MS, requestDaysLeft, requestIsLastDay } from "../src/lib/solicitudes";
+import { jobProgress, validEstimatedDays } from "../src/lib/trabajo";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -81,4 +82,35 @@ test("una solicitud vive 7 días y avisa el último", () => {
   assert.equal(requestDaysLeft(new Date("2026-01-01T12:00:00Z"), ahora), 0);
   assert.equal(requestIsLastDay(new Date("2026-01-09T11:00:00Z"), ahora), true);
   assert.equal(requestIsLastDay(new Date("2026-01-10T12:00:00Z"), ahora), false);
+});
+
+test("el plazo del trabajo se cuenta en días enteros y se pasa a rojo al vencer", () => {
+  const inicio = new Date("2026-03-01T09:00:00Z");
+  const fin = new Date("2026-03-08T09:00:00Z");
+
+  // Recién aceptado ya es el día 1 de 7, no el cero.
+  const arranque = jobProgress(inicio, fin, new Date("2026-03-01T10:00:00Z"));
+  assert.equal(arranque.totalDays, 7);
+  assert.equal(arranque.elapsedDays, 1);
+  assert.equal(arranque.remainingDays, 7);
+  assert.equal(arranque.overdue, false);
+
+  const mitad = jobProgress(inicio, fin, new Date("2026-03-04T09:00:00Z"));
+  assert.equal(mitad.elapsedDays, 3);
+  assert.equal(mitad.percent, 43);
+
+  const tarde = jobProgress(inicio, fin, new Date("2026-03-11T09:00:00Z"));
+  assert.equal(tarde.overdue, true);
+  assert.equal(tarde.percent, 100);
+  assert.equal(tarde.remainingDays, 0);
+
+  // Un plazo de un día no divide por cero.
+  const cortito = jobProgress(inicio, new Date("2026-03-02T09:00:00Z"), new Date("2026-03-01T21:00:00Z"));
+  assert.equal(cortito.totalDays, 1);
+  assert.equal(cortito.elapsedDays, 1);
+
+  assert.equal(validEstimatedDays("5"), 5);
+  assert.equal(validEstimatedDays(0), null);
+  assert.equal(validEstimatedDays(400), null);
+  assert.equal(validEstimatedDays("varios"), null);
 });
