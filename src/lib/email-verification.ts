@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
-import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
+import { appUrl, sendMail } from "@/lib/mailer";
 
 const TTL_MS = 15 * 60 * 1000;
 const RESEND_MS = 60 * 1000;
@@ -11,35 +11,14 @@ function digest(value: string) {
   return createHash("sha256").update(`${secret}:${value}`).digest("hex");
 }
 
-function appUrl() {
-  return (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
-}
-
 async function deliver(to: string, code: string, token: string) {
   const url = `${appUrl()}/verificar-email?token=${encodeURIComponent(token)}`;
-  const host = process.env.SMTP_HOST;
-  if (!host) {
-    if (process.env.NODE_ENV !== "production") {
-      console.info(`[email-verification] ${to}: código ${code} · ${url}`);
-      return;
-    }
-    throw new Error("El envío de correo no está configurado.");
-  }
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: process.env.SMTP_USER
-      ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-      : undefined,
-  });
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM || "ServiRed <no-reply@servired.consultoriadigital.io>",
+  await sendMail({
     to,
     subject: "Verificá tu correo de ServiRed",
     text: `Tu código es ${code}. También podés abrir ${url}. Vence en 15 minutos.`,
     html: `<p>Tu código de ServiRed es:</p><p style="font-size:28px;font-weight:700;letter-spacing:5px">${code}</p><p><a href="${url}">Verificar mi correo</a></p><p>Vence en 15 minutos.</p>`,
+    devNote: `código ${code} · ${url}`,
   });
 }
 

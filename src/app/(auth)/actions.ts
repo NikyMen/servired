@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { issueEmailVerification } from "@/lib/email-verification";
 import { setPendingVerification } from "@/lib/pending-verification";
+import { consumePasswordReset, issuePasswordReset } from "@/lib/password-reset";
 
 export type AuthState = { error?: string; field?: string } | undefined;
 
@@ -106,6 +107,35 @@ async function createPendingUser({ email, passwordHash, name }: { email: string;
     }
     return { error: "Ya existe una cuenta con ese email. Probá entrar.", field: "email" };
   }
+}
+
+/**
+ * Pide el enlace para elegir una contraseña nueva.
+ *
+ * Siempre termina en la misma pantalla, exista o no la cuenta: igual que el
+ * mensaje genérico del login, para no regalar qué emails están registrados.
+ */
+export async function requestPasswordResetAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Escribí un email válido.", field: "email" };
+  }
+  const result = await issuePasswordReset(email);
+  if (!result.ok) return { error: result.error };
+  redirect("/recuperar-clave?enviado=1");
+}
+
+/** Cambia la contraseña con el token del correo y deja la sesión abierta. */
+export async function resetPasswordAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const token = String(formData.get("token") ?? "");
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 8) {
+    return { error: "La contraseña necesita al menos 8 caracteres.", field: "password" };
+  }
+  const result = await consumePasswordReset(token, password);
+  if (!result.ok) return { error: result.error };
+  await createSession(result.userId);
+  redirect("/");
 }
 
 export async function logoutAction() {

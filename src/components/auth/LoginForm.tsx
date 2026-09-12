@@ -48,6 +48,12 @@ export function LoginForm({ next }: { next?: string }) {
           tone="cliente"
         />
 
+        <p className="-mt-2 text-right text-sm">
+          <Link href="/recuperar-clave" className="font-medium text-slate-500 hover:text-cliente-dark hover:underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
+
         <div className="space-y-3">
           <FormError message={state?.error} />
 
