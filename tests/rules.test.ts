@@ -28,6 +28,15 @@ test("el desafío de video está firmado y vinculado al usuario", () => {
   assert.equal(verifyVideoChallenge("user-1", issued.challenge, `${issued.token}x`), false);
 });
 
+test("el desafío es una frase legible, sin dígitos", () => {
+  for (let intento = 0; intento < 50; intento += 1) {
+    const { challenge } = createVideoChallenge("user-1");
+    assert.match(challenge, /^Hola ServiRed, /);
+    assert.equal(/\d/.test(challenge), false);
+    assert.ok(challenge.split(" ").length >= 8);
+  }
+});
+
 test("una propuesta solo está activa si está pendiente y no venció", () => {
   const now = new Date("2026-01-01T00:00:00Z");
   assert.equal(PROPOSAL_TTL_MS, 72 * 60 * 60 * 1000);

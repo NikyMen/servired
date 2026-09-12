@@ -82,8 +82,22 @@ export function validCvu(value: string) {
 
 type ChallengePayload = { u: string; c: string; e: number };
 
+/* Una frase se lee natural en cámara y se compara de un vistazo al revisar; seis
+   dígitos sueltos se trababan al decirlos y se confundían al escucharlos. Las
+   cuatro listas dan ~96.000 combinaciones, del orden del millón de antes: el
+   desafío igual no se apoya en adivinar, sino en la firma y los 10 minutos. */
+const SUJETOS = ["el plomero", "la vecina", "mi hermano", "la maestra", "el panadero", "mi abuela", "el cartero", "la doctora", "mi primo", "el jardinero", "la pintora", "el electricista"];
+const VERBOS = ["arregla", "pinta", "limpia", "busca", "levanta", "ordena", "revisa", "cambia", "guarda", "mide"];
+const OBJETOS = ["la puerta verde", "el techo del fondo", "la mesa de madera", "el portón azul", "la ventana rota", "el piso del patio", "la reja de adelante", "el tanque de agua", "la escalera vieja", "el pasillo largo"];
+const CIERRES = ["por la mañana", "antes del almuerzo", "en el patio", "desde el balcón", "con mucha calma", "después de la siesta", "en la vereda", "junto a la puerta"];
+
+function pick(list: string[]) {
+  return list[randomInt(0, list.length)];
+}
+
 export function createVideoChallenge(userId: string) {
-  const challenge = `SERVIRED ${String(randomInt(0, 1_000_000)).padStart(6, "0")}`;
+  const frase = `${pick(SUJETOS)} ${pick(VERBOS)} ${pick(OBJETOS)} ${pick(CIERRES)}`;
+  const challenge = `Hola ServiRed, ${frase}.`;
   const payload: ChallengePayload = { u: userId, c: challenge, e: Date.now() + 10 * 60 * 1000 };
   const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = createHmac("sha256", key()).update(encoded).digest("base64url");
