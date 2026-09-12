@@ -99,9 +99,12 @@ export default async function HomePage({
             <Link href="/?tipo=oficio#resultados" className="flex items-start justify-center px-2 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70 sm:justify-end sm:px-6 sm:pt-6" aria-label="Ver solo oficios"><span className="hero-weld-filtro rounded-full bg-emerald-600/90 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm">Oficios</span></Link>
           </div>
 
-          <div className="hero-weld-content pointer-events-none flex min-h-[175px] flex-col justify-center pb-1 sm:min-h-[406px] sm:justify-end md:min-h-[155px]">
-            <div className="max-w-md">
-              <h1 className="hidden text-2xl leading-[1.15] font-bold tracking-tight drop-shadow-[0_2px_18px_rgba(2,6,23,0.8)] sm:block sm:text-3xl md:text-4xl">
+          {/* La frase va al medio del banner, en los dos ejes. El
+              pointer-events-none no se toca: abajo, en z-[3], están las dos
+              mitades clickeables del filtro, y el título las taparía. */}
+          <div className="hero-weld-content pointer-events-none flex min-h-[175px] flex-col justify-center pb-1 sm:min-h-[406px] md:min-h-[155px]">
+            <div className="mx-auto max-w-2xl text-center">
+              <h1 className="text-xl leading-[1.15] font-bold tracking-tight drop-shadow-[0_2px_18px_rgba(2,6,23,0.8)] sm:text-3xl md:text-4xl">
                 <span className="block">Tu problema tiene solución.</span>
                 <span className="block">Encontrala acá.</span>
               </h1>
