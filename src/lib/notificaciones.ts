@@ -51,3 +51,18 @@ export async function notificarA(db: Db, userIds: string[], aviso: Aviso) {
     data: userIds.map((userId) => ({ userId, kind: aviso.kind, title: aviso.title, body: aviso.body ?? null, url: aviso.url, groupKey: aviso.groupKey ?? null })),
   });
 }
+
+/**
+ * "Te escribieron", agrupado por hilo: veinte mensajes sin leer de la misma
+ * conversación son un solo renglón en la campanita.
+ */
+export async function notificarMensaje(db: Db, opciones: { conversationId: string; paraUserId: string | null; paraRol: "cliente" | "profesional"; deNombre: string; texto: string }) {
+  if (!opciones.paraUserId) return;
+  await notificar(db, opciones.paraUserId, {
+    kind: "mensaje",
+    title: `Mensaje de ${opciones.deNombre}`,
+    body: opciones.texto.trim().slice(0, 120) || "Te mandó un archivo",
+    url: `${opciones.paraRol === "profesional" ? "/pro" : ""}/mensajes?conversacion=${opciones.conversationId}`,
+    groupKey: `msg:${opciones.conversationId}`,
+  });
+}

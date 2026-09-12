@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser, interactionAccess } from "@/lib/auth";
+import { notificarMensaje } from "@/lib/notificaciones";
 import { CLIENT_BLUE, PRO_GREEN } from "@/lib/brand";
 import { contarNoLeidos } from "@/lib/mensajes";
 
@@ -115,6 +116,14 @@ export async function POST(req: NextRequest) {
   await prisma.conversation.update({
     where: { id: conversation.id },
     data: { updatedAt: new Date() },
+  });
+
+  await notificarMensaje(prisma, {
+    conversationId: conversation.id,
+    paraUserId: professional.userId,
+    paraRol: "profesional",
+    deNombre: user.name,
+    texto: text,
   });
 
   return NextResponse.json({ conversationId: conversation.id }, { status: 201 });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { participantIn } from "@/lib/mensajes-server";
+import { notificarMensaje } from "@/lib/notificaciones";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,14 @@ export async function POST(
 
   // Toca el hilo para que suba en la lista, ordenada por updatedAt.
   await prisma.conversation.update({ where: { id }, data: { updatedAt: new Date() } });
+
+  await notificarMensaje(prisma, {
+    conversationId: id,
+    paraUserId: role === "cliente" ? conversation.professional.userId : conversation.userId,
+    paraRol: role === "cliente" ? "profesional" : "cliente",
+    deNombre: user.name,
+    texto: cleanText,
+  });
 
   return NextResponse.json(message, { status: 201 });
 }

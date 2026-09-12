@@ -5,7 +5,8 @@ import { interactionAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export const REPORT_REASONS = ["no_es_suyo", "inapropiado", "enganoso", "otro"] as const;
+// Sin exportar: un route handler solo puede exportar sus métodos y su config.
+const REPORT_REASONS = ["no_es_suyo", "inapropiado", "enganoso", "otro"] as const;
 
 /**
  * POST /api/denuncias

@@ -4,6 +4,7 @@ import { participantIn } from "@/lib/mensajes-server";
 import { OPEN_BOOKING_STATUSES, PROPOSAL_TTL_MS, expirePendingProposals } from "@/lib/workflow";
 import { canRevealPaymentDetails } from "@/lib/payments";
 import { validEstimatedDays } from "@/lib/trabajo";
+import { notificar } from "@/lib/notificaciones";
 
 async function currentBooking(userId: string, professionalId: string) {
   await expirePendingProposals();
@@ -48,6 +49,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await tx.proposal.create({ data: { bookingId: created.id, amount, message: detail || null, estimatedDays, expiresAt: new Date(Date.now() + PROPOSAL_TTL_MS) } });
     await tx.message.create({ data: { conversationId: conversation.id, sender: "profesional", text: `💰 PROPUESTA · $${amount.toLocaleString("es-AR")} · ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo · Vence en 3 días${detail ? ` · ${detail}` : ""}` } });
     await tx.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
+    await notificar(tx, conversation.userId, {
+      kind: "propuesta",
+      title: "Te mandaron una propuesta",
+      body: `$${amount.toLocaleString("es-AR")} · ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo`,
+      url: `/mensajes?conversacion=${conversation.id}`,
+      groupKey: `prop:${created.id}`,
+    });
     return created;
   });
   return NextResponse.json(booking, { status: 201 });

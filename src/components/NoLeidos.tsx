@@ -19,6 +19,16 @@ const POLL_MS = 12000;
 /** Ventana en la que no se repite el "ya lo leí" del mismo hilo. */
 const MARCA_MS = 3000;
 
+export type Aviso = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string | null;
+  url: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
 type NoLeidosCtx = {
   /** Mensajes sin leer por conversación. */
   porConversacion: Record<string, number>;
@@ -28,6 +38,12 @@ type NoLeidosCtx = {
   marcarLeida: (id: string) => void;
   /** Hilo que está a la vista. No suena ni se cuenta mientras se lo mira. */
   mirandoHilo: (id: string | null) => void;
+  /** Últimos avisos de la campanita, más nuevos primero. */
+  avisos: Aviso[];
+  /** Avisos sin leer: el número del globito de la campanita. */
+  avisosSinLeer: number;
+  /** Al abrir la campanita se da por visto todo lo que había. */
+  marcarAvisosLeidos: () => void;
 };
 
 // Valores por defecto para que <Chat> siga funcionando fuera del provider
@@ -37,6 +53,9 @@ const Ctx = createContext<NoLeidosCtx>({
   total: 0,
   marcarLeida: () => {},
   mirandoHilo: () => {},
+  avisos: [],
+  avisosSinLeer: 0,
+  marcarAvisosLeidos: () => {},
 });
 
 export const useNoLeidos = () => useContext(Ctx);
@@ -61,15 +80,18 @@ export function NoLeidosProvider({
 }) {
   const esPro = mode === "pro";
   const [porConversacion, setPorConversacion] = useState<Record<string, number>>({});
+  const [avisos, setAvisos] = useState<Aviso[]>([]);
+  const [avisosSinLeer, setAvisosSinLeer] = useState(0);
 
   // El snapshot anterior: el sonido sale de comparar, no de que haya sin leer
   // (si no, sonaría en loop mientras quede algo pendiente).
   const previo = useRef<Record<string, number> | null>(null);
+  const previoAvisos = useRef<number | null>(null);
   const hiloALaVista = useRef<string | null>(null);
   const ultimaMarca = useRef<Record<string, number>>({});
 
   const aplicar = useCallback(
-    (datos: { porConversacion?: Record<string, number> }, silencioso = false) => {
+    (datos: { porConversacion?: Record<string, number>; avisos?: { total: number; items: Aviso[] } }, silencioso = false) => {
       const nuevo = datos.porConversacion ?? {};
       const anterior = previo.current;
 
@@ -81,11 +103,19 @@ export function NoLeidosProvider({
           // viendo; en segundo plano sí conviene avisarle.
           return !(id === hiloALaVista.current && document.visibilityState === "visible");
         });
-        if (llegoAlgo) sonarNotificacion();
+        // Una propuesta o una solicitud por vencer también merecen el sonido,
+        // pero uno solo: suena si subió algo, no una vez por cosa que subió.
+        const avisoNuevo = datos.avisos != null && previoAvisos.current != null && datos.avisos.total > previoAvisos.current;
+        if (llegoAlgo || avisoNuevo) sonarNotificacion();
       }
 
       previo.current = nuevo;
       setPorConversacion(nuevo);
+      if (datos.avisos) {
+        previoAvisos.current = datos.avisos.total;
+        setAvisos(datos.avisos.items);
+        setAvisosSinLeer(datos.avisos.total);
+      }
     },
     []
   );
@@ -96,7 +126,10 @@ export function NoLeidosProvider({
   useEffect(() => {
     if (!activo) {
       previo.current = null;
+      previoAvisos.current = null;
       setPorConversacion({});
+      setAvisos([]);
+      setAvisosSinLeer(0);
       return;
     }
     let cancelado = false;
@@ -169,14 +202,25 @@ export function NoLeidosProvider({
     hiloALaVista.current = id;
   }, []);
 
+  const marcarAvisosLeidos = useCallback(async () => {
+    // Baja el globito en el acto; el próximo poll lo confirma.
+    setAvisosSinLeer(0);
+    previoAvisos.current = 0;
+    setAvisos((current) => current.map((aviso) => (aviso.readAt ? aviso : { ...aviso, readAt: new Date().toISOString() })));
+    await fetch("/api/avisos/leido", { method: "POST" }).catch(() => {});
+  }, []);
+
   const valor = useMemo<NoLeidosCtx>(
     () => ({
       porConversacion,
       total: contarChatsConNoLeidos(porConversacion),
       marcarLeida,
       mirandoHilo,
+      avisos,
+      avisosSinLeer,
+      marcarAvisosLeidos,
     }),
-    [porConversacion, marcarLeida, mirandoHilo]
+    [porConversacion, marcarLeida, mirandoHilo, avisos, avisosSinLeer, marcarAvisosLeidos]
   );
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;

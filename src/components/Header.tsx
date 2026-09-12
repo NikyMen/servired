@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { ModeSwitch } from "@/components/ModeSwitch";
 import { UserMenu } from "@/components/UserMenu";
+import { Campanita } from "@/components/Campanita";
 import { SearchBox } from "@/components/SearchBox";
 import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
 import type { SessionUser } from "@/lib/auth";
@@ -99,6 +100,8 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
               juntos, porque .mode-switch estaba fuera de @layer y le ganaba al
               `hidden` de Tailwind. Ahora achica con clases responsive. */}
           <ModeSwitch mode={mode} />
+          {/* Sin sesión no hay avisos que mostrar. */}
+          {user && <Campanita />}
           <UserMenu user={user} mode={mode} />
         </div>
       </div>

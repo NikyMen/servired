@@ -256,6 +256,13 @@ export async function reviewKycAction(action: KycDecision, formData: FormData) {
       await tx.kycCase.update({ where: { id }, data: { status, reviewReason: reason, reviewedBy: reviewer, reviewedAt: new Date() } });
       if (kyc.user.professional) await tx.professional.update({ where: { id: kyc.user.professional.id }, data: { profileStatus: status, verified: false } });
     }
+    await notificar(tx, kyc.userId, {
+      kind: "kyc",
+      title: action === "approve" ? "Tu perfil quedó aprobado" : action === "changes" ? "Te pedimos cambios en la verificación" : "Rechazamos tu verificación",
+      body: action === "approve" ? "Ya podés recibir trabajos en Ofrezco." : reason,
+      url: "/pro",
+      groupKey: `kyc:${kyc.id}`,
+    });
   });
   revalidatePath("/admin");
   revalidatePath("/");

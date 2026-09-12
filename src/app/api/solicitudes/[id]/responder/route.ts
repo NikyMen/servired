@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { interactionAccess } from "@/lib/auth";
+import { notificarMensaje } from "@/lib/notificaciones";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,14 @@ export async function POST(
   await prisma.conversation.update({
     where: { id: conversation.id },
     data: { updatedAt: new Date() },
+  });
+
+  await notificarMensaje(prisma, {
+    conversationId: conversation.id,
+    paraUserId: request.userId,
+    paraRol: "cliente",
+    deNombre: user.name,
+    texto: text,
   });
 
   return NextResponse.json({ conversationId: conversation.id }, { status: 201 });
