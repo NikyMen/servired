@@ -5,6 +5,7 @@ import { ACTIVE_JOB_STATUSES, PROPOSAL_TTL_MS, hasJobCapacity, proposalIsActive 
 import { canRevealPaymentDetails } from "../src/lib/payments";
 import { MAX_REPUBLISH, REQUEST_TTL_MS, requestDaysLeft, requestIsLastDay } from "../src/lib/solicitudes";
 import { jobProgress, validEstimatedDays } from "../src/lib/trabajo";
+import { parseTexto } from "../src/lib/site-text";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -113,4 +114,15 @@ test("el plazo del trabajo se cuenta en días enteros y se pasa a rojo al vencer
   assert.equal(validEstimatedDays(0), null);
   assert.equal(validEstimatedDays(400), null);
   assert.equal(validEstimatedDays("varios"), null);
+});
+
+test("el texto legal se lee con subtítulos, listas y párrafos", () => {
+  const bloques = parseTexto("Primer párrafo\nen dos renglones.\n\n## Un título\n- uno\n- dos\n\nCierre.");
+  assert.deepEqual(bloques, [
+    { tipo: "parrafo", texto: "Primer párrafo en dos renglones." },
+    { tipo: "titulo", texto: "Un título" },
+    { tipo: "lista", items: ["uno", "dos"] },
+    { tipo: "parrafo", texto: "Cierre." },
+  ]);
+  assert.deepEqual(parseTexto("   \n\n  "), []);
 });

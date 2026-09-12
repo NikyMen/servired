@@ -34,6 +34,26 @@ export async function loginAdminAction(
   redirect("/admin");
 }
 
+/**
+ * Guarda un texto legal. Una fila por clave, con upsert, igual que las placas
+ * de publicidad: la página lo lee por esa clave y cae al texto por defecto si
+ * todavía no existe.
+ */
+export async function saveSiteTextAction(formData: FormData) {
+  await requireAdmin();
+  const slug = text(formData, "slug");
+  const title = text(formData, "title").slice(0, 160);
+  const body = String(formData.get("body") ?? "").trim().slice(0, 40000);
+  if (!slug || !title || body.length < 20) return;
+  await prisma.siteText.upsert({
+    where: { slug },
+    create: { slug, title, body },
+    update: { title, body },
+  });
+  revalidatePath("/admin");
+  revalidatePath(`/${slug}`);
+}
+
 export async function logoutAdminAction() {
   await destroyAdminSession();
   redirect("/admin/entrar");

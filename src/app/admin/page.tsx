@@ -1,4 +1,4 @@
-import { logoutAdminAction, createCategoryAction, deleteCategoryAction, saveAdAction, updateCategoryAction } from "@/app/admin/actions";
+import { logoutAdminAction, createCategoryAction, deleteCategoryAction, saveAdAction, saveSiteTextAction, updateCategoryAction } from "@/app/admin/actions";
 import { AdminPreinscriptions } from "@/components/AdminPreinscriptions";
 import { AdminKyc } from "@/components/AdminKyc";
 import { requireAdmin } from "@/lib/admin";
@@ -9,11 +9,12 @@ import { formatARS, formatDate, formatDateTime } from "@/lib/format";
 import type { Metadata } from "next";
 import { StatusPill } from "@/components/ui";
 import { AdImageEditor } from "@/components/AdImageEditor";
+import { TERMS_DEFAULT, TERMS_SLUG, getSiteText } from "@/lib/site-text";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Administración" };
 
-const TABS = ["todo", "kyc", "usuarios", "trabajos", "catalogo", "publicidad", "preinscripciones"] as const;
+const TABS = ["todo", "kyc", "denuncias", "usuarios", "trabajos", "catalogo", "publicidad", "legales", "preinscripciones"] as const;
 type Tab = (typeof TABS)[number];
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -21,13 +22,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { tab: rawTab } = await searchParams;
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "todo";
   const showAll = tab === "todo";
-  const [preinscriptions, kycCases, users, bookings, categories, ads, userCount, verifiedProviderCount, activeJobCount] = await Promise.all([
+  const [preinscriptions, kycCases, users, bookings, categories, ads, terminos, userCount, verifiedProviderCount, activeJobCount] = await Promise.all([
     listPreinscriptions(),
     prisma.kycCase.findMany({ orderBy: { updatedAt: "desc" }, include: { documents: true, user: { include: { oauthAccounts: true, professional: true } } } }),
     prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, include: { professional: { select: { providerType: true, profileStatus: true, verified: true } }, oauthAccounts: { select: { provider: true } } } }),
     prisma.booking.findMany({ orderBy: { updatedAt: "desc" }, take: 50, include: { user: { select: { name: true } }, professional: { select: { name: true } }, proposals: { orderBy: { createdAt: "desc" }, take: 1 } } }),
     prisma.category.findMany({ orderBy: [{ kind: "asc" }, { name: "asc" }], include: { _count: { select: { professionals: true, requests: true } } } }),
     prisma.ad.findMany({ orderBy: { slot: "asc" } }),
+    getSiteText(TERMS_SLUG, TERMS_DEFAULT),
     prisma.user.count(),
     prisma.professional.count({ where: { verified: true, profileStatus: "approved" } }),
     prisma.booking.count({ where: { status: { in: ["in_progress", "finished", "payment_reported", "paid_awaiting_review"] } } }),
@@ -48,6 +50,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <TabLink tab="trabajos" active={tab === "trabajos"}>Trabajos</TabLink>
         <TabLink tab="catalogo" active={tab === "catalogo"}>Rubros</TabLink>
         <TabLink tab="publicidad" active={tab === "publicidad"}>Publicidad</TabLink>
+        <TabLink tab="legales" active={tab === "legales"}>Legales</TabLink>
         <TabLink tab="preinscripciones" active={tab === "preinscripciones"}>Preinscripciones</TabLink>
       </nav>
     </header>
@@ -63,6 +66,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     {(showAll || tab === "catalogo") && <section className="space-y-4"><SectionTitle eyebrow="Clasificación" title="Rubros y categorías" subtitle="Separados entre Profesional y Oficio" /><form action={createCategoryAction} className="glass glass-solid grid gap-3 rounded-2xl p-4 sm:grid-cols-[80px_1fr_1fr_160px_auto]"><input name="icon" placeholder="🛠️" className="glass-field px-3 py-2 text-sm" /><input name="name" required placeholder="Nombre del rubro" className="glass-field px-3 py-2 text-sm" /><input name="slug" placeholder="slug-opcional" className="glass-field px-3 py-2 text-sm" /><select name="kind" className="glass-field px-3 py-2 text-sm"><option value="oficio">Oficio</option><option value="profesional">Profesional</option></select><button className="glass-btn px-4 py-2 text-sm">Agregar</button></form><div className="grid gap-3 md:grid-cols-2">{(["profesional", "oficio"] as const).map((kind) => <div key={kind} className="glass glass-solid rounded-2xl p-4"><h3 className="mb-3 text-lg font-bold capitalize text-slate-900">{kind}</h3><div className="space-y-2">{categories.filter((category) => category.kind === kind).map((category) => <details key={category.id} className="rounded-xl bg-white/60 p-3"><summary className="flex cursor-pointer list-none items-center gap-3"><span className="text-xl">{category.icon}</span><div className="min-w-0 flex-1"><p className="truncate font-semibold">{category.name}</p><p className="text-xs text-slate-400">{category._count.professionals} perfiles · {category._count.requests} solicitudes</p></div><span className="text-xs font-semibold text-cliente">Editar</span></summary><form action={updateCategoryAction} className="mt-3 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-[70px_1fr_1fr_130px_auto]"><input type="hidden" name="id" value={category.id} /><input name="icon" defaultValue={category.icon} className="glass-field px-2 py-1.5 text-sm" /><input name="name" required defaultValue={category.name} className="glass-field px-2 py-1.5 text-sm" /><input name="slug" defaultValue={category.slug} className="glass-field px-2 py-1.5 text-sm" /><select name="kind" defaultValue={category.kind} className="glass-field px-2 py-1.5 text-sm"><option value="oficio">Oficio</option><option value="profesional">Profesional</option></select><button className="glass-btn px-3 py-1.5 text-xs">Guardar</button></form><form action={deleteCategoryAction} className="mt-2 text-right"><input type="hidden" name="id" value={category.id} /><button className="text-xs font-semibold text-red-600">Eliminar si no está en uso</button></form></details>)}</div></div>)}</div></section>}
 
     {(showAll || tab === "publicidad") && <section className="space-y-4"><SectionTitle eyebrow="Portada" title="Publicidades" subtitle="Placas laterales y móviles" /><div className="grid gap-3 md:grid-cols-2">{["left-1", "left-2", "right-1", "right-2", "mobile-1", "mobile-2", "mobile-3", "mobile-4"].map((slot) => { const ad = ads.find((item) => item.slot === slot); return <form key={slot} action={saveAdAction} className="glass glass-solid space-y-3 rounded-2xl p-4"><input type="hidden" name="slot" value={slot} /><div className="flex items-center justify-between"><h3 className="font-bold text-slate-900">{slot}</h3><label className="text-xs font-semibold text-slate-600"><input type="checkbox" name="enabled" defaultChecked={ad?.enabled ?? true} className="mr-1" />Activa</label></div><input name="title" defaultValue={ad?.title ?? ""} placeholder="Título (opcional)" className="glass-field px-3 py-2 text-sm" /><AdImageEditor name="image" currentUrl={ad?.imageUrl || null} scale={ad?.imageScale ?? 1} x={ad?.imageX ?? 0} y={ad?.imageY ?? 0} stretchX={ad?.imageStretchX ?? 1} stretchY={ad?.imageStretchY ?? 1} /><div><label className="text-xs font-semibold text-slate-600">WhatsApp de destino</label><div className="mt-1 flex items-center gap-1.5"><span className="glass-field flex items-center px-2 py-2 text-sm text-slate-500">+549</span><input name="whatsappAreaCode" defaultValue={ad?.whatsappPhone?.slice(0, 4) || ""} placeholder="3783" inputMode="numeric" maxLength={4} pattern="[0-9]{4}" className="glass-field w-16 px-2 py-2 text-sm" /><input name="whatsappNumber" defaultValue={ad?.whatsappPhone?.slice(4, 10) || ""} placeholder="123456" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" className="glass-field w-24 px-2 py-2 text-sm" /></div></div><textarea name="whatsappMessage" defaultValue={ad?.whatsappMessage || ""} placeholder="Mensaje predeterminado de WhatsApp" rows={2} className="glass-field w-full resize-none px-3 py-2 text-sm" /><button className="glass-btn px-4 py-2 text-sm">Guardar placa</button></form>; })}</div></section>}
+
+    {(showAll || tab === "legales") && <section className="space-y-3"><SectionTitle eyebrow="Sitio" title="Términos y condiciones" subtitle={terminos.updatedAt ? `Última modificación: ${formatDate(terminos.updatedAt)}` : "Todavía se muestra el texto inicial"} /><form action={saveSiteTextAction} className="glass glass-solid space-y-3 rounded-2xl p-4"><input type="hidden" name="slug" value={TERMS_SLUG} /><input name="title" required defaultValue={terminos.title} placeholder="Título de la página" className="glass-field w-full px-3 py-2 text-sm" /><textarea name="body" required rows={22} defaultValue={terminos.body} className="glass-field w-full resize-y px-3 py-2 font-mono text-xs leading-5" /><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Empezá una línea con <code className="font-mono">## </code> para un subtítulo y con <code className="font-mono">- </code> para un ítem. Un renglón en blanco corta párrafo.</p><div className="flex gap-2"><a href="/terminos" target="_blank" rel="noopener noreferrer" className="glass-btn glass-btn-ghost px-4 py-2 text-sm">Ver la página</a><button className="glass-btn px-4 py-2 text-sm">Guardar texto</button></div></div></form></section>}
 
     {(showAll || tab === "preinscripciones") && <section><SectionTitle eyebrow="Captación" title="Preinscripciones" subtitle={`${preinscriptions.length} contactos únicos`} /><AdminPreinscriptions initialRows={serializedPreinscriptions} /></section>}
   </div></main>;

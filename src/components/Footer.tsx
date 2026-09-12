@@ -88,6 +88,7 @@ export function Footer({ mode }: { mode: Mode }) {
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-slate-400 sm:flex-row">
           <p>© {new Date().getFullYear()} ServiRed. Todos los derechos reservados.</p>
           <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <Link href="/terminos" className="transition-colors hover:text-slate-600">Términos y condiciones</Link>
             <Link href="/baja-de-cuenta" className="transition-colors hover:text-slate-600">Dar de baja mi cuenta</Link>
             <span>Hecho en Argentina 🇦🇷</span>
           </nav>
