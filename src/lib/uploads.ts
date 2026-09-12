@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 /**
@@ -125,4 +125,17 @@ function sanitizeName(name: string): string {
     .replace(/[^\p{L}\p{N}._ -]/gu, "")
     .trim()
     .slice(0, 80);
+}
+
+/**
+ * Borra un archivo subido a partir de su URL pública.
+ *
+ * La cascada de Prisma se lleva las filas, no los archivos: sin esto, dar de
+ * baja una cuenta dejaba sus fotos servidas para siempre. Solo acepta URL con
+ * la forma que arma `saveUpload`, así un valor raro en la base no puede
+ * apuntar a otro archivo del servidor.
+ */
+export async function removeUpload(url: string | null | undefined) {
+  if (!url || !UPLOAD_URL.test(url)) return;
+  await unlink(path.join(UPLOAD_DIR, path.basename(url))).catch(() => {});
 }
