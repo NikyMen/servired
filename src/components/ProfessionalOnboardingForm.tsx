@@ -8,11 +8,18 @@ type ProviderType = "profesional" | "oficio";
 type Category = { id: string; name: string; icon: string; kind: string; parent: { name: string } | null };
 type Initial = {
   name: string; email: string; avatarUrl: string | null; providerType?: ProviderType; status?: string; reason?: string | null;
-  categoryIds?: string[]; headline?: string; bio?: string; paymentAlias?: string; paymentCvu?: string; yearsExperience?: number;
+  categoryIds?: string[]; headline?: string; bio?: string; paymentHandle?: string; yearsExperience?: number;
   legalName?: string; phone?: string; birthDate?: string; cuil?: string; dni?: string; address?: string;
 };
 
 const FIELD = "glass-field mt-1 w-full px-3 py-2.5 text-sm";
+
+/** Espejo liviano de `parsePaymentHandle`: la versión con criptografía es de servidor. */
+function looksLikePaymentHandle(raw: string) {
+  const value = raw.trim();
+  if (/^[\d\s.-]+$/.test(value)) return value.replace(/\D/g, "").length === 22;
+  return /^[a-zA-Z0-9.-]{6,80}$/.test(value);
+}
 
 export function ProfessionalOnboardingForm({ categories, initial }: { categories: Category[]; initial: Initial }) {
   const router = useRouter();
@@ -20,7 +27,7 @@ export function ProfessionalOnboardingForm({ categories, initial }: { categories
   const [providerType, setProviderType] = useState<ProviderType>(initial.providerType || "oficio");
   const [categoryIds, setCategoryIds] = useState<string[]>(initial.categoryIds ?? []);
   const [values, setValues] = useState({
-    headline: initial.headline ?? "", bio: initial.bio ?? "", paymentAlias: initial.paymentAlias ?? "", paymentCvu: initial.paymentCvu ?? "", yearsExperience: String(initial.yearsExperience ?? 0), legalName: initial.legalName ?? initial.name,
+    headline: initial.headline ?? "", bio: initial.bio ?? "", paymentHandle: initial.paymentHandle ?? "", yearsExperience: String(initial.yearsExperience ?? 0), legalName: initial.legalName ?? initial.name,
     phone: initial.phone ?? "", birthDate: initial.birthDate ?? "", cuil: initial.cuil ?? "", dni: initial.dni ?? "", address: initial.address ?? "",
   });
   const [avatar, setAvatar] = useState<File | null>(null);
@@ -75,8 +82,9 @@ export function ProfessionalOnboardingForm({ categories, initial }: { categories
 
   function validateStep() {
     if (step === 1 && (!values.headline.trim() || values.bio.trim().length < 20 || categoryIds.length === 0)) return "Completá actividad, descripción y al menos un rubro.";
-    if (step === 1 && values.paymentAlias.trim().length < 6) return "Ingresá un alias de cobro válido.";
-    if (step === 1 && values.paymentCvu.replace(/\D/g, "").length !== 22) return "El CVU debe tener 22 dígitos.";
+    // El servidor valida de verdad (incluye el dígito verificador del CVU);
+    // acá solo se atajan las dos formas obvias de mandar cualquier cosa.
+    if (step === 1 && !looksLikePaymentHandle(values.paymentHandle)) return "Ingresá tu CVU o CBU de 22 dígitos, o tu alias.";
     const legalParts = values.legalName.trim().split(/\s+/).map((part) => part.replace(/[^\p{L}]/gu, ""));
     if (step === 2 && (legalParts.length < 2 || legalParts.some((part) => part.length < 2) || values.phone.replace(/\D/g, "").length < 8 || !values.birthDate || values.address.trim().length < 5)) return "Ingresá nombre y apellido completos y revisá tus datos personales.";
     if (step === 2 && values.cuil.replace(/\D/g, "").length !== 11) return "El CUIL debe tener 11 dígitos.";
@@ -162,7 +170,10 @@ export function ProfessionalOnboardingForm({ categories, initial }: { categories
         </label>
         <label className="block text-sm font-medium">Descripción de los trabajos que ofrecés<textarea value={values.bio} onChange={(e) => update("bio", e.target.value)} minLength={20} maxLength={1000} rows={4} placeholder="Contá qué trabajos hacés, cómo trabajás y qué te diferencia." className={`${FIELD} resize-none`} /></label>
         <fieldset><legend className="text-sm font-semibold">Rubros de {providerType}</legend><div className="mt-2 grid max-h-64 gap-2 overflow-y-auto sm:grid-cols-2">{compatibleCategories.map((category) => <label key={category.id} className="rounded-xl bg-white/70 p-3 text-sm"><input type="checkbox" checked={categoryIds.includes(category.id)} onChange={(e) => setCategoryIds((current) => e.target.checked ? [...current, category.id] : current.filter((id) => id !== category.id))} className="mr-2" />{category.icon} {category.parent ? `${category.parent.name} · ` : ""}{category.name}</label>)}</div></fieldset>
-        <div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-medium">Alias de cobro<input value={values.paymentAlias} onChange={(e) => update("paymentAlias", e.target.value)} placeholder="nombre.alias" className={FIELD} /></label><label className="text-sm font-medium">CVU<input value={values.paymentCvu} onChange={(e) => update("paymentCvu", e.target.value.replace(/\D/g, "").slice(0, 22))} inputMode="numeric" placeholder="22 dígitos" className={FIELD} /></label></div>
+        <label className="block text-sm font-medium">Dónde te pagan
+          <input value={values.paymentHandle} onChange={(e) => update("paymentHandle", e.target.value)} maxLength={80} placeholder="CVU, CBU o alias" className={FIELD} />
+          <span className="mt-1 block text-xs font-normal text-slate-500">Un solo dato: si son 22 dígitos lo tomamos como CVU o CBU, y si no, como alias.</span>
+        </label>
       </>}
       {step === 2 && <>
         <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Nombre legal<input value={values.legalName} onChange={(e) => update("legalName", e.target.value)} className={FIELD} /></label><label className="text-sm font-medium">Email verificado<input value={initial.email} disabled className={`${FIELD} opacity-70`} /></label><label className="text-sm font-medium">Teléfono<input value={values.phone} onChange={(e) => update("phone", e.target.value)} type="tel" className={FIELD} /></label><label className="text-sm font-medium">Fecha de nacimiento<input value={values.birthDate} onChange={(e) => update("birthDate", e.target.value)} type="date" className={FIELD} /></label><label className="text-sm font-medium">CUIL<input value={values.cuil} onChange={(e) => update("cuil", e.target.value)} inputMode="numeric" placeholder="20-12345678-6" className={FIELD} /></label><label className="text-sm font-medium">DNI<input value={values.dni} onChange={(e) => update("dni", e.target.value)} inputMode="numeric" className={FIELD} /></label><label className="text-sm font-medium sm:col-span-2">Domicilio<input value={values.address} onChange={(e) => update("address", e.target.value)} className={FIELD} /></label></div>
@@ -173,7 +184,7 @@ export function ProfessionalOnboardingForm({ categories, initial }: { categories
         <div className="grid gap-4 sm:grid-cols-3"><FileField label="Foto de perfil" accept="image/jpeg,image/png,image/webp" current={initial.avatarUrl ? "Foto actual disponible" : null} onChange={setAvatar} /><FileField label="DNI frente" accept="image/jpeg,image/png,image/webp" onChange={setDniFront} /><FileField label="DNI dorso" accept="image/jpeg,image/png,image/webp" onChange={setDniBack} /></div>
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"><h2 className="font-bold text-slate-900">Video de identidad</h2><p className="mt-1 text-sm text-slate-600">Mostrá tu cara y el DNI, y leé en voz alta la frase que aparece. Máximo 30 segundos.</p>{challenge && <p className="mt-3 rounded-xl bg-white p-4 text-center text-base leading-relaxed font-bold text-pro-dark sm:text-lg">{challenge}</p>}<video ref={liveVideoRef} autoPlay muted playsInline className={`${recording ? "block" : "hidden"} mt-3 max-h-72 w-full scale-x-[-1] rounded-xl bg-black`} /><div className="mt-3 flex flex-wrap gap-2">{recording ? <button type="button" onClick={stopRecording} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Detener ({seconds}s)</button> : <button type="button" onClick={startRecording} className="glass-btn px-4 py-2 text-sm">{video ? "Volver a grabar" : "Grabar video"}</button>}</div>{videoUrl && !recording && <video src={videoUrl} controls playsInline className="mt-3 max-h-72 w-full rounded-xl bg-black" />}</section>
       </>}
-      {step === 4 && <section className="space-y-3"><h2 className="text-xl font-bold text-slate-900">Revisá antes de enviar</h2><dl className="grid gap-3 text-sm sm:grid-cols-2"><Summary label="Tipo" value={providerType} /><Summary label="Actividad" value={values.headline} /><Summary label="Rubros" value={String(categoryIds.length)} /><Summary label="Años en el oficio" value={values.yearsExperience || "0"} /><Summary label="Ubicación" value="Corrientes Capital, Corrientes, Argentina" /><Summary label="Cobro" value={`${values.paymentAlias} · CVU terminado en ${values.paymentCvu.slice(-4)}`} /><Summary label="Identidad" value="DNI frente, dorso y video listos" /></dl><p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">El perfil quedará pendiente hasta que administración revise la documentación.</p></section>}
+      {step === 4 && <section className="space-y-3"><h2 className="text-xl font-bold text-slate-900">Revisá antes de enviar</h2><dl className="grid gap-3 text-sm sm:grid-cols-2"><Summary label="Tipo" value={providerType} /><Summary label="Actividad" value={values.headline} /><Summary label="Rubros" value={String(categoryIds.length)} /><Summary label="Años en el oficio" value={values.yearsExperience || "0"} /><Summary label="Ubicación" value="Corrientes Capital, Corrientes, Argentina" /><Summary label="Cobro" value={values.paymentHandle} /><Summary label="Identidad" value="DNI frente, dorso y video listos" /></dl><p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">El perfil quedará pendiente hasta que administración revise la documentación.</p></section>}
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between"><div className="flex gap-2"><Link href="/" className="glass-btn glass-btn-ghost px-4 py-2.5 text-sm">Volver a Busco</Link>{step > 1 && <button type="button" onClick={() => { setError(null); setStep((current) => current - 1); }} className="glass-btn glass-btn-ghost px-4 py-2.5 text-sm">Atrás</button>}</div>{step < 4 ? <button type="button" onClick={next} className="glass-btn px-5 py-2.5 text-sm">Continuar</button> : <button type="button" disabled={busy} onClick={submit} className="glass-btn px-5 py-2.5 text-sm disabled:opacity-60">{busy ? "Enviando…" : "Enviar para aprobación"}</button>}</div>
     </div>

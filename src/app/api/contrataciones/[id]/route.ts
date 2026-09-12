@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const finalPrice = Math.round(Number(body?.finalPrice));
     const workSummary = typeof body?.workSummary === "string" ? body.workSummary.trim().slice(0, 1200) : "";
     if (!Number.isFinite(finalPrice) || finalPrice <= 0 || workSummary.length < 8) return NextResponse.json({ error: "Ingresá monto final y una explicación del trabajo." }, { status: 422 });
-    if (!booking.professional.paymentAlias || !booking.professional.paymentCvu) return NextResponse.json({ error: "Configurá tu alias y CVU antes de terminar el trabajo." }, { status: 422 });
+    if (!booking.professional.paymentHandle) return NextResponse.json({ error: "Cargá tu CVU o alias de cobro antes de terminar el trabajo." }, { status: 422 });
     const updated = await prisma.booking.update({ where: { id }, data: { status: "finished", finalPrice, workSummary, finishedAt: new Date() } });
     if (conversation) await prisma.message.create({ data: { conversationId: conversation.id, sender: "profesional", text: `🏁 TRABAJO TERMINADO · ${messageText(finalPrice)} · ${workSummary}` } });
     return NextResponse.json(updated);

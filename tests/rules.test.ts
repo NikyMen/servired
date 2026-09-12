@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createVideoChallenge, cuilMatchesDni, validCuil, validCvu, validDni, validPhone, verifyVideoChallenge } from "../src/lib/kyc";
+import { createVideoChallenge, cuilMatchesDni, parsePaymentHandle, validCuil, validCvu, validDni, validPhone, verifyVideoChallenge } from "../src/lib/kyc";
 import { ACTIVE_JOB_STATUSES, PROPOSAL_TTL_MS, hasJobCapacity, proposalIsActive } from "../src/lib/workflow";
 import { canRevealPaymentDetails } from "../src/lib/payments";
 
@@ -18,6 +18,17 @@ test("valida teléfono y CVU con sus dígitos verificadores", () => {
   assert.equal(validPhone("123"), false);
   assert.equal(validCvu("2850590940090418135201"), true);
   assert.equal(validCvu("2850590940090418135202"), false);
+});
+
+test("un solo campo de cobro distingue CVU de alias", () => {
+  assert.deepEqual(parsePaymentHandle("2850590940090418135201"), { handle: "2850590940090418135201", kind: "cvu" });
+  assert.deepEqual(parsePaymentHandle(" 2850-5909-4009-0418-1352-01 "), { handle: "2850590940090418135201", kind: "cvu" });
+  assert.deepEqual(parsePaymentHandle("juan.perez.mp"), { handle: "juan.perez.mp", kind: "alias" });
+  // Un CVU con el verificador cambiado no se degrada a alias: es un error de tipeo.
+  assert.equal(parsePaymentHandle("2850590940090418135202"), null);
+  assert.equal(parsePaymentHandle("12345678"), null);
+  assert.equal(parsePaymentHandle("corto"), null);
+  assert.equal(parsePaymentHandle(""), null);
 });
 
 test("el desafío de video está firmado y vinculado al usuario", () => {

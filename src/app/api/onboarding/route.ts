@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveUpload } from "@/lib/uploads";
-import { cuilMatchesDni, encryptKyc, lookupKyc, normalizeDigits, removeKycDocument, saveKycDocument, validCuil, validCvu, validDni, validPhone, videoChallengeExpiry } from "@/lib/kyc";
+import { cuilMatchesDni, encryptKyc, lookupKyc, normalizeDigits, parsePaymentHandle, removeKycDocument, saveKycDocument, validCuil, validDni, validPhone, videoChallengeExpiry } from "@/lib/kyc";
 import { ACTIVE_JOB_STATUSES } from "@/lib/workflow";
 
 function value(form: FormData, key: string) { return String(form.get(key) ?? "").trim(); }
@@ -28,8 +28,7 @@ export async function POST(req: NextRequest) {
   const headline = value(form, "headline");
   const bio = value(form, "bio");
   const yearsExperience = Math.trunc(Number(value(form, "yearsExperience") || 0));
-  const paymentAlias = value(form, "paymentAlias");
-  const paymentCvu = normalizeDigits(value(form, "paymentCvu"));
+  const payment = parsePaymentHandle(value(form, "paymentHandle"));
   const categoryIds = [...new Set(form.getAll("categoryIds").map(String).filter(Boolean))];
 
   const legalParts = legalName.split(/\s+/).map((part) => part.replace(/[^\p{L}]/gu, ""));
@@ -38,8 +37,8 @@ export async function POST(req: NextRequest) {
   if (!validCuil(cuil)) return NextResponse.json({ error: "El CUIL no es válido." }, { status: 422 });
   if (!validDni(dni)) return NextResponse.json({ error: "El DNI no es válido." }, { status: 422 });
   if (!cuilMatchesDni(cuil, dni)) return NextResponse.json({ error: "El CUIL no corresponde al DNI ingresado." }, { status: 422 });
-  if (headline.length < 3 || bio.length < 20 || bio.length > 1000 || paymentAlias.length < 6 || paymentAlias.length > 80) return NextResponse.json({ error: "Completá actividad, descripción y alias de cobro." }, { status: 422 });
-  if (!validCvu(paymentCvu)) return NextResponse.json({ error: "El CVU no es válido." }, { status: 422 });
+  if (headline.length < 3 || bio.length < 20 || bio.length > 1000) return NextResponse.json({ error: "Completá actividad y descripción." }, { status: 422 });
+  if (!payment) return NextResponse.json({ error: "Revisá tu dato de cobro: un CVU o CBU de 22 dígitos, o un alias." }, { status: 422 });
   if (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 60) return NextResponse.json({ error: "Los años en el oficio tienen que estar entre 0 y 60." }, { status: 422 });
   if (!categoryIds.length) return NextResponse.json({ error: "Elegí al menos un rubro." }, { status: 422 });
 
@@ -93,8 +92,8 @@ export async function POST(req: NextRequest) {
       await tx.kycDocument.createMany({ data: savedDocuments.map((document) => ({ ...document, kycCaseId: kyc.id })) });
       const professional = await tx.professional.upsert({
         where: { userId: session.id },
-        create: { userId: session.id, name: legalName, headline, bio, zone: "Corrientes Capital, Corrientes", address, priceFrom: 0, categoryId: validCategories[0].id, avatarUrl, avatarColor: "#059669", profileStatus: "pending", verified: false, providerType, paymentAlias, paymentCvu, phone, yearsExperience },
-        update: { name: legalName, headline, bio, zone: "Corrientes Capital, Corrientes", address, categoryId: validCategories[0].id, avatarUrl, profileStatus: "pending", verified: false, providerType, paymentAlias, paymentCvu, phone, yearsExperience },
+        create: { userId: session.id, name: legalName, headline, bio, zone: "Corrientes Capital, Corrientes", address, priceFrom: 0, categoryId: validCategories[0].id, avatarUrl, avatarColor: "#059669", profileStatus: "pending", verified: false, providerType, paymentHandle: payment.handle, paymentHandleKind: payment.kind, phone, yearsExperience },
+        update: { name: legalName, headline, bio, zone: "Corrientes Capital, Corrientes", address, categoryId: validCategories[0].id, avatarUrl, profileStatus: "pending", verified: false, providerType, paymentHandle: payment.handle, paymentHandleKind: payment.kind, phone, yearsExperience },
       });
       await tx.professionalCategory.deleteMany({ where: { professionalId: professional.id } });
       await tx.professionalCategory.createMany({ data: validCategories.map((category, index) => ({ professionalId: professional.id, categoryId: category.id, isPrimary: index === 0 })) });

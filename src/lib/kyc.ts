@@ -80,6 +80,24 @@ export function validCvu(value: string) {
     && check(digits.slice(8, 21), [3, 9, 7, 1, 3, 9, 7, 1, 3, 9, 7, 1, 3]) === Number(digits[21]);
 }
 
+export type PaymentHandle = { handle: string; kind: "cvu" | "alias" };
+
+/**
+ * Un solo campo para cobrar. Se decide por la forma de lo que escribieron:
+ * 22 dígitos es un CVU o CBU (y ahí los verificadores tienen que dar), y
+ * cualquier otra cosa con letras es un alias. Un número suelto que no llega a
+ * CVU no pasa por alias: casi siempre es un CVU mal copiado.
+ */
+export function parsePaymentHandle(raw: string): PaymentHandle | null {
+  const value = String(raw ?? "").trim();
+  if (!value) return null;
+  if (/^[\d\s.-]+$/.test(value)) {
+    const digits = normalizeDigits(value);
+    return digits.length === 22 && validCvu(digits) ? { handle: digits, kind: "cvu" } : null;
+  }
+  return /^[a-zA-Z0-9.-]{6,80}$/.test(value) ? { handle: value, kind: "alias" } : null;
+}
+
 type ChallengePayload = { u: string; c: string; e: number };
 
 /* Una frase se lee natural en cámara y se compara de un vistazo al revisar; seis

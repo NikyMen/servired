@@ -6,7 +6,7 @@ import { canRevealPaymentDetails } from "@/lib/payments";
 
 async function currentBooking(userId: string, professionalId: string) {
   await expirePendingProposals();
-  return prisma.booking.findFirst({ where: { userId, professionalId, status: { in: OPEN_BOOKING_STATUSES } }, orderBy: { updatedAt: "desc" }, include: { proposals: { orderBy: { createdAt: "desc" } }, payments: { orderBy: { createdAt: "desc" }, select: { id: true, status: true } }, professional: { select: { paymentAlias: true, paymentCvu: true } } } });
+  return prisma.booking.findFirst({ where: { userId, professionalId, status: { in: OPEN_BOOKING_STATUSES } }, orderBy: { updatedAt: "desc" }, include: { proposals: { orderBy: { createdAt: "desc" } }, payments: { orderBy: { createdAt: "desc" }, select: { id: true, status: true } }, professional: { select: { paymentHandle: true, paymentHandleKind: true } } } });
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!booking) return NextResponse.json({ booking: null });
   const { professional, ...safeBooking } = booking;
   const revealPayment = role === "cliente" && canRevealPaymentDetails(booking.status);
-  return NextResponse.json({ booking: { ...safeBooking, paymentAlias: revealPayment ? professional.paymentAlias : null, paymentCvu: revealPayment ? professional.paymentCvu : null } });
+  return NextResponse.json({ booking: { ...safeBooking, paymentHandle: revealPayment ? professional.paymentHandle : null, paymentHandleKind: revealPayment ? professional.paymentHandleKind : null } });
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

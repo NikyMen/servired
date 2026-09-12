@@ -17,8 +17,7 @@ type Perfil = {
   latitude?: number | null;
   longitude?: number | null;
   providerType?: "profesional" | "oficio";
-  paymentAlias?: string | null;
-  paymentCvu?: string | null;
+  paymentHandle?: string | null;
   phone?: string | null;
   yearsExperience?: number;
 };
@@ -34,8 +33,7 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
     address: perfil.address ?? "Corrientes, Argentina",
     latitude: perfil.latitude ?? -27.4692,
     longitude: perfil.longitude ?? -58.8306,
-    paymentAlias: perfil.paymentAlias ?? "",
-    paymentCvu: perfil.paymentCvu ?? "",
+    paymentHandle: perfil.paymentHandle ?? "",
     phone: perfil.phone ?? "",
     yearsExperience: perfil.yearsExperience ?? 0,
   });
@@ -115,7 +113,10 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
         <label className="block text-sm font-medium text-slate-900">Descripción de los trabajos que ofrecés
           <textarea required minLength={20} rows={4} value={form.bio ?? ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} className={`${field} mt-1 resize-none`} />
         </label>
-        <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium text-slate-900">Alias de cobro<input required minLength={6} value={form.paymentAlias} onChange={(e) => setForm({ ...form, paymentAlias: e.target.value })} className={`${field} mt-1`} /></label><label className="text-sm font-medium text-slate-900">CVU<input required inputMode="numeric" value={form.paymentCvu} onChange={(e) => setForm({ ...form, paymentCvu: e.target.value.replace(/\D/g, "").slice(0, 22) })} placeholder="22 dígitos" className={`${field} mt-1 font-mono`} /></label></div>
+        <label className="block text-sm font-medium text-slate-900">Dónde te pagan
+          <input required maxLength={80} value={form.paymentHandle} onChange={(e) => setForm({ ...form, paymentHandle: e.target.value })} placeholder="CVU, CBU o alias" className={`${field} mt-1`} />
+          <span className="mt-1 block text-xs font-normal text-slate-500">Un solo dato: 22 dígitos se toman como CVU o CBU; cualquier otra cosa, como alias.</span>
+        </label>
         <div className="space-y-2"><div><p className="text-sm font-medium text-slate-900">Ubicación pública</p><p className="text-xs text-slate-500">Marcá el local o zona de trabajo. Esta ficha aparecerá en el mapa.</p></div>
           <MapPicker latitude={form.latitude} longitude={form.longitude} onChange={(latitude, longitude) => setForm({ ...form, latitude, longitude })} />
         </div>

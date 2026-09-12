@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UPLOAD_URL } from "@/lib/uploads";
-import { normalizeDigits, validCvu, validPhone } from "@/lib/kyc";
+import { parsePaymentHandle, validPhone } from "@/lib/kyc";
 
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
@@ -36,9 +36,8 @@ export async function PATCH(req: NextRequest) {
   const headline = String(body.headline ?? "").trim().slice(0, 100);
   const bio = String(body.bio ?? "").trim().slice(0, 1200);
   if (headline.length < 3 || bio.length < 20) return NextResponse.json({ error: "Completá la actividad y una descripción de al menos 20 caracteres." }, { status: 422 });
-  const paymentAlias = String(body.paymentAlias ?? "").trim().slice(0, 80);
-  const paymentCvu = normalizeDigits(String(body.paymentCvu ?? ""));
-  if (paymentAlias.length < 6 || !validCvu(paymentCvu)) return NextResponse.json({ error: "Ingresá un alias y CVU válidos." }, { status: 422 });
+  const payment = parsePaymentHandle(String(body.paymentHandle ?? ""));
+  if (!payment) return NextResponse.json({ error: "Revisá tu dato de cobro: un CVU o CBU de 22 dígitos, o un alias." }, { status: 422 });
   const phone = String(body.phone ?? "").trim().slice(0, 40);
   if (!validPhone(phone)) return NextResponse.json({ error: "Ingresá un teléfono de contacto válido." }, { status: 422 });
   const yearsExperience = Math.trunc(Number(body.yearsExperience ?? 0));
@@ -48,7 +47,7 @@ export async function PATCH(req: NextRequest) {
       name, avatarUrl, businessName: String(body.businessName ?? "").trim().slice(0, 100) || null,
       headline, bio,
       address: String(body.address ?? "").trim().slice(0, 180) || "Corrientes, Argentina", zone: "Corrientes",
-      paymentAlias, paymentCvu, phone, yearsExperience,
+      paymentHandle: payment.handle, paymentHandleKind: payment.kind, phone, yearsExperience,
       latitude, longitude, categoryId,
     } });
     await tx.professionalCategory.deleteMany({ where: { professionalId: user.professionalId! } });

@@ -35,7 +35,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
     const existingKyc = pro?.user?.kycCase;
     return <ProfessionalOnboardingForm categories={categories.map(({ id, name, icon, kind, parent }) => ({ id, name, icon, kind, parent }))} initial={{
       name: user.name, email: user.email, avatarUrl: user.avatarUrl, providerType, status: pro?.profileStatus, reason: existingKyc?.reviewReason,
-      categoryIds: pro?.categoryLinks.map((link) => link.categoryId), headline: pro?.headline, bio: pro?.bio ?? "", paymentAlias: pro?.paymentAlias ?? "", paymentCvu: pro?.paymentCvu ?? "", yearsExperience: pro?.yearsExperience ?? 0,
+      categoryIds: pro?.categoryLinks.map((link) => link.categoryId), headline: pro?.headline, bio: pro?.bio ?? "", paymentHandle: pro?.paymentHandle ?? "", yearsExperience: pro?.yearsExperience ?? 0,
       legalName: existingKyc?.legalName, phone: existingKyc?.phone, birthDate: existingKyc?.birthDate.toISOString().slice(0, 10), cuil: existingKyc ? decryptKyc(existingKyc.cuilEncrypted) : undefined, dni: existingKyc ? decryptKyc(existingKyc.dniEncrypted) : undefined, address: existingKyc?.address,
     }} />;
   }
