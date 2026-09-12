@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { MapView } from "@/components/MapView";
 import { ResponderSolicitud } from "@/components/ResponderSolicitud";
 import { MapPinIcon, XIcon } from "@/components/icons";
@@ -12,14 +13,32 @@ type Solicitud = {
   category: { name: string; icon: string } | null;
 };
 
-export function SolicitudCard({ request, alreadyContacted = false }: { request: Solicitud; alreadyContacted?: boolean }) {
+export function SolicitudCard({ request, alreadyContacted = false, puedeDescartar = false }: { request: Solicitud; alreadyContacted?: boolean; puedeDescartar?: boolean }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [descartada, setDescartada] = useState(false);
+  const [descartando, setDescartando] = useState(false);
+
+  /* Descartar es privado de este oferente: la solicitud sigue abierta para el
+     resto y quien la publicó no se entera. Se esconde al toque y después se
+     refresca, para que no reaparezca un segundo mientras vuelve el servidor. */
+  async function descartar() {
+    setDescartando(true);
+    const response = await fetch(`/api/solicitudes/${request.id}/descartar`, { method: "POST" });
+    setDescartando(false);
+    if (!response.ok) return;
+    setOpen(false);
+    setDescartada(true);
+    router.refresh();
+  }
   useEffect(() => {
     if (!open) return;
     const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
   }, [open]);
+
+  if (descartada) return null;
 
   return <>
     <article role="button" tabIndex={0} onClick={() => setOpen(true)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setOpen(true)} className={`glass glass-card flex cursor-pointer flex-col rounded-2xl p-4 transition hover:-translate-y-0.5 hover:shadow-lg ${alreadyContacted ? "bg-slate-200/80 grayscale" : "bg-blue-50/80 ring-1 ring-blue-200/80"}`}>
@@ -38,7 +57,10 @@ export function SolicitudCard({ request, alreadyContacted = false }: { request: 
         <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-600">{request.description}</p>
         <dl className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-white/60 p-4 text-sm"><div><dt className="text-xs text-slate-400">Cliente</dt><dd className="font-semibold text-slate-800">{request.contactName}</dd></div><div><dt className="text-xs text-slate-400">Publicado</dt><dd className="font-semibold text-slate-800">{formatDate(request.createdAt)}</dd></div><div className="col-span-2"><dt className="text-xs text-slate-400">Ubicación</dt><dd className="font-semibold text-slate-800">{request.zone}</dd></div></dl>
         <div className="mt-4"><MapView className="h-64" points={[{ id: request.id, type: "solicitud", title: request.title, subtitle: request.zone, latitude: request.latitude, longitude: request.longitude }]} /></div>
-        <div className="mt-5 flex justify-end"><ResponderSolicitud requestId={request.id} clientName={request.contactName} requestTitle={request.title} /></div>
+        <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+          {puedeDescartar && <button type="button" disabled={descartando} onClick={descartar} className="glass-btn glass-btn-ghost px-4 py-2 text-sm disabled:opacity-60">{descartando ? "Sacando…" : "No me interesa"}</button>}
+          <ResponderSolicitud requestId={request.id} clientName={request.contactName} requestTitle={request.title} />
+        </div>
       </section>
     </div>}
   </>;

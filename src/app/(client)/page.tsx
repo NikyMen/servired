@@ -39,7 +39,7 @@ async function getData({ q, categoria, tipo }: Search) {
       },
     }),
     prisma.serviceRequest.findMany({
-      where: { status: "abierta", user: { accountStatus: "approved" }, AND: [...(categoria ? [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }] : []), ...(tipo ? [{ category: { kind: tipo } }] : [])] },
+      where: { status: "abierta", expiresAt: { gt: new Date() }, user: { accountStatus: "approved" }, AND: [...(categoria ? [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }] : []), ...(tipo ? [{ category: { kind: tipo } }] : [])] },
       orderBy: { createdAt: "desc" },
       include: { category: true },
     }),

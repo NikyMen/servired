@@ -39,6 +39,7 @@ export async function POST(
       id: true,
       userId: true,
       status: true,
+      expiresAt: true,
       categoryId: true,
       category: { select: { name: true } },
       user: { select: { name: true } },
@@ -47,8 +48,8 @@ export async function POST(
   if (!request) {
     return NextResponse.json({ error: "La solicitud no existe." }, { status: 404 });
   }
-  if (request.status !== "abierta") {
-    return NextResponse.json({ error: "Esa solicitud ya está cerrada." }, { status: 422 });
+  if (request.status !== "abierta" || request.expiresAt <= new Date()) {
+    return NextResponse.json({ error: "Esa solicitud ya no está abierta." }, { status: 422 });
   }
   if (request.userId === user.id) {
     return NextResponse.json({ error: "Esa solicitud es tuya." }, { status: 422 });

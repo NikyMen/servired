@@ -3,6 +3,7 @@ import test from "node:test";
 import { createVideoChallenge, cuilMatchesDni, parsePaymentHandle, validCuil, validCvu, validDni, validPhone, verifyVideoChallenge } from "../src/lib/kyc";
 import { ACTIVE_JOB_STATUSES, PROPOSAL_TTL_MS, hasJobCapacity, proposalIsActive } from "../src/lib/workflow";
 import { canRevealPaymentDetails } from "../src/lib/payments";
+import { MAX_REPUBLISH, REQUEST_TTL_MS, requestDaysLeft, requestIsLastDay } from "../src/lib/solicitudes";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -68,4 +69,16 @@ test("los datos de cobro se revelan recién al terminar", () => {
   for (const status of ["finished", "payment_reported", "paid_awaiting_review", "completed"]) {
     assert.equal(canRevealPaymentDetails(status), true);
   }
+});
+
+test("una solicitud vive 7 días y avisa el último", () => {
+  const ahora = new Date("2026-01-08T12:00:00Z");
+  assert.equal(REQUEST_TTL_MS, 7 * 24 * 60 * 60 * 1000);
+  assert.equal(MAX_REPUBLISH, 5);
+  assert.equal(requestDaysLeft(new Date("2026-01-15T12:00:00Z"), ahora), 7);
+  assert.equal(requestDaysLeft(new Date("2026-01-09T11:00:00Z"), ahora), 1);
+  // Vencida no devuelve negativos: cero es cero.
+  assert.equal(requestDaysLeft(new Date("2026-01-01T12:00:00Z"), ahora), 0);
+  assert.equal(requestIsLastDay(new Date("2026-01-09T11:00:00Z"), ahora), true);
+  assert.equal(requestIsLastDay(new Date("2026-01-10T12:00:00Z"), ahora), false);
 });

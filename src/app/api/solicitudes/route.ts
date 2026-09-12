@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { interactionAccess } from "@/lib/auth";
+import { REQUEST_TTL_MS } from "@/lib/solicitudes";
+import { notificarA } from "@/lib/notificaciones";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +54,26 @@ export async function POST(req: NextRequest) {
       contactName: user.name,
       userId: user.id,
       categoryId,
+      expiresAt: new Date(Date.now() + REQUEST_TTL_MS),
     },
   });
+
+  /* Aviso a los oferentes del rubro. Se corta en 50 porque cada uno es una
+     fila: con un rubro muy poblado esto pide otra estrategia (un digest, o
+     calcularlo al abrir la campanita) antes que una escritura por cabeza. */
+  if (categoryId) {
+    const interesados = await prisma.professional.findMany({
+      where: { profileStatus: "approved", userId: { not: null }, user: { accountStatus: "approved" }, categoryLinks: { some: { categoryId } } },
+      select: { userId: true },
+      take: 50,
+    });
+    await notificarA(prisma, interesados.map((pro) => pro.userId!).filter((id) => id !== user.id), {
+      kind: "solicitud",
+      title: "Nueva solicitud en tu rubro",
+      body: created.title,
+      url: "/pro/solicitudes",
+    });
+  }
 
   return NextResponse.json(created, { status: 201 });
 }

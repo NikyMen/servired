@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { CheckCircleIcon } from "@/components/icons";
 import { SolicitudCard } from "@/components/pro/SolicitudCard";
 import { getSessionUser } from "@/lib/auth";
+import { MisSolicitudes } from "@/components/MisSolicitudes";
+import { expireServiceRequests, openRequestsWhere } from "@/lib/workflow";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Solicitudes abiertas" };
@@ -14,13 +16,22 @@ export default async function SolicitudesPage({
   searchParams: Promise<{ nueva?: string }>;
 }) {
   const { nueva } = await searchParams;
-  const [requests, user] = await Promise.all([
+  // No hay cron: vencer y avisar viaja en los listados, igual que las propuestas.
+  await expireServiceRequests();
+  const user = await getSessionUser();
+  const [requests, misSolicitudes] = await Promise.all([
     prisma.serviceRequest.findMany({
-      where: { status: "abierta" },
+      where: openRequestsWhere(user?.professionalId),
       orderBy: { createdAt: "desc" },
       include: { category: true },
     }),
-    getSessionUser(),
+    user
+      ? prisma.serviceRequest.findMany({
+          where: { userId: user.id, status: { not: "cerrada" } },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, title: true, status: true, createdAt: true, expiresAt: true, republishCount: true },
+        })
+      : [],
   ]);
   const contactedUserIds = user?.professionalId
     ? new Set((await prisma.conversation.findMany({ where: { professionalId: user.professionalId }, select: { userId: true } })).map((conversation) => conversation.userId))
@@ -34,6 +45,8 @@ export default async function SolicitudesPage({
           <p className="text-sm font-medium">¡Tu solicitud fue publicada! Los profesionales te van a contactar por mensajes.</p>
         </div>
       )}
+
+      <MisSolicitudes solicitudes={misSolicitudes.map((solicitud) => ({ ...solicitud, createdAt: solicitud.createdAt.toISOString(), expiresAt: solicitud.expiresAt.toISOString() }))} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -61,6 +74,7 @@ export default async function SolicitudesPage({
               category: r.category ? { name: r.category.name, icon: r.category.icon } : null,
             }}
             alreadyContacted={contactedUserIds.has(r.userId)}
+            puedeDescartar={user?.professionalStatus === "approved" && r.userId !== user.id}
           />
         ))}
       </div>
