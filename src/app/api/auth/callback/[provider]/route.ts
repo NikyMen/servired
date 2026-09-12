@@ -71,6 +71,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
     if (!account) {
       await prisma.oAuthAccount.create({ data: { provider, providerAccountId: profile.id, userId: user.id } });
     }
+    // Suspendida tampoco entra por Google o Facebook: el estado de la cuenta
+    // manda, no el proveedor por el que se golpea la puerta.
+    if (user.accountStatus === "suspended") {
+      jar.delete("servired_oauth");
+      return NextResponse.redirect(new URL("/entrar?error=suspendida", req.url));
+    }
     // Sin email verificado no hay sesión: queda como alta a medio hacer y la
     // sesión se crea al confirmar el código en /onboarding.
     if (user.emailVerifiedAt) {

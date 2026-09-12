@@ -11,6 +11,8 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 import { saveUpload } from "@/lib/uploads";
 import { slugify } from "@/lib/format";
+import { removeUpload } from "@/lib/uploads";
+import { notificar } from "@/lib/notificaciones";
 
 export type AdminAuthState = { error?: string } | undefined;
 
@@ -52,6 +54,81 @@ export async function saveSiteTextAction(formData: FormData) {
   });
   revalidatePath("/admin");
   revalidatePath(`/${slug}`);
+}
+
+export type ReportDecision = "dismiss" | "remove" | "ban";
+
+/**
+ * Resuelve una denuncia. La decisión viene bindeada como primer argumento:
+ * un `<button name value>` dentro del form anda en desarrollo pero no en el
+ * build de producción con React 19 (mismo caso que la revisión de KYC).
+ */
+export async function resolveReportAction(decision: ReportDecision, formData: FormData) {
+  await requireAdmin();
+  const id = text(formData, "id");
+  const resolution = text(formData, "resolution").slice(0, 500);
+  if (!id) return;
+
+  const report = await prisma.report.findUnique({ where: { id }, select: { id: true, status: true, targetType: true, targetId: true, reporterId: true, accusedId: true } });
+  if (!report || report.status !== "pending") return;
+
+  if (decision === "remove" || decision === "ban") {
+    if (report.targetType === "work_sample_image") {
+      const image = await prisma.workSampleImage.findUnique({ where: { id: report.targetId }, select: { url: true, sampleId: true } });
+      if (image) {
+        await prisma.workSampleImage.delete({ where: { id: report.targetId } });
+        await removeUpload(image.url);
+        // Una muestra sin imágenes no es una muestra de nada.
+        const quedan = await prisma.workSampleImage.count({ where: { sampleId: image.sampleId } });
+        if (quedan === 0) await prisma.workSample.delete({ where: { id: image.sampleId } }).catch(() => {});
+      }
+    } else {
+      const photo = await prisma.workPhoto.findUnique({ where: { id: report.targetId }, select: { url: true } });
+      if (photo) {
+        await prisma.workPhoto.delete({ where: { id: report.targetId } });
+        await removeUpload(photo.url);
+      }
+    }
+  }
+
+  if (decision === "ban") {
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: report.accusedId }, data: { accountStatus: "suspended" } });
+      // Se le cierran las sesiones abiertas: suspender y dejarla adentro no
+      // suspende nada. Para esto sirve tener el token de sesión en la base.
+      await tx.session.deleteMany({ where: { userId: report.accusedId } });
+      await tx.professional.updateMany({ where: { userId: report.accusedId }, data: { profileStatus: "rejected", verified: false } });
+    });
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.report.update({
+      where: { id },
+      data: { status: decision === "dismiss" ? "dismissed" : "actioned", resolution: resolution || null, resolvedAt: new Date() },
+    });
+    await notificar(tx, report.reporterId, {
+      kind: "denuncia",
+      title: "Revisamos tu denuncia",
+      body: decision === "dismiss" ? "Miramos la imagen y por ahora queda publicada." : "Dimos de baja la imagen que denunciaste. Gracias por avisar.",
+      url: "/",
+      groupKey: `report:${report.id}`,
+    });
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+}
+
+/** Deshace una suspensión, por si la decisión fue un error. */
+export async function unbanUserAction(formData: FormData) {
+  await requireAdmin();
+  const id = text(formData, "id");
+  if (!id) return;
+  const user = await prisma.user.findUnique({ where: { id }, select: { emailVerifiedAt: true } });
+  if (!user) return;
+  await prisma.user.update({ where: { id }, data: { accountStatus: user.emailVerifiedAt ? "approved" : "email_pending" } });
+  revalidatePath("/admin");
+  revalidatePath("/");
 }
 
 export async function logoutAdminAction() {

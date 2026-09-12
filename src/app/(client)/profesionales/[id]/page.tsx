@@ -9,6 +9,7 @@ import { ContratarBox } from "@/components/ContratarBox";
 import { ContratarSheet } from "@/components/ContratarSheet";
 import { StarIcon, MapPinIcon } from "@/components/icons";
 import { MapView } from "@/components/MapView";
+import { DenunciarImagen } from "@/components/DenunciarImagen";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,8 @@ export default async function ProfesionalPage({
   // correo confirmado es el peaje mínimo para que la agenda de oferentes no se
   // pueda levantar entera con un script.
   const puedeVerTelefono = Boolean(viewer?.canInteract);
+  // Denunciar queda a nombre de alguien, y nadie se denuncia a sí mismo.
+  const puedeDenunciar = Boolean(viewer?.canInteract) && pro.userId !== viewer?.id;
 
   return (
     <div className="space-y-6">
@@ -231,7 +234,12 @@ export default async function ProfesionalPage({
               <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {pro.workSamples.map((foto) => (
                   <li key={foto.id} className="glass glass-thin overflow-hidden rounded-2xl">
-                    <div className="grid grid-cols-5 gap-0.5">{foto.images.map((image, index) => <img key={image.id} src={image.url} alt={`${foto.title} ${index + 1}`} className={`h-32 w-full object-cover sm:h-36 ${foto.images.length === 1 ? "col-span-5" : ""}`} />)}</div>
+                    <div className="grid grid-cols-5 gap-0.5">{foto.images.map((image, index) => (
+                      <div key={image.id} className={`relative ${foto.images.length === 1 ? "col-span-5" : ""}`}>
+                        <img src={image.url} alt={`${foto.title} ${index + 1}`} className="h-32 w-full object-cover sm:h-36" />
+                        <DenunciarImagen targetType="work_sample_image" targetId={image.id} puedeDenunciar={puedeDenunciar} volverA={`/profesionales/${pro.id}`} />
+                      </div>
+                    ))}</div>
                     <div className="p-3">
                       <p className="truncate text-sm font-semibold text-slate-900">{foto.title}</p>
                       {foto.description && (

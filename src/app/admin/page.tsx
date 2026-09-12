@@ -1,6 +1,7 @@
-import { logoutAdminAction, createCategoryAction, deleteCategoryAction, saveAdAction, saveSiteTextAction, updateCategoryAction } from "@/app/admin/actions";
+import { logoutAdminAction, createCategoryAction, deleteCategoryAction, saveAdAction, saveSiteTextAction, unbanUserAction, updateCategoryAction } from "@/app/admin/actions";
 import { AdminPreinscriptions } from "@/components/AdminPreinscriptions";
 import { AdminKyc } from "@/components/AdminKyc";
+import { AdminReports } from "@/components/AdminReports";
 import { requireAdmin } from "@/lib/admin";
 import { listPreinscriptions } from "@/lib/preinscripciones";
 import { prisma } from "@/lib/prisma";
@@ -22,7 +23,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { tab: rawTab } = await searchParams;
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "todo";
   const showAll = tab === "todo";
-  const [preinscriptions, kycCases, users, bookings, categories, ads, terminos, userCount, verifiedProviderCount, activeJobCount] = await Promise.all([
+  const [preinscriptions, kycCases, users, bookings, categories, ads, terminos, reports, userCount, verifiedProviderCount, activeJobCount] = await Promise.all([
     listPreinscriptions(),
     prisma.kycCase.findMany({ orderBy: { updatedAt: "desc" }, include: { documents: true, user: { include: { oauthAccounts: true, professional: true } } } }),
     prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, include: { professional: { select: { providerType: true, profileStatus: true, verified: true } }, oauthAccounts: { select: { provider: true } } } }),
@@ -30,6 +31,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     prisma.category.findMany({ orderBy: [{ kind: "asc" }, { name: "asc" }], include: { _count: { select: { professionals: true, requests: true } } } }),
     prisma.ad.findMany({ orderBy: { slot: "asc" } }),
     getSiteText(TERMS_SLUG, TERMS_DEFAULT),
+    prisma.report.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }], take: 100, include: { reporter: { select: { name: true, email: true } }, accused: { select: { id: true, name: true, email: true, accountStatus: true } } } }),
     prisma.user.count(),
     prisma.professional.count({ where: { verified: true, profileStatus: "approved" } }),
     prisma.booking.count({ where: { status: { in: ["in_progress", "finished", "payment_reported", "paid_awaiting_review"] } } }),
@@ -40,12 +42,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     return { id: kyc.id, status: kyc.status, legalName: kyc.legalName, email: kyc.user.email, phone: kyc.phone, cuil: decryptKyc(kyc.cuilEncrypted), dni: decryptKyc(kyc.dniEncrypted), birthDate: kyc.birthDate.toISOString(), address: kyc.address, country: kyc.country, province: kyc.province, locality: kyc.locality, provider: kyc.user.oauthAccounts[0]?.provider || "email", providerType: professional?.providerType || "oficio", headline: professional?.headline || null, bio: professional?.bio || null, paymentHandle: professional?.paymentHandle || null, paymentHandleKind: professional?.paymentHandleKind || null, submittedAt: kyc.submittedAt?.toISOString() || null, reviewReason: kyc.reviewReason, reviewedBy: kyc.reviewedBy, reviewedAt: kyc.reviewedAt?.toISOString() || null, videoChallenge: kyc.videoChallenge, documents: kyc.documents.map((document) => ({ id: document.id, kind: document.kind })) };
   });
   const pendingKyc = kycCases.filter((kyc) => kyc.status === "pending").length;
+  const pendingReports = reports.filter((report) => report.status === "pending").length;
+  const serializedReports = reports.map((report) => ({ ...report, createdAt: report.createdAt.toISOString(), resolvedAt: report.resolvedAt?.toISOString() ?? null }));
 
   return <main className="min-h-screen bg-slate-100 px-3 py-4 sm:px-6 sm:py-7"><div className="mx-auto max-w-7xl space-y-8">
     <header className="glass glass-solid rounded-3xl p-5 sm:p-6"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><p className="text-xs font-black uppercase tracking-[.2em] text-cliente">ServiRed Admin</p><h1 className="mt-1 text-3xl font-black text-slate-950">Centro de operaciones</h1><p className="mt-1 text-sm text-slate-500">Identidad, usuarios, trabajos, catálogo y captación en un solo lugar.</p></div><form action={logoutAdminAction}><button className="glass-btn glass-btn-ghost px-4 py-2.5 text-sm">Cerrar sesión</button></form></div>
       <nav className="no-scrollbar mt-5 flex gap-2 overflow-x-auto border-t border-white/70 pt-4 text-sm font-semibold">
         <TabLink tab="todo" active={tab === "todo"}>TODO</TabLink>
         <TabLink tab="kyc" active={tab === "kyc"}>KYC {pendingKyc ? `(${pendingKyc})` : ""}</TabLink>
+        <TabLink tab="denuncias" active={tab === "denuncias"}>Denuncias {pendingReports ? `(${pendingReports})` : ""}</TabLink>
         <TabLink tab="usuarios" active={tab === "usuarios"}>Usuarios</TabLink>
         <TabLink tab="trabajos" active={tab === "trabajos"}>Trabajos</TabLink>
         <TabLink tab="catalogo" active={tab === "catalogo"}>Rubros</TabLink>
@@ -55,11 +60,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </nav>
     </header>
 
-    {showAll && <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Metric label="Usuarios" value={userCount} note="Cuentas registradas" /><Metric label="Oferentes verificados" value={verifiedProviderCount} note="Perfiles publicados" /><Metric label="KYC pendientes" value={pendingKyc} note="Requieren revisión" danger={pendingKyc > 0} /><Metric label="Trabajos activos" value={activeJobCount} note="Máximo 3 por oferente" /></section>}
+    {showAll && <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Metric label="Usuarios" value={userCount} note="Cuentas registradas" /><Metric label="Oferentes verificados" value={verifiedProviderCount} note="Perfiles publicados" /><Metric label="KYC pendientes" value={pendingKyc} note="Requieren revisión" danger={pendingKyc > 0} /><Metric label="Trabajos activos" value={activeJobCount} note="Máximo 3 por oferente" /><Metric label="Denuncias pendientes" value={pendingReports} note="Imágenes a revisar" danger={pendingReports > 0} /></section>}
 
     {(showAll || tab === "kyc") && <AdminKyc rows={serializedKyc} />}
 
-    {(showAll || tab === "usuarios") && <section className="space-y-3"><SectionTitle eyebrow="Cuentas" title="Usuarios y oferentes" subtitle="Últimas 50 altas" /><div className="glass glass-solid overflow-x-auto rounded-2xl"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-white/55 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Usuario</th><th className="px-4 py-3">Acceso</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Perfil oferente</th><th className="px-4 py-3">Alta</th></tr></thead><tbody className="divide-y divide-white/70">{users.map((user) => <tr key={user.id}><td className="px-4 py-3 font-semibold text-slate-900">{user.name}</td><td className="px-4 py-3 text-slate-600">{user.oauthAccounts[0]?.provider || "email"}</td><td className="px-4 py-3"><span className={user.emailVerifiedAt ? "text-emerald-700" : "text-amber-700"}>{user.email}</span></td><td className="px-4 py-3 text-slate-600">{user.professional ? `${user.professional.providerType} · ${user.professional.profileStatus}` : "Solo Busco"}</td><td className="px-4 py-3 text-slate-500">{formatDate(user.createdAt)}</td></tr>)}</tbody></table></div></section>}
+    {(showAll || tab === "denuncias") && <AdminReports rows={serializedReports} />}
+
+    {(showAll || tab === "usuarios") && <section className="space-y-3"><SectionTitle eyebrow="Cuentas" title="Usuarios y oferentes" subtitle="Últimas 50 altas" /><div className="glass glass-solid overflow-x-auto rounded-2xl"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-white/55 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Usuario</th><th className="px-4 py-3">Acceso</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Perfil oferente</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Alta</th></tr></thead><tbody className="divide-y divide-white/70">{users.map((user) => <tr key={user.id}><td className="px-4 py-3 font-semibold text-slate-900">{user.name}</td><td className="px-4 py-3 text-slate-600">{user.oauthAccounts[0]?.provider || "email"}</td><td className="px-4 py-3"><span className={user.emailVerifiedAt ? "text-emerald-700" : "text-amber-700"}>{user.email}</span></td><td className="px-4 py-3 text-slate-600">{user.professional ? `${user.professional.providerType} · ${user.professional.profileStatus}` : "Solo Busco"}</td><td className="px-4 py-3">{user.accountStatus === "suspended" ? <form action={unbanUserAction} className="flex items-center gap-2"><input type="hidden" name="id" value={user.id} /><span className="font-semibold text-red-600">Suspendida</span><button className="text-xs font-semibold text-cliente hover:underline">Reactivar</button></form> : <span className="text-slate-500">{user.accountStatus === "approved" ? "Activa" : "Email pendiente"}</span>}</td><td className="px-4 py-3 text-slate-500">{formatDate(user.createdAt)}</td></tr>)}</tbody></table></div></section>}
 
     {(showAll || tab === "trabajos") && <section className="space-y-3"><SectionTitle eyebrow="Marketplace" title="Trabajos y propuestas" subtitle="Actividad reciente y estados comerciales" /><div className="glass glass-solid overflow-x-auto rounded-2xl"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-white/55 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Cliente</th><th className="px-4 py-3">Oferente</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Última propuesta</th><th className="px-4 py-3">Actualizado</th></tr></thead><tbody className="divide-y divide-white/70">{bookings.map((booking) => <tr key={booking.id}><td className="px-4 py-3 font-semibold text-slate-900">{booking.user.name}</td><td className="px-4 py-3">{booking.professional.name}</td><td className="px-4 py-3"><StatusPill status={booking.status} /></td><td className="px-4 py-3">{booking.proposals[0] ? `${formatARS(booking.proposals[0].amount)} · ${proposalStatus(booking.proposals[0].status)}` : "—"}</td><td className="px-4 py-3 text-slate-500">{formatDateTime(booking.updatedAt)}</td></tr>)}</tbody></table></div></section>}
 

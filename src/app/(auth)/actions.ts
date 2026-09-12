@@ -48,6 +48,13 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
     redirect(`/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`);
   }
 
+  // Suspendida no entra. Hasta ahora nada escribía ese estado, así que el
+  // login nunca había tenido que contemplarlo; desde que se puede banear por
+  // una denuncia, dejarla entrar sería suspenderla de mentira.
+  if (user.accountStatus === "suspended") {
+    return { error: "Tu cuenta está suspendida. Escribinos si creés que fue un error." };
+  }
+
   const accountStatus = user.emailVerifiedAt && user.accountStatus !== "suspended" ? "approved" : user.accountStatus;
   if (accountStatus !== user.accountStatus) await prisma.user.update({ where: { id: user.id }, data: { accountStatus } });
   await createSession(user.id);

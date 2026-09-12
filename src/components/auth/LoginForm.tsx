@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { loginAction, type AuthState } from "@/app/(auth)/actions";
 import { PasswordField, SubmitButton, FormError } from "@/components/auth/fields";
 
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({ next, aviso }: { next?: string; aviso?: string }) {
   const [state, formAction] = useActionState<AuthState, FormData>(loginAction, undefined);
 
   return (
@@ -55,7 +55,7 @@ export function LoginForm({ next }: { next?: string }) {
         </p>
 
         <div className="space-y-3">
-          <FormError message={state?.error} />
+          <FormError message={state?.error ?? aviso} />
 
           <SubmitButton tone="cliente" pendingLabel="Entrando…">
             Entrar
