@@ -43,7 +43,7 @@ está trackeado por git y terminaría publicada.
 
 ## Cuentas
 
-El panel administrativo está en `/admin` y permite gestionar KYC, usuarios, trabajos, anuncios, categorías y preinscripciones. Requiere `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+El panel administrativo está en `/admin` y permite gestionar KYC, denuncias, usuarios, trabajos, anuncios, categorías, términos y condiciones y preinscripciones. Requiere `ADMIN_EMAIL`, `ADMIN_PASSWORD`
 y `ADMIN_SESSION_SECRET` en `.env.local`.
 
 Autenticación y aprobación:
@@ -55,7 +55,14 @@ Autenticación y aprobación:
 - El registro por email usa código y enlace de un solo uso con vencimiento.
 - Una cuenta con email verificado puede usar Busco sin KYC.
 - Para usar Ofrezco se exigen foto de cara, CUIL, DNI frente/dorso, video guiado,
-  datos profesionales y aprobación administrativa.
+  datos profesionales y aprobación administrativa. En el video se lee **una frase**
+  armada al azar y firmada, que administración ve al lado de la grabación.
+- El oficio se elige de una lista; "Otra" propone un rubro nuevo que queda pendiente
+  y se aprueba junto con el KYC.
+- El cobro es **un solo dato**: 22 dígitos se validan como CVU o CBU, y cualquier
+  otra cosa se guarda como alias.
+- Se puede restablecer la contraseña por correo (token de un uso, 30 minutos) y dar
+  de baja la cuenta, que es un **borrado definitivo**.
 - `src/lib/auth.ts` expone `getSessionUser()` e `interactionAccess()`.
 
 Los perfiles profesionales admiten varios rubros y aparecen en búsquedas solo
@@ -106,6 +113,9 @@ configurarla.
 | `/entrar`       | Login                                             |
 | `/crear-cuenta` | Registro mínimo por email, Google o Facebook      |
 | `/onboarding`   | Verificación del email                            |
+| `/recuperar-clave` | Pide el enlace para restablecer la contraseña  |
+| `/nueva-clave`  | Elige la contraseña nueva con el token del correo |
+| `/baja-de-cuenta` | Borrado definitivo de la cuenta                 |
 
 ### Cliente (azul)
 
@@ -117,6 +127,7 @@ configurarla.
 | `/solicitudes`        | Solicitudes abiertas                                              |
 | `/contrataciones`     | Solicitud → propuesta → trabajo → pago → reseña                  |
 | `/mensajes`           | Chat con los profesionales                                        |
+| `/terminos`           | Términos y condiciones, editables desde `/admin`                  |
 
 ### Profesional (verde)
 
@@ -124,6 +135,7 @@ configurarla.
 | --------------- | ------------------------------------------------------------------ |
 | `/pro`          | Panel: contrataciones recibidas, solicitudes de clientes, servicios |
 | `/pro/mensajes` | Chat con los clientes                                              |
+| `/pro/solicitudes` | Solicitudes abiertas de los rubros del perfil                    |
 | `/pro/mi-perfil` | Perfil, ubicación y datos de cobro                                |
 
 ## API (Route Handlers)
@@ -137,12 +149,41 @@ Todo lo que escribe pide sesión, y **el rol sale de la sesión, nunca del body*
 | `POST /api/upload`                       | Sube imagen o PDF (≤8 MB, valida magic bytes)   |
 | `POST /api/solicitudes`                  | Publica una solicitud                           |
 | `POST /api/solicitudes/[id]/responder`   | El profesional le contesta a quien la publicó   |
+| `POST /api/solicitudes/[id]/descartar`   | El oferente la saca de su lista sin contestar   |
+| `POST /api/solicitudes/[id]/republicar`  | Le da otros 7 días a una solicitud propia       |
+| `POST /api/denuncias`                    | Denuncia una imagen de muestra de trabajo       |
+| `POST /api/cuenta/baja`                  | Borra la cuenta de quien la pide                |
+| `POST /api/avisos/leido`                 | Marca leídos los avisos de la campanita         |
 | `POST /api/contrataciones`               | Crea una contratación (y abre la conversación)  |
 | `PATCH /api/contrataciones/[id]`         | Propuesta, trabajo, pago por alias y cierre     |
 | `POST /api/onboarding`                    | Envía perfil y KYC de oferente para revisión     |
 | `POST /api/kyc/video-challenge`           | Emite la frase firmada del video guiado          |
 | `POST /api/conversaciones`                | Envía mensajes solo si existe una solicitud asociada |
 | `GET·POST /api/conversaciones/[id]/mensajes` | Lee (polling) y envía mensajes con adjunto |
+
+## Solicitudes
+
+Cada solicitud vive **7 días**. El último día se avisa por la campanita y aparece el
+botón de volver a publicarla, con tope de cinco veces. El oferente puede descartar
+una sin contestarla: es una decisión privada suya, la solicitud sigue abierta para
+los demás.
+
+No hay cron: vencer y avisar viaja en los listados, igual que el vencimiento de las
+propuestas (`expireServiceRequests` en `src/lib/workflow.ts`).
+
+## Avisos
+
+La campanita del encabezado junta mensajes, propuestas, solicitudes del rubro, la
+solicitud por vencer, la revisión del KYC y las denuncias resueltas. No tiene reloj
+propio: viaja en el mismo poll de 12 s que el globito de mensajes
+(`NoLeidosProvider`), y los mensajes se agrupan por hilo.
+
+## Moderación
+
+Cualquiera con cuenta verificada puede denunciar una imagen de muestra. La denuncia
+llega a `/admin?tab=denuncias`, donde se la deja publicada, se baja la imagen, o se
+baja y se suspende la cuenta: al suspender se cierran las sesiones abiertas, el
+perfil sale de las búsquedas y el login rebota, también por OAuth.
 
 ## Mensajes
 
