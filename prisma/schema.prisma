@@ -36,6 +36,10 @@ model User {
   emailVerifications EmailVerification[]
   kycCase            KycCase?
   createdCategories  Category[]          @relation("CategoryCreator")
+  passwordResets     PasswordReset[]
+  notifications      Notification[]
+  reportsFiled       Report[]            @relation("ReportAuthor")
+  reportsReceived    Report[]            @relation("ReportTarget")
 
   createdAt DateTime @default(now())
 }
@@ -58,6 +62,19 @@ model EmailVerification {
   codeHash  String
   tokenHash String    @unique
   attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+}
+
+/// Restablecer la contraseña: un solo uso, por enlace, con el mismo molde que
+/// `EmailVerification`. No lleva código de 6 dígitos porque acá el enlace es el
+/// único canal: si alguien puede leer el correo, ya probó que la cuenta es suya.
+model PasswordReset {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
   userId    String
@@ -152,10 +169,10 @@ model Category {
 
 /// Placas publicitarias administrables de la portada.
 model Ad {
-  id     String  @id @default(cuid())
-  slot   String  @unique
+  id       String  @id @default(cuid())
+  slot     String  @unique
   /// Opcional: si queda vacío la placa muestra solo la imagen, sin cartel.
-  title  String @default("")
+  title    String  @default("")
   imageUrl String?
 
   /// Encuadre de la imagen dentro de la placa, WYSIWYG con el editor del admin.
@@ -164,9 +181,9 @@ model Ad {
   /// de la placa (positivo = hacia la derecha / abajo). stretchX/stretchY
   /// deforman la imagen (1 = sin deformar): permiten estirarla a lo ancho o
   /// a lo alto para tapar la placa entera.
-  imageScale   Float @default(1)
-  imageX       Float @default(0)
-  imageY       Float @default(0)
+  imageScale    Float @default(1)
+  imageX        Float @default(0)
+  imageY        Float @default(0)
   imageStretchX Float @default(1)
   imageStretchY Float @default(1)
 
@@ -219,8 +236,16 @@ model ServiceRequest {
   latitude    Float    @default(-27.4692)
   longitude   Float    @default(-58.8306)
   contactName String // nombre mostrado; la identidad real es userId
-  status      String   @default("abierta") // abierta | cerrada
+  status      String   @default("abierta") // abierta | vencida | cerrada
   createdAt   DateTime @default(now())
+
+  /// Vive 7 días. Vencer es perezoso (`expireServiceRequests`), así que el
+  /// filtro de los listados mira también esta fecha por si nadie barrió todavía.
+  expiresAt      DateTime  @default(now())
+  /// Sello del aviso de "está por vencer": sin esto, cada visita al panel
+  /// volvería a avisar lo mismo.
+  warnedAt       DateTime?
+  republishCount Int       @default(0)
 
   /// Quién la publicó. Sin esto, un profesional no tendría a quién contestarle.
   userId String
@@ -228,6 +253,22 @@ model ServiceRequest {
 
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
+
+  dismissals RequestDismissal[]
+
+  @@index([status, expiresAt])
+}
+
+/// Un oferente que dijo "esto no es para mí". Es una decisión privada suya: la
+/// solicitud sigue abierta para todos los demás y el cliente no se entera.
+model RequestDismissal {
+  requestId      String
+  professionalId String
+  request        ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  professional   Professional   @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+
+  @@id([requestId, professionalId])
 }
 
 /// Profesional / prestador de servicios
@@ -261,6 +302,10 @@ model Professional {
   userId String? @unique
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  /// Teléfono público de contacto. Nace copiado del KYC y después se edita
+  /// desde el perfil: el del KYC es un dato de identidad, no una vía de contacto.
+  phone String?
+
   services      Service[]
   reviews       Review[]
   bookings      Booking[]
@@ -268,8 +313,17 @@ model Professional {
   workPhotos    WorkPhoto[]
   workSamples   WorkSample[]
   payments      Payment[]
-  paymentAlias  String?
-  paymentCvu    String?
+  dismissals    RequestDismissal[]
+
+  /// Un solo dato de cobro: CVU/CBU de 22 dígitos o alias. `paymentHandleKind`
+  /// guarda cuál de los dos es para mostrarlo bien a la hora de pagar.
+  paymentHandle     String?
+  paymentHandleKind String?
+
+  /// Reemplazados por `paymentHandle`. Se borran en un push posterior, cuando
+  /// el build nuevo ya esté sirviendo: sacarlos ahora tira 500 en el viejo.
+  paymentAlias String?
+  paymentCvu   String?
 
   createdAt DateTime @default(now())
 }
@@ -340,6 +394,10 @@ model Booking {
   workSummary        String? // breve resumen del trabajo realizado
   status             String    @default("requested") // requested | in_progress | finished | payment_reported | paid_awaiting_review | completed | cancelled
   acceptedProposalId String?
+  /// El reloj del trabajo: arranca cuando el cliente acepta la propuesta y
+  /// termina a los `estimatedDays` que prometió el oferente.
+  startedAt          DateTime?
+  dueAt              DateTime?
   finishedAt         DateTime?
   paymentReportedAt  DateTime?
   paidAt             DateTime?
@@ -364,16 +422,18 @@ model Booking {
 }
 
 model Proposal {
-  id        String    @id @default(cuid())
-  amount    Int
-  message   String?
-  status    String    @default("pending") // pending | accepted | rejected | expired
-  expiresAt DateTime
-  decidedAt DateTime?
-  bookingId String
-  booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  amount        Int
+  message       String?
+  /// Días que el oferente calcula que le va a llevar el trabajo.
+  estimatedDays Int?
+  status        String    @default("pending") // pending | accepted | rejected | expired
+  expiresAt     DateTime
+  decidedAt     DateTime?
+  bookingId     String
+  booking       Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([bookingId, status])
 }
@@ -510,4 +570,62 @@ model Payment {
   booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
 
   review Review?
+}
+
+/// Aviso para la campanita. Es una tabla y no una cuenta calculada porque
+/// "tu solicitud vence mañana" o "resolvimos tu denuncia" pasan una sola vez:
+/// hay que recordar si ya se vieron, no rearmarlos en cada consulta.
+model Notification {
+  id       String  @id @default(cuid())
+  kind     String // mensaje | propuesta | propuesta_resuelta | solicitud | solicitud_por_vencer | kyc | denuncia
+  title    String
+  body     String?
+  /// Adónde lleva el clic.
+  url      String
+  /// Junta lo repetido: `msg:<conversationId>` hace que veinte mensajes sin
+  /// leer de un mismo hilo sean un solo renglón.
+  groupKey String?
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupKey])
+  @@index([userId, readAt])
+}
+
+/// Denuncia sobre una imagen publicada. La resuelve administración.
+model Report {
+  id         String    @id @default(cuid())
+  targetType String // work_sample_image | work_photo
+  targetId   String
+  /// Copia congelada de la URL: si la imagen se borra, administración todavía
+  /// tiene que poder ver qué fue lo que se denunció.
+  imageUrl   String
+  reason     String // no_es_suyo | inapropiado | enganoso | otro
+  detail     String?
+  status     String    @default("pending") // pending | dismissed | actioned
+  resolution String?
+  resolvedAt DateTime?
+
+  reporterId String
+  reporter   User   @relation("ReportAuthor", fields: [reporterId], references: [id], onDelete: Cascade)
+  accusedId  String
+  accused    User   @relation("ReportTarget", fields: [accusedId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  /// Una denuncia por persona e imagen: insistir no suma peso.
+  @@unique([targetId, reporterId])
+  @@index([status, createdAt])
+}
+
+/// Texto legal editable desde el panel. Una fila por clave, igual que `Ad.slot`.
+model SiteText {
+  slug      String   @id // terminos
+  title     String
+  body      String
+  updatedAt DateTime @updatedAt
 }

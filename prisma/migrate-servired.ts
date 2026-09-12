@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const TTL = 72 * 60 * 60 * 1000;
+const REQUEST_TTL = 7 * 24 * 60 * 60 * 1000;
 
 const statusMap: Record<string, string> = {
   solicitada: "requested",
@@ -52,11 +53,42 @@ async function main() {
     await prisma.booking.update({ where: { id: booking.id }, data: { status: nextStatus, acceptedProposalId: proposalId, completedAt: nextStatus === "completed" ? booking.updatedAt : booking.completedAt } });
   }
 
+  // Las solicitudes viejas nacieron sin vencimiento y `db push` les puso la
+  // fecha de hoy: se las corre a los 7 días reales desde que se publicaron, y
+  // las que ya pasaron ese plazo quedan vencidas de entrada.
+  const requests = await prisma.serviceRequest.findMany({ select: { id: true, createdAt: true, status: true } });
+  const now = new Date();
+  for (const request of requests) {
+    const expiresAt = new Date(request.createdAt.getTime() + REQUEST_TTL);
+    await prisma.serviceRequest.update({ where: { id: request.id }, data: { expiresAt, status: request.status === "abierta" && expiresAt <= now ? "vencida" : request.status } });
+  }
+
+  // Un solo dato de cobro: si había CVU gana el CVU, que es el que no depende
+  // de que el alias siga apuntando a la misma cuenta.
+  const withPayment = await prisma.professional.findMany({ where: { paymentHandle: null }, select: { id: true, paymentAlias: true, paymentCvu: true, userId: true } });
+  for (const professional of withPayment) {
+    const cvu = professional.paymentCvu?.trim();
+    const alias = professional.paymentAlias?.trim();
+    const handle = cvu || alias;
+    if (handle) await prisma.professional.update({ where: { id: professional.id }, data: { paymentHandle: handle, paymentHandleKind: cvu ? "cvu" : "alias" } });
+  }
+
+  // El teléfono público arranca con el que declararon en el KYC; de ahí en más
+  // lo maneja cada quien desde su perfil.
+  const kycPhones = await prisma.kycCase.findMany({ select: { phone: true, user: { select: { professional: { select: { id: true, phone: true } } } } } });
+  let phonesCopied = 0;
+  for (const kyc of kycPhones) {
+    const professional = kyc.user.professional;
+    if (!professional || professional.phone) continue;
+    await prisma.professional.update({ where: { id: professional.id }, data: { phone: kyc.phone } });
+    phonesCopied += 1;
+  }
+
   if (process.env.NODE_ENV !== "production") {
     await prisma.user.updateMany({ where: { email: { endsWith: ".test" } }, data: { emailVerifiedAt: new Date(), accountStatus: "approved" } });
   }
 
-  console.log(`Migración lista: ${professionals.length} perfiles, ${legacyPhotos.length} fotos históricas y ${bookings.length} contrataciones revisadas.`);
+  console.log(`Migración lista: ${professionals.length} perfiles, ${legacyPhotos.length} fotos históricas, ${bookings.length} contrataciones, ${requests.length} solicitudes con vencimiento y ${phonesCopied} teléfonos copiados del KYC.`);
 }
 
 main().finally(() => prisma.$disconnect());
