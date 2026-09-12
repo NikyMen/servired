@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 import { saveUpload } from "@/lib/uploads";
+import { slugify } from "@/lib/format";
 
 export type AdminAuthState = { error?: string } | undefined;
 
@@ -45,15 +46,6 @@ function text(formData: FormData, key: string) {
 function num(formData: FormData, key: string, fallback: number, min: number, max: number) {
   const parsed = parseFloat(String(formData.get(key) ?? ""));
   return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
-}
-
-function slugify(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }
 
 export async function saveAdAction(formData: FormData) {

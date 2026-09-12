@@ -39,6 +39,13 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [categoryIds, setCategoryIds] = useState<string[]>(perfil.categoryIds?.length ? perfil.categoryIds : perfil.categoryId ? [perfil.categoryId] : []);
+  /* Misma preselección que en el alta, para que la actividad no se escriba de
+     cuarenta formas distintas. Acá "otra" es solo texto libre: proponer un
+     rubro nuevo del catálogo se hace desde la verificación. */
+  const [oficio, setOficio] = useState<string>(() => {
+    const elegido = categories.find((category) => category.name === perfil.headline);
+    return elegido ? elegido.id : perfil.headline ? "otra" : "";
+  });
   const [preview, setPreview] = useState<string | null>(perfil.avatarUrl);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -96,7 +103,12 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
           </label>
           <fieldset className="text-sm font-medium text-slate-900"><legend>Rubros</legend><div className="mt-1 max-h-40 space-y-1 overflow-y-auto rounded-xl bg-white/50 p-2">{categories.map((c) => <label key={c.id} className="block text-xs font-normal"><input type="checkbox" checked={categoryIds.includes(c.id)} onChange={(e) => setCategoryIds((current) => e.target.checked ? [...current, c.id] : current.filter((id) => id !== c.id))} className="mr-2" />{c.parent ? `↳ ${c.name}` : `${c.icon} ${c.name}`}</label>)}</div></fieldset>
           <label className="text-sm font-medium text-slate-900">Actividad
-            <input required value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} className={`${field} mt-1`} />
+            <select value={oficio} onChange={(e) => { const value = e.target.value; setOficio(value); const category = categories.find((item) => item.id === value); setForm((current) => ({ ...current, headline: category ? category.name : "" })); if (category) setCategoryIds((current) => current.includes(category.id) ? current : [...current, category.id]); }} className={`${field} mt-1`}>
+              <option value="">Elegí de la lista</option>
+              {categories.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.parent ? `${category.parent.name} · ` : ""}{category.name}</option>)}
+              <option value="otra">Otra (la escribo yo)</option>
+            </select>
+            {oficio === "otra" && <input required maxLength={60} value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} placeholder="Ej: Restaurador de muebles" className={`${field} mt-1`} />}
           </label>
           <label className="text-sm font-medium text-slate-900">Teléfono de contacto
             <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} type="tel" placeholder="+54 9 379 412-3456" className={`${field} mt-1`} />

@@ -24,6 +24,16 @@ export function formatDateTime(date: Date | string): string {
   return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
 }
 
+/** "Plomería de Obra" -> "plomeria-de-obra". Para claves de URL y de catálogo */
+export function slugify(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 /** Mes y año en palabras: "marzo de 2026". Para antigüedades, donde el día no aporta */
 export function formatMonthYear(date: Date | string): string {
   const value = typeof date === "string" ? new Date(date) : date;

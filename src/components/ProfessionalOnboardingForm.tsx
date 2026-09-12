@@ -26,6 +26,12 @@ export function ProfessionalOnboardingForm({ categories, initial }: { categories
   const [step, setStep] = useState(1);
   const [providerType, setProviderType] = useState<ProviderType>(initial.providerType || "oficio");
   const [categoryIds, setCategoryIds] = useState<string[]>(initial.categoryIds ?? []);
+  /* El oficio sale de una lista para que no haya cuarenta formas de escribir
+     "electricista". "otra" abre el campo libre y propone un rubro nuevo. */
+  const [oficio, setOficio] = useState<string>(() => {
+    const elegido = categories.find((category) => category.name === initial.headline);
+    return elegido ? elegido.id : initial.headline ? "otra" : "";
+  });
   const [values, setValues] = useState({
     headline: initial.headline ?? "", bio: initial.bio ?? "", paymentHandle: initial.paymentHandle ?? "", yearsExperience: String(initial.yearsExperience ?? 0), legalName: initial.legalName ?? initial.name,
     phone: initial.phone ?? "", birthDate: initial.birthDate ?? "", cuil: initial.cuil ?? "", dni: initial.dni ?? "", address: initial.address ?? "",
@@ -54,7 +60,17 @@ export function ProfessionalOnboardingForm({ categories, initial }: { categories
 
   useEffect(() => {
     setCategoryIds((current) => current.filter((id) => compatibleCategories.some((category) => category.id === id)));
+    setOficio((current) => (current === "otra" || compatibleCategories.some((category) => category.id === current) ? current : ""));
   }, [compatibleCategories]);
+
+  function elegirOficio(value: string) {
+    setOficio(value);
+    if (value === "otra") return update("headline", "");
+    const category = compatibleCategories.find((item) => item.id === value);
+    if (!category) return update("headline", "");
+    update("headline", category.name);
+    setCategoryIds((current) => (current.includes(category.id) ? current : [...current, category.id]));
+  }
 
   useEffect(() => {
     try {
@@ -81,7 +97,9 @@ export function ProfessionalOnboardingForm({ categories, initial }: { categories
   }, [videoUrl]);
 
   function validateStep() {
-    if (step === 1 && (!values.headline.trim() || values.bio.trim().length < 20 || categoryIds.length === 0)) return "Completá actividad, descripción y al menos un rubro.";
+    if (step === 1 && (!values.headline.trim() || values.bio.trim().length < 20)) return "Completá a qué te dedicás y la descripción.";
+    if (step === 1 && oficio === "otra" && values.headline.trim().length < 3) return "Escribí a qué te dedicás.";
+    if (step === 1 && categoryIds.length === 0 && oficio !== "otra") return "Elegí al menos un rubro.";
     // El servidor valida de verdad (incluye el dígito verificador del CVU);
     // acá solo se atajan las dos formas obvias de mandar cualquier cosa.
     if (step === 1 && !looksLikePaymentHandle(values.paymentHandle)) return "Ingresá tu CVU o CBU de 22 dígitos, o tu alias.";
@@ -150,6 +168,7 @@ export function ProfessionalOnboardingForm({ categories, initial }: { categories
     if (avatar) form.set("avatar", avatar); else form.set("confirmProfilePhoto", "yes");
     form.set("dni_front", dniFront!); form.set("dni_back", dniBack!); form.set("identity_video", video!);
     form.set("videoChallenge", challenge); form.set("videoChallengeToken", challengeToken);
+    form.set("customCategory", oficio === "otra" ? values.headline.trim() : "");
     const response = await fetch("/api/onboarding", { method: "POST", body: form });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) setError(data.error || "No pudimos enviar la verificación.");
@@ -163,7 +182,15 @@ export function ProfessionalOnboardingForm({ categories, initial }: { categories
     <div className="glass glass-solid space-y-5 rounded-2xl p-5 sm:p-6">
       {step === 1 && <>
         <fieldset><legend className="text-sm font-semibold text-slate-900">Tipo de perfil</legend><div className="mt-2 grid grid-cols-2 gap-3">{(["profesional", "oficio"] as const).map((type) => <button key={type} type="button" onClick={() => setProviderType(type)} className={`rounded-2xl border p-4 text-left capitalize ${providerType === type ? "border-pro bg-emerald-50 font-bold text-pro-dark" : "border-slate-200 bg-white/60 text-slate-600"}`}>{type}</button>)}</div></fieldset>
-        <label className="block text-sm font-medium">¿A qué te dedicás?<input value={values.headline} onChange={(e) => update("headline", e.target.value)} maxLength={100} placeholder="Ej: Plomero matriculado" className={FIELD} /></label>
+        <label className="block text-sm font-medium">¿A qué te dedicás?
+          <select value={oficio} onChange={(e) => elegirOficio(e.target.value)} className={FIELD}>
+            <option value="">Elegí de la lista</option>
+            {compatibleCategories.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.parent ? `${category.parent.name} · ` : ""}{category.name}</option>)}
+            <option value="otra">Otra (la escribo yo)</option>
+          </select>
+          {oficio === "otra" && <input value={values.headline} onChange={(e) => update("headline", e.target.value)} maxLength={60} placeholder="Ej: Restaurador de muebles" className={FIELD} />}
+          <span className="mt-1 block text-xs font-normal text-slate-500">{oficio === "otra" ? "Administración la revisa junto con tu verificación y queda como rubro nuevo del catálogo." : "Elegirlo de la lista te deja mejor ubicado en las búsquedas."}</span>
+        </label>
         <label className="block text-sm font-medium">Años en el oficio
           <input value={values.yearsExperience} onChange={(e) => update("yearsExperience", e.target.value.replace(/\D/g, "").slice(0, 2))} inputMode="numeric" placeholder="0" className={FIELD} />
           <span className="mt-1 block text-xs font-normal text-slate-500">Los que llevás trabajando, dentro y fuera de ServiRed. Se muestra aparte de tu antigüedad en la plataforma.</span>
