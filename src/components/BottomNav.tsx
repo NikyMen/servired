@@ -31,8 +31,13 @@ const clientItems: Item[] = [
 
 const proItems: Item[] = [
   { href: "/pro", label: "Panel", icon: GridIcon, exact: true },
+  { href: "/pro/solicitudes", label: "Solicitudes", icon: ClipboardIcon },
   { href: "/pro/mensajes", label: "Mensajes", icon: ChatIcon, noLeidos: true },
 ];
+
+/* Tailwind no puede armar la clase en tiempo de ejecución: las columnas van
+   escritas enteras o la purga se las lleva. */
+const COLUMNAS: Record<number, string> = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" };
 
 /** Barra de pestañas inferior, solo móvil. En desktop navega el header. */
 export function BottomNav({ mode }: { mode: Mode }) {
@@ -52,7 +57,7 @@ export function BottomNav({ mode }: { mode: Mode }) {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {/* El cambio de modo ya no vive acá: lo hace el interruptor del header. */}
-      <div className={`grid ${items.length === 2 ? "grid-cols-2" : "grid-cols-4"}`}>
+      <div className={`grid ${COLUMNAS[items.length] ?? "grid-cols-4"}`}>
         {items.map((item) => {
           const active = item.exact
             ? pathname === item.href

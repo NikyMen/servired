@@ -34,10 +34,13 @@ export function ModeSwitch({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const enMensajes = pathname === "/mensajes" || pathname === "/pro/mensajes";
+  const enSolicitudes = pathname === "/solicitudes" || pathname === "/pro/solicitudes";
   const query = searchParams.toString();
   const enMiPerfil = pathname === "/mi-perfil" || pathname === "/pro/mi-perfil";
   const target = enMensajes
     ? `${isPro ? "" : "/pro"}/mensajes${query ? `?${query}` : ""}`
+    : enSolicitudes
+      ? `${isPro ? "" : "/pro"}/solicitudes`
     : enMiPerfil
       ? isPro ? "/mi-perfil" : "/pro/mi-perfil"
     : isPro

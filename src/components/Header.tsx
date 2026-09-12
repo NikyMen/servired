@@ -27,6 +27,7 @@ const clientNav: NavItem[] = [
 
 const proNav: NavItem[] = [
   { href: "/pro", label: "Panel" },
+  { href: "/pro/solicitudes", label: "Ver solicitudes" },
   { href: "/pro/mensajes", label: "Mensajes", noLeidos: true },
 ];
 

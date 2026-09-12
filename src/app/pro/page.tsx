@@ -10,7 +10,7 @@ import { BookingActions } from "@/components/BookingActions";
 import { SolicitudCard } from "@/components/pro/SolicitudCard";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
 import { ChatIcon, ChevronLeftIcon } from "@/components/icons";
-import { expirePendingProposals } from "@/lib/workflow";
+import { expirePendingProposals, expireServiceRequests, openRequestsWhere } from "@/lib/workflow";
 import { ProfessionalOnboardingForm } from "@/components/ProfessionalOnboardingForm";
 import { redirect } from "next/navigation";
 import { decryptKyc } from "@/lib/kyc";
@@ -23,7 +23,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
   if (!user) redirect("/entrar?next=/pro");
   if (!user.emailVerified || !user.canInteract) redirect("/onboarding?next=/pro");
   const { tipo, editarKyc } = await searchParams;
-  await expirePendingProposals();
+  await Promise.all([expirePendingProposals(), expireServiceRequests()]);
   const pro = user?.professionalId
     ? await prisma.professional.findUnique({ where: { id: user.professionalId }, include: { categoryLinks: { where: { category: { approvalStatus: "approved" } } }, user: { select: { kycCase: { select: { status: true, reviewReason: true, legalName: true, phone: true, birthDate: true, cuilEncrypted: true, dniEncrypted: true, address: true } } } } } })
     : null;
@@ -51,7 +51,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
       : [],
     prisma.serviceRequest.findMany({
       // Las propias no: no tiene sentido ofrecerse a responderse a uno mismo.
-      where: { status: "abierta", ...(user ? { NOT: { userId: user.id } } : {}), ...(pro ? { categoryId: { in: pro.categoryLinks.map((link) => link.categoryId) } } : {}) },
+      where: { ...openRequestsWhere(pro?.id), ...(user ? { NOT: { userId: user.id } } : {}), ...(pro ? { categoryId: { in: pro.categoryLinks.map((link) => link.categoryId) } } : {}) },
       orderBy: { createdAt: "desc" },
       include: { category: true },
     }),
@@ -156,7 +156,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">Solicitudes de clientes</h2>
-          <span className="text-sm text-slate-500">{requests.length} abiertas</span>
+          <Link href="/pro/solicitudes" className="text-sm font-semibold text-pro-dark hover:underline">Ver todas ({requests.length})</Link>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {requests.map((r) => <SolicitudCard key={r.id} request={{ ...r, createdAt: r.createdAt.toISOString(), category: r.category ? { name: r.category.name, icon: r.category.icon } : null }} />)}

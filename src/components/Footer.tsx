@@ -13,6 +13,7 @@ const clientLinks = [
 
 const proLinks = [
   { href: "/pro", label: "Panel" },
+  { href: "/pro/solicitudes", label: "Ver solicitudes" },
   { href: "/pro/mensajes", label: "Mensajes" },
 ];
 
