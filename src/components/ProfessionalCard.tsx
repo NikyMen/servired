@@ -11,8 +11,8 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
     >
       <div className="flex items-center gap-3">
         <Avatar name={pro.name} color={pro.avatarColor} src={pro.avatarUrl} size={48} />
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-1.5">
             <h3 className="truncate font-semibold text-slate-900 transition-colors group-hover:text-[var(--accent-dark)]">
               {pro.name}
             </h3>
@@ -24,11 +24,13 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between text-sm">
-        <span className="rounded-full bg-amber-50 px-2.5 py-1 font-bold text-amber-800"><Rating value={pro.rating} count={pro.reviewsCount} /></span>
-        <span className="flex items-center gap-1 text-slate-500">
-          <MapPinIcon width={14} height={14} className="text-slate-400" />
-          {pro.zone}
+      {/* La zona se corta con "…" en vez de partirse en dos renglones y
+          estirar la píldora de puntaje. */}
+      <div className="mt-3 flex items-center justify-between gap-2 text-sm">
+        <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 font-bold whitespace-nowrap text-amber-800"><Rating value={pro.rating} count={pro.reviewsCount} /></span>
+        <span className="flex min-w-0 items-center gap-1 text-slate-500" title={pro.zone}>
+          <MapPinIcon width={14} height={14} className="shrink-0 text-slate-400" />
+          <span className="truncate">{pro.zone}</span>
         </span>
       </div>
 

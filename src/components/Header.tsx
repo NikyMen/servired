@@ -52,15 +52,20 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
         className="h-[3px] bg-[linear-gradient(90deg,transparent,rgb(var(--accent-rgb)/0.9),rgb(var(--accent-rgb)/0.35),transparent)]"
         aria-hidden
       />
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-2 px-4 py-3">
+      {/* En móvil es grilla y no flex-wrap: flex salta de línea antes que
+          achicar, y dejaba el logo solo arriba con el interruptor y "Entrar"
+          abajo. Así la fila 1 es logo (se achica) + controles (no), y la
+          búsqueda ocupa la fila 2 entera. Desde md vuelve a ser una sola fila. */}
+      <div className="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-3 px-4 py-3 md:flex md:gap-2">
         <Logo
           accent={mode}
           href={mode === "pro" ? "/pro" : "/"}
-          className="shrink-0 md:mr-2"
+          fluid
+          className="min-w-0 max-w-full justify-self-start md:mr-2 md:shrink-0"
         />
 
         {mode === "cliente" && (
-          <div className="order-3 w-full md:order-none md:max-w-xs md:flex-1">
+          <div className="col-span-2 row-start-2 md:max-w-xs md:flex-1">
             <SearchBox key={`${searchType || "todos"}:${searchCategory || "todos"}:${searchQuery}`} variant="nav" defaultQuery={searchQuery} categoria={searchCategory} tipo={searchType} />
           </div>
         )}
@@ -95,7 +100,7 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
           })}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3 md:ml-auto">
           {/* Uno solo: antes había dos (uno por breakpoint) y se veían los dos
               juntos, porque .mode-switch estaba fuera de @layer y le ganaba al
               `hidden` de Tailwind. Ahora achica con clases responsive. */}

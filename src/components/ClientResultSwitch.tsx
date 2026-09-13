@@ -32,13 +32,11 @@ function TipoSwitch() {
     router.push(`${pathname}${qs ? `?${qs}` : ""}#resultados`);
   };
 
-  const seg = "flex-1 rounded-full px-3 py-2 text-xs font-semibold whitespace-nowrap transition sm:text-sm";
-
   return (
     <div
       role="group"
       aria-label="Filtrar por tipo de prestador"
-      className="glass glass-thin flex shrink-0 rounded-full p-1"
+      className="glass glass-thin flex w-full min-w-0 rounded-full p-1"
     >
       <button
         type="button"
@@ -64,17 +62,38 @@ function TipoSwitch() {
   );
 }
 
+/**
+ * Segmento de los dos interruptores de la portada. Los dos usan el mismo para
+ * medir igual de alto. En móvil `basis-0` deja las mitades parejas; desde sm
+ * cada mitad parte del ancho de su texto (los textos largos no se cortan).
+ * `truncate` es la red: un texto nunca se parte en renglones (antes
+ * "Perfiles profesionales / trabajadores" quedaba en 3 y la píldora activa se
+ * deformaba).
+ */
+const seg = "min-w-0 flex-1 basis-0 truncate rounded-full px-3 py-2 text-center text-xs font-semibold whitespace-nowrap transition sm:basis-auto sm:text-sm";
+
 export function ClientResultSwitch({ requests }: { requests: RequestCard[] }) {
   const [view, setView] = useState<"requests" | "professionals">("professionals");
   useEffect(() => {
     document.getElementById("professional-results")?.classList.toggle("hidden", view === "requests");
   }, [view]);
+  const on = "bg-cliente text-white shadow-md";
+  const off = "text-slate-600 hover:bg-white/60";
   return (
     <section className="space-y-4" aria-label="Explorar oportunidades">
-      <div className="mx-auto flex w-full max-w-2xl flex-wrap items-center justify-center gap-2">
-        <div className="glass glass-thin flex min-w-0 flex-1 rounded-full p-1">
-          <button type="button" aria-pressed={view === "requests"} onClick={() => setView("requests")} className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition sm:text-sm ${view === "requests" ? "bg-cliente text-white shadow-md" : "text-slate-600 hover:bg-white/60"}`}>Solicitudes de trabajo</button>
-          <button type="button" aria-pressed={view === "professionals"} onClick={() => setView("professionals")} className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition sm:text-sm ${view === "professionals" ? "bg-cliente text-white shadow-md" : "text-slate-600 hover:bg-white/60"}`}>Perfiles profesionales / trabajadores</button>
+      {/* En móvil uno arriba del otro, a ancho completo: lado a lado no
+          entraban y el de tipo se montaba encima del otro. Desde lg, en fila:
+          el primero con el ancho de sus textos y el de tipo con lo que sobra. */}
+      <div className="mx-auto grid w-full max-w-3xl gap-2 lg:grid-cols-[auto_minmax(0,1fr)]">
+        <div role="group" aria-label="Qué ver" className="glass glass-thin flex w-full min-w-0 rounded-full p-1">
+          <button type="button" aria-pressed={view === "requests"} aria-label="Solicitudes de trabajo" onClick={() => setView("requests")} className={`${seg} ${view === "requests" ? on : off}`}>
+            <span className="sm:hidden">Solicitudes</span>
+            <span className="hidden sm:inline">Solicitudes de trabajo</span>
+          </button>
+          <button type="button" aria-pressed={view === "professionals"} aria-label="Perfiles profesionales y trabajadores" onClick={() => setView("professionals")} className={`${seg} ${view === "professionals" ? on : off}`}>
+            <span className="sm:hidden">Perfiles</span>
+            <span className="hidden sm:inline">Perfiles profesionales / trabajadores</span>
+          </button>
         </div>
         <TipoSwitch />
       </div>

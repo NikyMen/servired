@@ -26,6 +26,7 @@ export function Logo({
   className = "",
   height = 34,
   compactOnMobile = false,
+  fluid = false,
 }: {
   href?: string;
   accent?: Mode;
@@ -34,8 +35,35 @@ export function Logo({
   height?: number;
   /** En pantallas chicas deja solo el símbolo: le hace lugar al interruptor. */
   compactOnMobile?: boolean;
+  /**
+   * El lockup se achica (manteniendo la proporción) si no le alcanza el lugar,
+   * en vez de empujar a lo que tiene al lado a otra fila. Debajo de 340px,
+   * donde ya no se leería, queda solo el símbolo.
+   */
+  fluid?: boolean;
 }) {
   const width = Math.round(height * HORIZONTAL_RATIO);
+
+  if (fluid) {
+    return (
+      <Link
+        href={href}
+        aria-label="ServiRed — inicio"
+        className={`flex items-center leading-none ${className}`}
+      >
+        <LogoMark size={Math.min(height, 32)} className="min-[340px]:hidden" />
+        <Image
+          src="/logo-horizontal.png"
+          alt="ServiRed — servicios profesionales conectados"
+          width={width}
+          height={height}
+          priority
+          className="hidden h-auto max-w-full min-[340px]:block"
+          style={{ width }}
+        />
+      </Link>
+    );
+  }
 
   return (
     <Link

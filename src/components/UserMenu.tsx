@@ -31,7 +31,7 @@ export function UserMenu({ user, mode }: { user: SessionUser | null; mode: Mode 
 
   if (!user) {
     return (
-      <Link href="/entrar" className="glass-btn glass-btn-ghost shrink-0 px-3.5 py-2 text-sm">
+      <Link href="/entrar" className="glass-btn glass-btn-ghost shrink-0 px-3 py-1.5 text-xs whitespace-nowrap sm:px-3.5 sm:py-2 sm:text-sm">
         Entrar
       </Link>
     );

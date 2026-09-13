@@ -54,7 +54,7 @@ export function ModeSwitch({
   useEffect(() => setIndex(isPro ? 1 : 0), [isPro]);
 
   // Un solo interruptor para todos los tamaños: en móvil se achica solo.
-  const pad = "px-2.5 py-1.5 text-[11px] sm:px-3 sm:py-2 sm:text-xs";
+  const pad = "px-2 py-1.5 text-[11px] sm:px-3 sm:py-2 sm:text-xs";
 
   /**
    * Mueve la píldora y le avisa a ModeTransition que arranque el barrido.
