@@ -596,15 +596,17 @@ model Notification {
   @@index([userId, readAt])
 }
 
-/// Denuncia sobre una imagen publicada. La resuelve administración.
+/// Denuncia sobre una imagen publicada o una conversación. La resuelve administración.
 model Report {
   id         String    @id @default(cuid())
-  targetType String // work_sample_image | work_photo
+  targetType String // work_sample_image | work_photo | conversation
   targetId   String
   /// Copia congelada de la URL: si la imagen se borra, administración todavía
-  /// tiene que poder ver qué fue lo que se denunció.
-  imageUrl   String
-  reason     String // no_es_suyo | inapropiado | enganoso | otro
+  /// tiene que poder ver qué fue lo que se denunció. Null en conversaciones.
+  imageUrl   String?
+  /// En conversaciones: los últimos mensajes congelados (JSON), por el mismo motivo.
+  context    String?
+  reason     String // imágenes: no_es_suyo | inapropiado | enganoso | otro · chats: acoso | estafa | spam | inapropiado | otro
   detail     String?
   status     String    @default("pending") // pending | dismissed | actioned
   resolution String?

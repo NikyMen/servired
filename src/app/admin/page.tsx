@@ -60,7 +60,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </nav>
     </header>
 
-    {showAll && <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Metric label="Usuarios" value={userCount} note="Cuentas registradas" /><Metric label="Oferentes verificados" value={verifiedProviderCount} note="Perfiles publicados" /><Metric label="KYC pendientes" value={pendingKyc} note="Requieren revisión" danger={pendingKyc > 0} /><Metric label="Trabajos activos" value={activeJobCount} note="Máximo 3 por oferente" /><Metric label="Denuncias pendientes" value={pendingReports} note="Imágenes a revisar" danger={pendingReports > 0} /></section>}
+    {showAll && <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Metric label="Usuarios" value={userCount} note="Cuentas registradas" /><Metric label="Oferentes verificados" value={verifiedProviderCount} note="Perfiles publicados" /><Metric label="KYC pendientes" value={pendingKyc} note="Requieren revisión" danger={pendingKyc > 0} /><Metric label="Trabajos activos" value={activeJobCount} note="Máximo 3 por oferente" /><Metric label="Denuncias pendientes" value={pendingReports} note="Imágenes y chats a revisar" danger={pendingReports > 0} /></section>}
 
     {(showAll || tab === "kyc") && <AdminKyc rows={serializedKyc} />}
 

@@ -104,9 +104,11 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
           <div
             role="dialog"
             aria-label="Mensajes"
-            className="glass glass-solid animate-sheet-up fixed inset-x-3 bottom-[max(.75rem,env(safe-area-inset-bottom))] z-50 flex max-h-[88dvh] flex-col overflow-hidden rounded-3xl md:inset-auto md:right-6 md:bottom-6 md:max-h-[80vh] md:w-[640px]"
+            // Altura fija (no max-h): el chat adentro usa h-full y con max-h no
+            // tiene de dónde agarrarse, así que la lista no scrolleaba.
+            className="glass glass-solid animate-sheet-up fixed inset-0 z-50 flex h-dvh flex-col overflow-hidden md:inset-auto md:right-6 md:bottom-6 md:h-[min(80vh,680px)] md:w-[min(720px,calc(100vw-3rem))] md:rounded-3xl md:shadow-2xl"
           >
-            <header className={`flex items-center gap-3 px-4 py-3.5 text-white ${accent}`}>
+            <header className={`flex shrink-0 items-center gap-3 px-4 pt-[max(.75rem,env(safe-area-inset-top))] pb-3 text-white md:py-3.5 ${accent}`}>
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/15">
                 <ChatIcon width={19} height={19} />
               </span>
@@ -145,7 +147,7 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
               </button>
             </header>
 
-            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden p-3">
+            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
               {error ? (
                 <p
                   role="alert"

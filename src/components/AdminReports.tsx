@@ -7,7 +7,8 @@ import { formatDateTime } from "@/lib/format";
 type Report = {
   id: string;
   targetType: string;
-  imageUrl: string;
+  imageUrl: string | null;
+  context: string | null;
   reason: string;
   detail: string | null;
   status: string;
@@ -23,6 +24,9 @@ const MOTIVOS: Record<string, string> = {
   inapropiado: "Contenido inapropiado",
   enganoso: "Engañoso",
   otro: "Otro motivo",
+  acoso: "Acoso, insultos o amenazas",
+  estafa: "Intento de estafa",
+  spam: "Spam o publicidad",
 };
 
 export function AdminReports({ rows }: { rows: Report[] }) {
@@ -53,31 +57,37 @@ export function AdminReports({ rows }: { rows: Report[] }) {
               <div className="flex gap-3">
                 {/* La URL quedó congelada en la denuncia: si la imagen ya se
                     borró, el recuadro queda vacío y eso también informa. */}
-                <img src={row.imageUrl} alt="Imagen denunciada" className="size-24 shrink-0 rounded-xl bg-slate-100 object-cover ring-1 ring-slate-200" />
+                {row.imageUrl ? (
+                  <img src={row.imageUrl} alt="Imagen denunciada" className="size-24 shrink-0 rounded-xl bg-slate-100 object-cover ring-1 ring-slate-200" />
+                ) : (
+                  <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-2xl ring-1 ring-slate-200">💬</span>
+                )}
                 <div className="min-w-0 space-y-1 text-sm">
-                  <p className="font-bold text-slate-900">{MOTIVOS[row.reason] ?? row.reason}</p>
+                  <p className="font-bold text-slate-900">{row.targetType === "conversation" ? "Chat · " : ""}{MOTIVOS[row.reason] ?? row.reason}</p>
                   {row.detail && <p className="whitespace-pre-wrap text-slate-600">{row.detail}</p>}
                   <p className="text-xs text-slate-500">Denunció {row.reporter.name} · {formatDateTime(row.createdAt)}</p>
                   <p className="text-xs text-slate-500">
-                    Publicó <strong className="text-slate-700">{row.accused.name}</strong> ({row.accused.email})
+                    {row.targetType === "conversation" ? "Denunciado:" : "Publicó"} <strong className="text-slate-700">{row.accused.name}</strong> ({row.accused.email})
                     {row.accused.accountStatus === "suspended" && <span className="ml-1 font-semibold text-red-600">· cuenta suspendida</span>}
                   </p>
                 </div>
               </div>
+
+              {row.context && <ExtractoChat context={row.context} />}
 
               {row.status === "pending" ? (
                 <form className="space-y-2">
                   <input type="hidden" name="id" value={row.id} />
                   <textarea name="resolution" rows={2} placeholder="Nota interna de la decisión (opcional)" className="glass-field w-full resize-none px-3 py-2 text-sm" />
                   <div className="flex flex-wrap gap-2">
-                    <button formAction={resolveReportAction.bind(null, "dismiss")} className="glass-btn glass-btn-ghost px-3 py-2 text-xs">Dejarla publicada</button>
-                    <button formAction={resolveReportAction.bind(null, "remove")} className="glass-btn px-3 py-2 text-xs">Bajar la imagen</button>
-                    <button formAction={resolveReportAction.bind(null, "ban")} className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700">Bajar y suspender la cuenta</button>
+                    <button formAction={resolveReportAction.bind(null, "dismiss")} className="glass-btn glass-btn-ghost px-3 py-2 text-xs">{row.targetType === "conversation" ? "Descartar" : "Dejarla publicada"}</button>
+                    {row.targetType !== "conversation" && <button formAction={resolveReportAction.bind(null, "remove")} className="glass-btn px-3 py-2 text-xs">Bajar la imagen</button>}
+                    <button formAction={resolveReportAction.bind(null, "ban")} className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700">{row.targetType === "conversation" ? "Suspender la cuenta" : "Bajar y suspender la cuenta"}</button>
                   </div>
                 </form>
               ) : (
                 <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                  {row.status === "dismissed" ? "Quedó publicada" : "Se bajó la imagen"}
+                  {row.status === "dismissed" ? (row.targetType === "conversation" ? "Descartada" : "Quedó publicada") : row.targetType === "conversation" ? "Cuenta suspendida" : "Se bajó la imagen"}
                   {row.resolvedAt && ` · ${formatDateTime(row.resolvedAt)}`}
                   {row.resolution && ` · ${row.resolution}`}
                 </p>
@@ -87,5 +97,31 @@ export function AdminReports({ rows }: { rows: Report[] }) {
         </div>
       )}
     </section>
+  );
+}
+
+type MensajeCongelado = { sender: string; text: string; attachmentUrl: string | null; createdAt: string };
+
+/** Los mensajes que se congelaron al denunciar un chat. */
+function ExtractoChat({ context }: { context: string }) {
+  let mensajes: MensajeCongelado[] = [];
+  try {
+    mensajes = JSON.parse(context);
+  } catch {
+    return null;
+  }
+  return (
+    <details className="rounded-xl bg-slate-50 text-xs">
+      <summary className="cursor-pointer px-3 py-2 font-semibold text-slate-600">Ver los últimos {mensajes.length} mensajes</summary>
+      <ol className="max-h-72 space-y-1.5 overflow-y-auto px-3 pb-3">
+        {mensajes.map((m, i) => (
+          <li key={i} className={m.sender === "cliente" ? "text-slate-700" : m.sender === "profesional" ? "text-emerald-800" : "text-slate-400"}>
+            <span className="font-semibold capitalize">{m.sender}</span>
+            <span className="text-slate-400"> · {formatDateTime(m.createdAt)}</span>
+            <p className="whitespace-pre-wrap break-words">{m.text || (m.attachmentUrl ? "📎 Adjunto" : "")}</p>
+          </li>
+        ))}
+      </ol>
+    </details>
   );
 }

@@ -6,7 +6,8 @@ import { Avatar } from "@/components/ui";
 import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
 import { ChevronLeftIcon, PaperclipIcon, SendIcon, FileIcon, XIcon } from "@/components/icons";
 import { formatBytes } from "@/lib/format";
-import { PaymentControls } from "@/components/PaymentControls";
+import { PaymentControls, estadoAcuerdo, useAcuerdo } from "@/components/PaymentControls";
+import { DenunciarConversacion } from "@/components/DenunciarConversacion";
 
 export type ChatMessage = {
   id: string;
@@ -82,7 +83,8 @@ export function Chat({
   );
 
   const fileInput = useRef<HTMLInputElement>(null);
-  const bottom = useRef<HTMLDivElement>(null);
+  const lista = useRef<HTMLDivElement>(null);
+  const [denunciando, setDenunciando] = useState(false);
 
   const isPro = viewer === "profesional";
   const bubbleOwn = isPro ? "bg-pro text-white" : "bg-cliente text-white";
@@ -90,6 +92,8 @@ export function Chat({
 
   const selected = conversations.find((c) => c.id === selectedId) ?? conversations[0] ?? null;
   const messages = selected ? (byId[selected.id] ?? selected.messages) : [];
+  const { booking, reload } = useAcuerdo(selected?.id ?? null);
+  const acuerdo = selected ? estadoAcuerdo(booking, viewer) : null;
 
   const { porConversacion, marcarLeida, mirandoHilo } = useNoLeidos();
   const dosColumnas = useDosColumnas();
@@ -180,10 +184,13 @@ export function Chat({
     };
   }, [selectedId]);
 
-  // Seguir el final del hilo cuando entra algo nuevo.
+  // Seguir el final del hilo cuando entra algo nuevo. Se mueve sólo la lista:
+  // scrollIntoView también corría los contenedores de arriba y escondía el
+  // encabezado con el nombre.
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "end" });
-  }, [messages.length, selectedId]);
+    const el = lista.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length, selectedId, threadOpen]);
 
   // Liberar la URL del preview: si no, queda el blob colgado en memoria.
   useEffect(() => {
@@ -269,7 +276,9 @@ export function Chat({
   }
 
   return (
-    <div className={`glass glass-solid grid grid-cols-1 overflow-hidden md:grid-cols-[260px_1fr] ${
+    // grid-rows acotada: sin ella la fila crece con los mensajes, el hilo deja de
+    // scrollear y el encabezado con el nombre queda empujado fuera de la vista.
+    <div className={`glass glass-solid grid grid-cols-1 grid-rows-[minmax(0,1fr)] overflow-hidden md:grid-cols-[260px_1fr] ${
       threadOpen
         ? embedded
           ? "absolute inset-0 z-50 min-h-0 rounded-none md:static md:z-auto md:h-full"
@@ -280,7 +289,7 @@ export function Chat({
     }`}>
       {/* Lista de conversaciones */}
       <aside
-        className={`${threadOpen ? "hidden md:block" : ""} divide-y divide-white/60 md:border-r md:border-white/60`}
+        className={`${threadOpen ? "hidden md:block" : ""} min-h-0 divide-y divide-white/60 overflow-y-auto overscroll-contain md:border-r md:border-white/60`}
       >
         {conversations.map((c) => {
           const list = byId[c.id] ?? c.messages;
@@ -344,55 +353,63 @@ export function Chat({
       </aside>
 
       {/* Hilo */}
-      <section className={`${threadOpen ? "flex bg-slate-50 pt-[env(safe-area-inset-top)] md:bg-transparent md:pt-0" : "hidden md:flex"} min-w-0 flex-col`}>
+      <section className={`${threadOpen ? "flex bg-slate-50 pt-[env(safe-area-inset-top)] md:bg-transparent md:pt-0" : "hidden md:flex"} h-full min-h-0 min-w-0 flex-col`}>
         {selected && (
           <>
-            <div className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b border-white/60 bg-white/75 px-3 py-3 backdrop-blur-xl sm:px-4">
+            <div className="z-10 flex shrink-0 items-center gap-2 border-b border-white/60 bg-white/80 px-3 py-2.5 backdrop-blur-xl sm:px-4">
               <button
                 onClick={() => setThreadOpen(false)}
                 aria-label="Volver a conversaciones"
-                className="-ml-1 rounded-full p-1.5 text-slate-500 transition-colors hover:bg-white/70 md:hidden"
+                className="-ml-1 shrink-0 rounded-full p-1.5 text-slate-500 transition-colors hover:bg-white/70 md:hidden"
               >
                 <ChevronLeftIcon width={22} height={22} />
               </button>
-              {selected.profileHref ? <Link href={selected.profileHref} className="flex items-center gap-2 rounded-xl hover:opacity-80"><Avatar name={selected.withName} color={selected.withColor} src={selected.avatarUrl} size={34} /><span className="font-semibold text-slate-900">{selected.withName}</span></Link> : <><Avatar name={selected.withName} color={selected.withColor} src={selected.avatarUrl} size={34} /><p className="font-semibold text-slate-900">{selected.withName}</p></>}
+              <Avatar name={selected.withName} color={selected.withColor} src={selected.avatarUrl} size={36} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-900">{selected.withName}</p>
+                {acuerdo && <p className={`truncate text-xs font-medium ${acuerdo.tono}`}>{acuerdo.label}</p>}
+              </div>
+              <MenuHilo
+                profileHref={selected.profileHref}
+                onDenunciar={() => setDenunciando(true)}
+              />
             </div>
 
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
-              {messages.map((m) => {
+            <div ref={lista} className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 py-4 sm:px-4">
+              {messages.map((m, i) => {
                 const own = m.sender === viewer;
                 const system = m.sender === "sistema";
+                const acuerdoMsg = m.text.startsWith("📋") || m.text.startsWith("💰");
+                const dia = diaDe(m.createdAt);
+                const nuevoDia = i === 0 || diaDe(messages[i - 1].createdAt) !== dia;
                 return (
                   <Fragment key={m.id}>
+                    {nuevoDia && <SeparadorDia fecha={m.createdAt} />}
                     {divisor[selected.id] === m.id && <SeparadorNuevos />}
-                    <div className={`flex ${system ? "justify-center" : own ? "justify-end" : "justify-start"}`}>
-                      <div
-                        className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
-                          system
-                            ? "max-w-[92%] rounded-xl border border-slate-200 bg-slate-100 px-4 text-center text-slate-600 shadow-none"
-                            : m.text.startsWith("📋") || m.text.startsWith("💰")
-                            ? "border border-amber-200 bg-amber-50 text-amber-950 shadow-amber-100"
-                            : own ? bubbleOwn : "bg-white/80 text-slate-800 backdrop-blur-md"
-                        }`}
-                      >
-                        {m.attachmentUrl && <Attachment message={m} own={own} />}
-                        {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
-                        <p
-                          className={`mt-0.5 text-[10px] ${system ? "text-slate-400" : m.text.startsWith("📋") || m.text.startsWith("💰") ? "text-amber-700/70" : own ? "text-white/70" : "text-slate-400"}`}
+                    <div className={`flex ${system || acuerdoMsg ? "justify-center" : own ? "justify-end" : "justify-start"}`}>
+                      {acuerdoMsg ? (
+                        <TarjetaAcuerdo message={m} />
+                      ) : (
+                        <div
+                          className={`max-w-[85%] break-words rounded-2xl px-3.5 py-2 text-sm shadow-sm sm:max-w-[75%] ${
+                            system
+                              ? "max-w-[92%] rounded-xl border border-slate-200 bg-slate-100 px-4 text-center text-slate-600 shadow-none"
+                              : own
+                              ? `${bubbleOwn} rounded-br-md`
+                              : "rounded-bl-md bg-white text-slate-800"
+                          }`}
                         >
-                          {new Date(m.createdAt).toLocaleString("es-AR", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
+                          {m.attachmentUrl && <Attachment message={m} own={own} />}
+                          {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
+                          <p className={`mt-0.5 text-right text-[10px] ${system ? "text-slate-400" : own ? "text-white/70" : "text-slate-400"}`}>
+                            {hora(m.createdAt)}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </Fragment>
                 );
               })}
-              <div ref={bottom} />
             </div>
 
             {error && (
@@ -439,7 +456,7 @@ export function Chat({
                 e.preventDefault();
                 send();
               }}
-              className="sticky bottom-0 z-10 flex min-w-0 shrink-0 items-center gap-2 border-t border-white/60 bg-white/90 p-3 pb-[max(.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl"
+              className="z-10 flex min-w-0 shrink-0 items-center gap-1.5 border-t border-white/60 bg-white/90 p-2 pb-[max(.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:gap-2 sm:p-3"
             >
               <input
                 ref={fileInput}
@@ -465,16 +482,18 @@ export function Chat({
                 onClick={() => fileInput.current?.click()}
                 aria-label="Adjuntar imagen o PDF"
                 title="Adjuntar imagen o PDF"
-                className="shrink-0 rounded-xl p-2.5 text-slate-400 transition-colors hover:bg-white/70 hover:text-slate-600"
+                className="shrink-0 rounded-xl p-2 text-slate-400 transition-colors hover:bg-white/70 hover:text-slate-600 sm:p-2.5"
               >
                 <PaperclipIcon width={20} height={20} />
               </button>
-              <PaymentControls conversationId={selected.id} viewer={viewer} />
+              <PaymentControls conversationId={selected.id} viewer={viewer} booking={booking} reload={reload} />
               <input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Escribí un mensaje…"
-                className="glass-field min-w-0 flex-1 px-3 py-2.5 text-sm text-slate-950 caret-slate-950 placeholder:text-slate-500"
+                enterKeyHint="send"
+                // text-base en móvil: con menos de 16px iOS hace zoom al enfocar.
+                className="glass-field min-w-0 flex-1 px-3 py-2 text-base text-slate-950 caret-slate-950 placeholder:text-slate-500 sm:py-2.5 sm:text-sm"
               />
               <button
                 type="submit"
@@ -485,9 +504,110 @@ export function Chat({
                 <SendIcon width={18} height={18} />
               </button>
             </form>
+            {denunciando && (
+              <DenunciarConversacion
+                conversationId={selected.id}
+                withName={selected.withName}
+                onClose={() => setDenunciando(false)}
+              />
+            )}
           </>
         )}
       </section>
+    </div>
+  );
+}
+
+const diaDe = (fecha: string) => new Date(fecha).toDateString();
+const hora = (fecha: string) => new Date(fecha).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+
+/** "Hoy", "Ayer" o la fecha, entre mensajes de días distintos. */
+function SeparadorDia({ fecha }: { fecha: string }) {
+  const d = new Date(fecha);
+  const hoy = new Date();
+  const ayer = new Date();
+  ayer.setDate(hoy.getDate() - 1);
+  const texto =
+    d.toDateString() === hoy.toDateString()
+      ? "Hoy"
+      : d.toDateString() === ayer.toDateString()
+      ? "Ayer"
+      : d.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "short", year: d.getFullYear() === hoy.getFullYear() ? undefined : "numeric" });
+  return (
+    <div className="flex justify-center py-1" role="separator">
+      <span className="rounded-full bg-white/80 px-2.5 py-0.5 text-[11px] font-medium text-slate-500 shadow-sm">{texto}</span>
+    </div>
+  );
+}
+
+/** Los mensajes del acuerdo (💰 propuesta, 📋 pedido) como tarjeta, no como burbuja. */
+function TarjetaAcuerdo({ message: m }: { message: ChatMessage }) {
+  const [titulo, ...resto] = m.text.replace(/^(💰|📋)\s*/, "").split(" · ");
+  return (
+    <div className="w-full max-w-sm rounded-2xl border border-amber-200 bg-amber-50/95 px-4 py-3 text-sm text-amber-950 shadow-sm">
+      <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-700">
+        <span aria-hidden>{m.text.startsWith("💰") ? "💰" : "📋"}</span>
+        {titulo}
+      </p>
+      {resto.length > 0 && (
+        <ul className="mt-1.5 space-y-0.5">
+          {resto.map((parte, i) => (
+            <li key={i} className={i === 0 ? "text-base font-bold" : "break-words text-amber-900"}>{parte}</li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-1 text-right text-[10px] text-amber-700/70">{hora(m.createdAt)}</p>
+    </div>
+  );
+}
+
+/** Menú "⋯" del encabezado del hilo. */
+function MenuHilo({ profileHref, onDenunciar }: { profileHref?: string | null; onDenunciar: () => void }) {
+  const [open, setOpen] = useState(false);
+  const caja = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const afuera = (e: MouseEvent) => caja.current && !caja.current.contains(e.target as Node) && setOpen(false);
+    const escape = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", afuera);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("mousedown", afuera);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open]);
+
+  return (
+    <div ref={caja} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-label="Más opciones"
+        aria-expanded={open}
+        className="flex size-9 items-center justify-center rounded-full text-lg leading-none text-slate-500 transition-colors hover:bg-white/70"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="glass glass-solid animate-reveal-down absolute right-0 z-30 mt-1 w-48 overflow-hidden rounded-xl py-1 text-sm shadow-xl">
+          {profileHref && (
+            <Link href={profileHref} onClick={() => setOpen(false)} className="block px-3.5 py-2 text-slate-700 hover:bg-white/70">
+              Ver perfil
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onDenunciar();
+            }}
+            className="block w-full px-3.5 py-2 text-left text-red-600 hover:bg-red-50"
+          >
+            Denunciar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

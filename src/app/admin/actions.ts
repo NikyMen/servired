@@ -82,7 +82,8 @@ export async function resolveReportAction(decision: ReportDecision, formData: Fo
         const quedan = await prisma.workSampleImage.count({ where: { sampleId: image.sampleId } });
         if (quedan === 0) await prisma.workSample.delete({ where: { id: image.sampleId } }).catch(() => {});
       }
-    } else {
+    } else if (report.targetType === "work_photo") {
+      // En un chat no hay nada que bajar: la decisión es sobre la cuenta.
       const photo = await prisma.workPhoto.findUnique({ where: { id: report.targetId }, select: { url: true } });
       if (photo) {
         await prisma.workPhoto.delete({ where: { id: report.targetId } });
@@ -109,7 +110,9 @@ export async function resolveReportAction(decision: ReportDecision, formData: Fo
     await notificar(tx, report.reporterId, {
       kind: "denuncia",
       title: "Revisamos tu denuncia",
-      body: decision === "dismiss" ? "Miramos la imagen y por ahora queda publicada." : "Dimos de baja la imagen que denunciaste. Gracias por avisar.",
+      body: report.targetType === "conversation"
+        ? decision === "dismiss" ? "Miramos la conversación y por ahora no tomamos medidas." : "Tomamos medidas sobre la cuenta que denunciaste. Gracias por avisar."
+        : decision === "dismiss" ? "Miramos la imagen y por ahora queda publicada." : "Dimos de baja la imagen que denunciaste. Gracias por avisar.",
       url: "/",
       groupKey: `report:${report.id}`,
     });

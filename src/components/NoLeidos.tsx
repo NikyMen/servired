@@ -44,6 +44,8 @@ type NoLeidosCtx = {
   avisosSinLeer: number;
   /** Al abrir la campanita se da por visto todo lo que había. */
   marcarAvisosLeidos: () => void;
+  /** Borra un aviso (o todos, sin id). Se ve al instante; el servidor confirma. */
+  borrarAvisos: (id?: string) => Promise<void>;
 };
 
 // Valores por defecto para que <Chat> siga funcionando fuera del provider
@@ -56,6 +58,7 @@ const Ctx = createContext<NoLeidosCtx>({
   avisos: [],
   avisosSinLeer: 0,
   marcarAvisosLeidos: () => {},
+  borrarAvisos: async () => {},
 });
 
 export const useNoLeidos = () => useContext(Ctx);
@@ -210,6 +213,24 @@ export function NoLeidosProvider({
     await fetch("/api/avisos/leido", { method: "POST" }).catch(() => {});
   }, []);
 
+  const borrarAvisos = useCallback(async (id?: string) => {
+    const borradoSinLeer = avisos.some((aviso) => (!id || aviso.id === id) && !aviso.readAt);
+    setAvisos((current) => (id ? current.filter((aviso) => aviso.id !== id) : []));
+    if (!id) {
+      setAvisosSinLeer(0);
+      previoAvisos.current = 0;
+    } else if (borradoSinLeer) {
+      // Bajar el contador sin que el próximo poll lo tome como "llegó algo".
+      setAvisosSinLeer((n) => Math.max(0, n - 1));
+      previoAvisos.current = Math.max(0, (previoAvisos.current ?? 1) - 1);
+    }
+    await fetch("/api/avisos", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(id ? { id } : { todos: true }),
+    }).catch(() => {});
+  }, [avisos]);
+
   const valor = useMemo<NoLeidosCtx>(
     () => ({
       porConversacion,
@@ -219,8 +240,9 @@ export function NoLeidosProvider({
       avisos,
       avisosSinLeer,
       marcarAvisosLeidos,
+      borrarAvisos,
     }),
-    [porConversacion, marcarLeida, mirandoHilo, avisos, avisosSinLeer, marcarAvisosLeidos]
+    [porConversacion, marcarLeida, mirandoHilo, avisos, avisosSinLeer, marcarAvisosLeidos, borrarAvisos]
   );
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
