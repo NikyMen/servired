@@ -14,6 +14,7 @@ import { expirePendingProposals, expireServiceRequests, openRequestsWhere } from
 import { ProfessionalOnboardingForm } from "@/components/ProfessionalOnboardingForm";
 import { redirect } from "next/navigation";
 import { decryptKyc } from "@/lib/kyc";
+import { getLocalidades } from "@/lib/localidades";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Panel del profesional" };
@@ -28,15 +29,18 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
     ? await prisma.professional.findUnique({ where: { id: user.professionalId }, include: { categoryLinks: { where: { category: { approvalStatus: "approved" } } }, user: { select: { kycCase: { select: { status: true, reviewReason: true, legalName: true, phone: true, birthDate: true, cuilEncrypted: true, dniEncrypted: true, address: true } } } } } })
     : null;
   if (!pro || pro.profileStatus === "changes_requested" || (pro.profileStatus === "approved" && editarKyc === "1")) {
-    const categories = await prisma.category.findMany({ where: { approvalStatus: "approved" }, include: { parent: { select: { name: true } } }, orderBy: [{ kind: "asc" }, { name: "asc" }] });
+    const [categories, localities] = await Promise.all([
+      prisma.category.findMany({ where: { approvalStatus: "approved" }, include: { parent: { select: { name: true } } }, orderBy: [{ kind: "asc" }, { name: "asc" }] }),
+      getLocalidades(user.localityId),
+    ]);
     const providerType = pro?.providerType === "profesional" || pro?.providerType === "oficio"
       ? pro.providerType
       : tipo === "profesional" || tipo === "oficio" ? tipo : undefined;
     const existingKyc = pro?.user?.kycCase;
-    return <ProfessionalOnboardingForm categories={categories.map(({ id, name, icon, kind, parent }) => ({ id, name, icon, kind, parent }))} initial={{
+    return <ProfessionalOnboardingForm categories={categories.map(({ id, name, icon, kind, parent }) => ({ id, name, icon, kind, parent }))} localities={localities.map(({ id, name, province }) => ({ id, name, province }))} initial={{
       name: user.name, email: user.email, avatarUrl: user.avatarUrl, providerType, status: pro?.profileStatus, reason: existingKyc?.reviewReason,
       categoryIds: pro?.categoryLinks.map((link) => link.categoryId), headline: pro?.headline, bio: pro?.bio ?? "", paymentHandle: pro?.paymentHandle ?? "", yearsExperience: pro?.yearsExperience ?? 0,
-      legalName: existingKyc?.legalName, phone: existingKyc?.phone, birthDate: existingKyc?.birthDate.toISOString().slice(0, 10), cuil: existingKyc ? decryptKyc(existingKyc.cuilEncrypted) : undefined, dni: existingKyc ? decryptKyc(existingKyc.dniEncrypted) : undefined, address: existingKyc?.address,
+      legalName: existingKyc?.legalName, phone: existingKyc?.phone, birthDate: existingKyc?.birthDate.toISOString().slice(0, 10), cuil: existingKyc ? decryptKyc(existingKyc.cuilEncrypted) : undefined, dni: existingKyc ? decryptKyc(existingKyc.dniEncrypted) : undefined, address: existingKyc?.address, localityId: user.localityId,
     }} />;
   }
   if (pro.profileStatus !== "approved") return <section className="glass glass-solid rounded-2xl p-6"><h1 className="text-2xl font-bold text-slate-900">Perfil {pro.profileStatus === "rejected" ? "rechazado" : "en revisión"}</h1><p className="mt-2 text-slate-600">Podés seguir usando Busco. Para ofrecer, responder o recibir trabajos primero debe aprobarte administración.</p>{pro.user?.kycCase?.reviewReason && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{pro.user.kycCase.reviewReason}</p>}<Link href="/" className="glass-btn glass-btn-ghost mt-4 px-4 py-2.5 text-sm">Volver a Busco</Link></section>;

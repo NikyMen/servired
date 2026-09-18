@@ -6,6 +6,7 @@ import { saveUpload } from "@/lib/uploads";
 import { cuilMatchesDni, encryptKyc, lookupKyc, normalizeDigits, parsePaymentHandle, removeKycDocument, saveKycDocument, validCuil, validDni, validPhone, videoChallengeExpiry } from "@/lib/kyc";
 import { ACTIVE_JOB_STATUSES } from "@/lib/workflow";
 import { slugify } from "@/lib/format";
+import { resolverLocalidad, zonaDe } from "@/lib/localidades";
 
 function value(form: FormData, key: string) { return String(form.get(key) ?? "").trim(); }
 
@@ -21,9 +22,7 @@ export async function POST(req: NextRequest) {
   const phone = value(form, "phone");
   const birthDate = new Date(value(form, "birthDate"));
   const address = value(form, "address");
-  const country = value(form, "country");
-  const province = value(form, "province");
-  const locality = value(form, "locality");
+  const localityId = value(form, "localityId");
   const cuil = normalizeDigits(value(form, "cuil"));
   const dni = normalizeDigits(value(form, "dni"));
   const headline = value(form, "headline");
@@ -36,7 +35,13 @@ export async function POST(req: NextRequest) {
 
   const legalParts = legalName.split(/\s+/).map((part) => part.replace(/[^\p{L}]/gu, ""));
   if (legalParts.length < 2 || legalParts.some((part) => part.length < 2) || address.length < 5 || !validPhone(phone) || !Number.isFinite(birthDate.getTime()) || birthDate >= new Date()) return NextResponse.json({ error: "Completá correctamente nombre, apellido y datos personales." }, { status: 422 });
-  if (country !== "Argentina" || province !== "Corrientes" || locality !== "Corrientes Capital") return NextResponse.json({ error: "Seleccioná Corrientes Capital, Corrientes, Argentina." }, { status: 422 });
+  // Cualquier localidad activa, o la que la persona ya tenía aunque después se haya desactivado.
+  const localidad = await resolverLocalidad(localityId, session.localityId);
+  if (!localidad) return NextResponse.json({ error: "Elegí una localidad de la lista." }, { status: 422 });
+  // El expediente guarda la dirección como texto: se copian los de la localidad elegida.
+  const country = "Argentina";
+  const province = localidad.province;
+  const locality = localidad.name;
   if (!validCuil(cuil)) return NextResponse.json({ error: "El CUIL no es válido." }, { status: 422 });
   if (!validDni(dni)) return NextResponse.json({ error: "El DNI no es válido." }, { status: 422 });
   if (!cuilMatchesDni(cuil, dni)) return NextResponse.json({ error: "El CUIL no corresponde al DNI ingresado." }, { status: 422 });
@@ -108,12 +113,12 @@ export async function POST(req: NextRequest) {
       }
       const professional = await tx.professional.upsert({
         where: { userId: session.id },
-        create: { userId: session.id, name: legalName, headline, bio, zone: "Corrientes Capital, Corrientes", address, priceFrom: 0, categoryId: linkedCategoryIds[0], avatarUrl, avatarColor: "#059669", profileStatus: "pending", verified: false, providerType, paymentHandle: payment.handle, paymentHandleKind: payment.kind, phone, yearsExperience },
-        update: { name: legalName, headline, bio, zone: "Corrientes Capital, Corrientes", address, categoryId: linkedCategoryIds[0], avatarUrl, profileStatus: "pending", verified: false, providerType, paymentHandle: payment.handle, paymentHandleKind: payment.kind, phone, yearsExperience },
+        create: { userId: session.id, name: legalName, headline, bio, zone: zonaDe(localidad), address, priceFrom: 0, categoryId: linkedCategoryIds[0], avatarUrl, avatarColor: "#059669", profileStatus: "pending", verified: false, providerType, paymentHandle: payment.handle, paymentHandleKind: payment.kind, phone, yearsExperience },
+        update: { name: legalName, headline, bio, zone: zonaDe(localidad), address, categoryId: linkedCategoryIds[0], avatarUrl, profileStatus: "pending", verified: false, providerType, paymentHandle: payment.handle, paymentHandleKind: payment.kind, phone, yearsExperience },
       });
       await tx.professionalCategory.deleteMany({ where: { professionalId: professional.id } });
       await tx.professionalCategory.createMany({ data: linkedCategoryIds.map((categoryId, index) => ({ professionalId: professional.id, categoryId, isPrimary: index === 0 })) });
-      await tx.user.update({ where: { id: session.id }, data: { name: legalName, avatarUrl } });
+      await tx.user.update({ where: { id: session.id }, data: { name: legalName, avatarUrl, localityId: localidad.id } });
     });
     committed = true;
     await Promise.all(previousCase?.documents.map((document) => removeKycDocument(document.filename)) ?? []);

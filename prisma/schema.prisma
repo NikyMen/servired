@@ -23,6 +23,11 @@ model User {
   emailVerifiedAt DateTime?
   accountStatus   String    @default("email_pending") // email_pending | approved | suspended
 
+  /// Dónde está la persona. Es la ubicación de respaldo del mapa y de la
+  /// búsqueda cuando no hay GPS. Opcional: las cuentas viejas no la tienen.
+  localityId String?
+  locality   Locality? @relation(fields: [localityId], references: [id], onDelete: SetNull)
+
   /// Perfil público de Ofrezco, creado recién al iniciar ese alta.
   professional Professional?
 
@@ -133,6 +138,24 @@ model Session {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+}
+
+/// Localidades donde opera ServiRed, con su punto en el mapa. La lista base
+/// vive en `src/lib/localidades.ts` y se carga sola si la tabla está vacía
+/// (no por el seed, que borra datos). No se borran: se desactivan, y quien ya
+/// la tenía la conserva.
+model Locality {
+  id        String   @id @default(cuid())
+  name      String
+  province  String
+  latitude  Float
+  longitude Float
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  users     User[]
+  createdAt DateTime @default(now())
+
+  @@unique([name, province])
 }
 
 /// Contactos que quieren recibir novedades antes del lanzamiento.

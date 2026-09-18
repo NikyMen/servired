@@ -1,6 +1,6 @@
 # SPEC: Mapa, ubicación en tiempo real y búsqueda a 20 km
 
-**Estado:** Borrador <!-- Borrador | En revisión | Aprobada -->
+**Estado:** Aprobada <!-- Borrador | En revisión | Aprobada -->
 
 <!-- PARA LA PERSONA
 Copia esta plantilla como SPEC.md en una carpeta de la funcionalidad.
@@ -74,7 +74,7 @@ criterios, decisiones del plan y tareas. -->
 **Parte A: localidades**
 
 - **RF-01:** Existe una lista de localidades, cada una con nombre, provincia y su punto en el mapa, que se usa en el alta del usuario y en el alta del oferente.
-- **RF-02:** Administración puede agregar localidades (marcando su punto en un mapa) y activarlas o desactivarlas. Una localidad desactivada no aparece para elegir, pero los usuarios que ya la tienen la conservan.
+- **RF-02:** Administración puede agregar localidades (marcando su punto en un mapa), corregir su punto y activarlas o desactivarlas. Una localidad desactivada no aparece para elegir, pero los usuarios que ya la tienen la conservan.
 - **RF-03:** El alta de oferente permite elegir cualquier localidad activa, no solo Corrientes Capital.
 
 **Parte B: mapa y ubicación**
@@ -178,7 +178,7 @@ Incluye los casos alternativos acordados. No uses Funciona correctamente.
 Repite el formato según sea necesario. -->
 
 - **CA-01 · RF-01, RF-03:** Dado el alta de usuario y el alta de oferente, cuando se despliega la localidad, entonces aparecen todas las localidades activas, y el oferente puede elegir una distinta de Corrientes Capital.
-- **CA-02 · RF-02:** Dado administración, cuando agrega una localidad con su punto y la activa, entonces aparece en las altas. Cuando la desactiva, deja de aparecer, pero los usuarios que la tenían la conservan.
+- **CA-02 · RF-02:** Dado administración, cuando agrega una localidad con su punto y la activa, entonces aparece en las altas. Cuando corrige su punto, se usa el nuevo. Cuando la desactiva, deja de aparecer, pero los usuarios que la tenían la conservan.
 - **CA-03 · RF-04, RF-05:** Dado un cliente con sesión en el celular y en la compu, cuando toca "Mapa", entonces ve el mapa a pantalla completa con el buscador, los pines agrupados, su puntito y la hoja "Profesionales cerca tuyo" con foto, nombre, localidad y distancia.
 - **CA-04 · RF-06:** Dado el mapa, cuando toca un pin o un profesional de la hoja, entonces ve su resumen y puede ir a su perfil.
 - **CA-05 · RF-07:** Dado el permiso concedido, cuando la posición cambia más de 1 km, entonces el puntito se mueve y la lista se actualiza con las distancias nuevas.
@@ -200,7 +200,7 @@ No marques los criterios como superados durante la especificación. -->
 | Criterio | Condiciones y pasos | Resultado esperado |
 | --- | --- | --- |
 | CA-01 | Abrir las dos altas y desplegar la localidad. | Lista completa y elección libre. |
-| CA-02 | Agregar, activar y desactivar desde administración. | La lista de las altas refleja los cambios. |
+| CA-02 | Agregar, corregir el punto, activar y desactivar desde administración. | La lista de las altas y el punto guardado reflejan los cambios. |
 | CA-03 | Abrir Mapa con sesión en 360 px y en compu. | Todos los elementos presentes. |
 | CA-04 | Tocar un pin y un ítem de la hoja. | Resumen y acceso al perfil. |
 | CA-05 | Simular un desplazamiento de 2 km en el navegador. | Puntito y lista actualizados. |

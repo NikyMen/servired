@@ -32,6 +32,11 @@ pnpm dev            # levanta el servidor en http://localhost:3000
 > que quedaron pendientes con el plazo viejo de 72 h. Correrlo de nuevo no
 > cambia nada.
 
+> **Deploy de las localidades (una sola vez):** después del `prisma db push`,
+> `pnpm exec tsx prisma/asignar-localidad-pros.ts` deja en Corrientes Capital a
+> los profesionales que se dieron de alta cuando era la única opción. La lista
+> de localidades se carga sola la primera vez que se pide.
+
 > `pnpm setup` = `prisma db push` + `prisma db seed`.
 > Si cambiás el esquema (`prisma/schema.prisma`), corré `pnpm db:push` **y
 > reiniciá el dev server**: el cliente de Prisma se carga al arrancar el proceso.

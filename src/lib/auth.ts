@@ -58,6 +58,8 @@ export type SessionUser = {
   kycStatus: string;
   canInteract: boolean;
   professionalStatus: string | null;
+  /** Localidad elegida; respaldo del mapa cuando no hay GPS. Null en cuentas viejas. */
+  localityId: string | null;
 };
 
 /**
@@ -101,6 +103,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     kycStatus: user.kycCase?.status ?? "draft",
     canInteract: user.emailVerifiedAt != null && user.accountStatus === "approved",
     professionalStatus: user.professional?.profileStatus ?? null,
+    localityId: user.localityId,
   };
 });
 

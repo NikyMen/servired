@@ -7,6 +7,7 @@ import { MAX_REPUBLISH, REQUEST_TTL_MS, requestDaysLeft, requestIsLastDay } from
 import { PROPOSAL_TTL_LABEL, jobProgress, validEstimatedDays } from "../src/lib/trabajo";
 import { parseTexto } from "../src/lib/site-text";
 import { AYUDA_DEFAULT, saludoPerfil, validSupportPhone, waLink } from "../src/lib/whatsapp";
+import { CAPITAL, LOCALIDADES_BASE, validarLocalidad, validarPunto, zonaDe } from "../src/lib/localidades";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -150,4 +151,25 @@ test("el número de soporte son 10 dígitos sin 0 ni 15 adelante", () => {
   assert.equal(validSupportPhone("1541234567"), null);
   assert.equal(validSupportPhone("37941234567"), null);
   assert.equal(validSupportPhone("abc"), null);
+});
+
+test("la lista base de localidades arranca por Capital, sin repetidos y con puntos en la zona", () => {
+  assert.deepEqual({ name: LOCALIDADES_BASE[0].name, province: LOCALIDADES_BASE[0].province }, CAPITAL);
+  const claves = LOCALIDADES_BASE.map((l) => `${l.name}|${l.province}`);
+  assert.equal(new Set(claves).size, claves.length);
+  // Corrientes y el Gran Resistencia caen entre estos límites.
+  for (const l of LOCALIDADES_BASE) {
+    assert.ok(l.latitude < -27 && l.latitude > -30.5, l.name);
+    assert.ok(l.longitude < -55.9 && l.longitude > -59.7, l.name);
+  }
+  assert.equal(zonaDe(CAPITAL), "Corrientes Capital, Corrientes");
+});
+
+test("una localidad nueva necesita nombre, provincia y un punto en Argentina", () => {
+  assert.deepEqual(validarLocalidad({ name: "  Goya  Norte ", province: "Corrientes", latitude: -29.1, longitude: -59.2 }), { data: { name: "Goya Norte", province: "Corrientes", latitude: -29.1, longitude: -59.2 } });
+  assert.ok("error" in validarLocalidad({ name: "G", province: "Corrientes", latitude: -29.1, longitude: -59.2 }));
+  assert.ok("error" in validarLocalidad({ name: "Goya", province: "", latitude: -29.1, longitude: -59.2 }));
+  assert.ok("error" in validarPunto(40.4, -3.7));
+  assert.ok("error" in validarPunto(Number.NaN, -58.8));
+  assert.ok("data" in validarPunto(-27.46, -58.83));
 });

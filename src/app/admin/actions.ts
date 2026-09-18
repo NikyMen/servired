@@ -14,6 +14,7 @@ import { slugify } from "@/lib/format";
 import { removeUpload } from "@/lib/uploads";
 import { notificar } from "@/lib/notificaciones";
 import { guardarSoporte } from "@/lib/soporte";
+import { cambiarLocalidadActiva, crearLocalidad, moverLocalidad } from "@/lib/localidades";
 
 export type AdminAuthState = { error?: string } | undefined;
 
@@ -198,6 +199,42 @@ export async function saveSoporteAction(_previous: SoporteState, formData: FormD
   // El botón está en los layouts de todo el sitio.
   revalidatePath("/", "layout");
   return { ok: true, values };
+}
+
+export type LocalidadValues = { name: string; province: string; latitude: string; longitude: string };
+export type LocalidadState = { error?: string; ok?: boolean; values: LocalidadValues } | undefined;
+
+/** Alta de una localidad con su punto. Devuelve lo enviado por el mismo motivo que el soporte. */
+export async function createLocalityAction(_previous: LocalidadState, formData: FormData): Promise<LocalidadState> {
+  await requireAdmin();
+  const values = { name: text(formData, "name"), province: text(formData, "province"), latitude: text(formData, "latitude"), longitude: text(formData, "longitude") };
+  // Un campo vacío tiene que fallar, y Number("") da 0, que es un número válido.
+  const result = await crearLocalidad({ name: values.name, province: values.province, latitude: values.latitude ? Number(values.latitude) : Number.NaN, longitude: values.longitude ? Number(values.longitude) : Number.NaN });
+  if ("error" in result) return { error: result.error, values };
+  revalidatePath("/admin");
+  return { ok: true, values: { name: "", province: values.province, latitude: "", longitude: "" } };
+}
+
+export type PuntoState = { error?: string; ok?: boolean } | undefined;
+
+/** Corrige el punto de una localidad (los de la lista base son aproximados). */
+export async function moveLocalityAction(_previous: PuntoState, formData: FormData): Promise<PuntoState> {
+  await requireAdmin();
+  const id = text(formData, "id");
+  if (!id) return { error: "Falta la localidad." };
+  const result = await moverLocalidad(id, Number(text(formData, "latitude") || Number.NaN), Number(text(formData, "longitude") || Number.NaN));
+  if ("error" in result) return { error: result.error };
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Activar o desactivar. El estado nuevo viaja en un hidden: un solo botón por form, sin name/value. */
+export async function toggleLocalityAction(formData: FormData) {
+  await requireAdmin();
+  const id = text(formData, "id");
+  if (!id) return;
+  await cambiarLocalidadActiva(id, text(formData, "active") === "1");
+  revalidatePath("/admin");
 }
 
 export async function createCategoryAction(formData: FormData) {

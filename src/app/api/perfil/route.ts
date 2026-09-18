@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UPLOAD_URL } from "@/lib/uploads";
 import { parsePaymentHandle, validPhone } from "@/lib/kyc";
+import { zonaDe } from "@/lib/localidades";
 
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
@@ -42,11 +43,13 @@ export async function PATCH(req: NextRequest) {
   if (!validPhone(phone)) return NextResponse.json({ error: "Ingresá un teléfono de contacto válido." }, { status: 422 });
   const yearsExperience = Math.trunc(Number(body.yearsExperience ?? 0));
   if (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 60) return NextResponse.json({ error: "Los años en el oficio tienen que estar entre 0 y 60." }, { status: 422 });
+  const localidad = user.localityId ? await prisma.locality.findUnique({ where: { id: user.localityId }, select: { name: true, province: true } }) : null;
   await prisma.$transaction(async (tx) => {
     await tx.professional.update({ where: { id: user.professionalId! }, data: {
       name, avatarUrl, businessName: String(body.businessName ?? "").trim().slice(0, 100) || null,
       headline, bio,
-      address: String(body.address ?? "").trim().slice(0, 180) || "Corrientes, Argentina", zone: "Corrientes",
+      // La zona sale de la localidad de la cuenta; si todavía no tiene, queda la que había.
+      address: String(body.address ?? "").trim().slice(0, 180) || "Corrientes, Argentina", ...(localidad ? { zone: zonaDe(localidad) } : {}),
       paymentHandle: payment.handle, paymentHandleKind: payment.kind, phone, yearsExperience,
       latitude, longitude, categoryId,
     } });
