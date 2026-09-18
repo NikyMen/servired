@@ -14,12 +14,13 @@ import { TERMS_DEFAULT, TERMS_SLUG, getSiteText } from "@/lib/site-text";
 import { AdminSoporte } from "@/components/AdminSoporte";
 import { getSoporteConfig } from "@/lib/soporte";
 import { AdminLocalidades } from "@/components/AdminLocalidades";
+import { AdminMatriculas } from "@/components/AdminMatriculas";
 import { listarLocalidadesAdmin } from "@/lib/localidades";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Administración" };
 
-const TABS = ["todo", "kyc", "denuncias", "usuarios", "trabajos", "catalogo", "publicidad", "soporte", "localidades", "legales", "preinscripciones"] as const;
+const TABS = ["todo", "kyc", "matriculas", "denuncias", "usuarios", "trabajos", "catalogo", "publicidad", "soporte", "localidades", "legales", "preinscripciones"] as const;
 type Tab = (typeof TABS)[number];
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -27,7 +28,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { tab: rawTab } = await searchParams;
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "todo";
   const showAll = tab === "todo";
-  const [preinscriptions, kycCases, users, bookings, categories, ads, terminos, reports, userCount, verifiedProviderCount, activeJobCount, soporte, localidades] = await Promise.all([
+  const [preinscriptions, kycCases, users, bookings, categories, ads, terminos, reports, userCount, verifiedProviderCount, activeJobCount, soporte, localidades, credenciales] = await Promise.all([
     listPreinscriptions(),
     prisma.kycCase.findMany({ orderBy: { updatedAt: "desc" }, include: { documents: true, user: { include: { oauthAccounts: true, professional: true } } } }),
     prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, include: { professional: { select: { providerType: true, profileStatus: true, verified: true } }, oauthAccounts: { select: { provider: true } } } }),
@@ -41,7 +42,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     prisma.booking.count({ where: { status: { in: ["in_progress", "finished", "payment_reported", "paid_awaiting_review"] } } }),
     getSoporteConfig(),
     listarLocalidadesAdmin(),
+    prisma.credential.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }], take: 100, include: { professional: { select: { name: true } }, category: { select: { name: true } } } }),
   ]);
+  const pendingCredentials = credenciales.filter((c) => c.status === "pending").length;
   const serializedPreinscriptions = preinscriptions.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }));
   const serializedKyc = kycCases.map((kyc) => {
     const professional = kyc.user.professional;
@@ -56,6 +59,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <nav className="no-scrollbar mt-5 flex gap-2 overflow-x-auto border-t border-white/70 pt-4 text-sm font-semibold">
         <TabLink tab="todo" active={tab === "todo"}>TODO</TabLink>
         <TabLink tab="kyc" active={tab === "kyc"}>KYC {pendingKyc ? `(${pendingKyc})` : ""}</TabLink>
+        <TabLink tab="matriculas" active={tab === "matriculas"}>Matrículas {pendingCredentials ? `(${pendingCredentials})` : ""}</TabLink>
         <TabLink tab="denuncias" active={tab === "denuncias"}>Denuncias {pendingReports ? `(${pendingReports})` : ""}</TabLink>
         <TabLink tab="usuarios" active={tab === "usuarios"}>Usuarios</TabLink>
         <TabLink tab="trabajos" active={tab === "trabajos"}>Trabajos</TabLink>
@@ -71,6 +75,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     {showAll && <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Metric label="Usuarios" value={userCount} note="Cuentas registradas" /><Metric label="Oferentes verificados" value={verifiedProviderCount} note="Perfiles publicados" /><Metric label="KYC pendientes" value={pendingKyc} note="Requieren revisión" danger={pendingKyc > 0} /><Metric label="Trabajos activos" value={activeJobCount} note="Máximo 3 por oferente" /><Metric label="Denuncias pendientes" value={pendingReports} note="Imágenes y chats a revisar" danger={pendingReports > 0} /></section>}
 
     {(showAll || tab === "kyc") && <AdminKyc rows={serializedKyc} />}
+
+    {(showAll || tab === "matriculas") && <section className="space-y-3"><SectionTitle eyebrow="Oferentes" title="Matrículas y certificados" subtitle="Aprobada, el perfil muestra la insignia “Matriculado”. Rechazar pide motivo." /><AdminMatriculas rows={credenciales.map((c) => ({ id: c.id, kind: c.kind, number: c.number, issuer: c.issuer, status: c.status, reviewReason: c.reviewReason, mimeType: c.mimeType, createdAt: c.createdAt.toISOString(), professional: c.professional, category: c.category }))} /></section>}
 
     {(showAll || tab === "denuncias") && <AdminReports rows={serializedReports} />}
 

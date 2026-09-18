@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ProCard } from "@/lib/types";
-import { Avatar, Rating, VerifiedBadge } from "@/components/ui";
+import { Avatar, MatriculadoBadge, Rating, VerifiedBadge } from "@/components/ui";
 import { MapPinIcon } from "@/components/icons";
 
 export function ProfessionalCard({ pro }: { pro: ProCard }) {
@@ -17,6 +17,7 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
               {pro.name}
             </h3>
             {pro.verified && <VerifiedBadge />}
+            {pro.matriculado && <MatriculadoBadge />}
           </div>
           <p className="truncate text-sm text-slate-500">
             {pro.category.icon} {pro.headline}

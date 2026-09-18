@@ -19,7 +19,7 @@ la aprobación explícita de la anterior. Plantillas: [SPEC_TEMPLATE](../SPEC_TE
 | 3 | [Mapa y ubicación](mapa-ubicacion/SPEC.md), parte A: localidades | Lista de localidades con su punto en el mapa, administrable | S | — | Aprobada | [Aprobado](mapa-ubicacion/PLAN-A-localidades.md) · [Tareas](mapa-ubicacion/TASKS-A-localidades.md) |
 | 4 | [Alta y términos](alta-terminos/SPEC.md) | Términos y condiciones al crear el usuario · login con Facebook y Google | M | 3 | Aprobada | [Aprobado](alta-terminos/PLAN.md) · [Tareas](alta-terminos/TASKS.md) |
 | 5 | [Avisos por correo](avisos-correo/SPEC.md) | Aviso de mensajes sin contestar · aviso solo a los rubros propios · propuestas | M | SMTP de producción | Aprobada | [Aprobado](avisos-correo/PLAN.md) · [Tareas](avisos-correo/TASKS.md) |
-| 6 | [Matrículas](matriculas/SPEC.md) | Matrícula o certificado pendiente de aprobación | M | — | Aprobada | — |
+| 6 | [Matrículas](matriculas/SPEC.md) | Matrícula o certificado pendiente de aprobación | M | — | Aprobada | [Aprobado](matriculas/PLAN.md) · [Tareas](matriculas/TASKS.md) |
 | 7 | [Mapa y ubicación](mapa-ubicacion/SPEC.md), parte B | Mapa oculto al invitado · ubicación en tiempo real · sección Mapa en el nav · 20 km a la redonda · ideas de elLaburante | L | 3, 4, 6 | Aprobada | — |
 | 8 | [Publicidad](publicidad/SPEC.md) | 4 placas al pie · laterales que siguen el scroll · rediseño de la carga | M | 2 | Aprobada | — |
 

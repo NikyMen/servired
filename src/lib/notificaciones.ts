@@ -13,7 +13,8 @@ export type AvisoKind =
   | "solicitud"
   | "solicitud_por_vencer"
   | "kyc"
-  | "denuncia";
+  | "denuncia"
+  | "matricula";
 
 export type Aviso = {
   kind: AvisoKind;

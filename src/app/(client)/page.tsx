@@ -185,6 +185,7 @@ export default async function HomePage({
                 externalJobs: p._count.workSamples,
                 providerType: p.providerType === "profesional" ? "profesional" : "oficio",
                 verified: p.verified,
+                matriculado: p.matriculado,
                 featured: p.featured,
                 yearsExperience: p.yearsExperience,
               }}

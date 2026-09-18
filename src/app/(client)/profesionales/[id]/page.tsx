@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { formatARS, formatDate, formatMonthYear } from "@/lib/format";
 import { getSessionUser } from "@/lib/auth";
 import { saludoPerfil, waLink } from "@/lib/whatsapp";
-import { Avatar, Rating, VerifiedBadge } from "@/components/ui";
+import { Avatar, MatriculadoBadge, Rating, VerifiedBadge } from "@/components/ui";
 import { ContratarBox } from "@/components/ContratarBox";
 import { ContratarSheet } from "@/components/ContratarSheet";
 import { StarIcon, MapPinIcon } from "@/components/icons";
@@ -22,6 +22,8 @@ async function getPro(id: string) {
       services: { where: { status: "activo" }, orderBy: { createdAt: "asc" } },
       reviews: { orderBy: { createdAt: "desc" } },
       workSamples: { orderBy: { createdAt: "desc" }, include: { images: { orderBy: { position: "asc" } } } },
+      // Solo para nombrar los rubros de la insignia: el documento nunca sale de acá.
+      credentials: { where: { status: "approved" }, select: { category: { select: { name: true } } } },
       bookings: {
         where: { status: "completed" },
         orderBy: { updatedAt: "desc" },
@@ -88,6 +90,7 @@ export default async function ProfesionalPage({
                   <h1 className="text-xl font-bold text-slate-900">{pro.businessName || pro.name}</h1>
                   {pro.verified && <VerifiedBadge />}
                 </div>
+                {pro.matriculado && <MatriculadoBadge detalle={rubrosMatricula(pro.credentials)} className="mt-1" />}
                 <p className="text-sm text-slate-500">
                   {pro.headline} · {pro.category.icon} {pro.category.name}
                 </p>
@@ -97,6 +100,7 @@ export default async function ProfesionalPage({
               <div className="hidden items-center gap-2 sm:flex">
                 <h1 className="text-2xl font-bold text-slate-900">{pro.businessName || pro.name}</h1>
                 {pro.verified && <VerifiedBadge className="[&>svg]:h-6 [&>svg]:w-6" />}
+                {pro.matriculado && <MatriculadoBadge detalle={rubrosMatricula(pro.credentials)} />}
               </div>
               <p className="hidden text-slate-500 sm:block">
                 {pro.headline} · {pro.category.icon} {pro.category.name} · {pro.providerType === "profesional" ? "Profesional" : "Oficio"}
@@ -318,6 +322,12 @@ export default async function ProfesionalPage({
       />
     </div>
   );
+}
+
+/** Los rubros de las matrículas aprobadas, sin repetir: "Plomería, Gas". */
+function rubrosMatricula(credenciales: { category: { name: string } | null }[]) {
+  const nombres = [...new Set(credenciales.map((c) => c.category?.name).filter((n): n is string => Boolean(n)))];
+  return nombres.length ? nombres.join(", ") : undefined;
 }
 
 /** El teléfono se guarda como lo escribió la persona; para marcar hay que limpiarlo. */

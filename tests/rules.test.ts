@@ -10,6 +10,8 @@ import { AYUDA_DEFAULT, saludoPerfil, validSupportPhone, waLink } from "../src/l
 import { CAPITAL, LOCALIDADES_BASE, validarLocalidad, validarPunto, zonaDe } from "../src/lib/localidades";
 import { pendienteDeAlta } from "../src/lib/auth";
 import { PLAZO_MENSAJES_MS, debeAvisarMensaje, firmaBaja, firmaValida, puedeRecibir } from "../src/lib/avisos-correo";
+import { validarCredencial } from "../src/lib/matriculas";
+import { formatoPorContenido } from "../src/lib/kyc";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -217,4 +219,18 @@ test("solo reciben avisos las cuentas aprobadas con email verificado y real", ()
   assert.equal(puedeRecibir({ ...base, accountStatus: "suspended" }), false);
   assert.equal(puedeRecibir({ ...base, emailVerifiedAt: null }), false);
   assert.equal(puedeRecibir({ ...base, email: "facebook-1@pending.servired.invalid" }), false);
+});
+
+test("una matrícula pide el tipo y deja rubro, número y emisor opcionales", () => {
+  assert.deepEqual(validarCredencial({ kind: "matricula" }, []), { data: { kind: "matricula", categoryId: null, number: null, issuer: null } });
+  assert.deepEqual(validarCredencial({ kind: "certificado", categoryId: "plo", number: " 123 ", issuer: "Colegio" }, ["plo"]), { data: { kind: "certificado", categoryId: "plo", number: "123", issuer: "Colegio" } });
+  assert.ok("error" in validarCredencial({ kind: "diploma" }, []));
+  assert.ok("error" in validarCredencial({ kind: "matricula", categoryId: "ajeno" }, ["plo"]));
+  assert.ok("error" in validarCredencial({ kind: "matricula", number: "x".repeat(61) }, []));
+});
+
+test("un PDF se reconoce por su contenido, no por el nombre", () => {
+  assert.equal(formatoPorContenido("application/pdf", Buffer.from("%PDF-1.7 prueba")), "document");
+  assert.equal(formatoPorContenido("application/pdf", Buffer.from("MZ ejecutable")), null);
+  assert.equal(formatoPorContenido("image/png", Buffer.from([0x89, 0x50, 0x4e, 0x47])), "image");
 });

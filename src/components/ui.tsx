@@ -10,6 +10,15 @@ export function VerifiedBadge({ className = "" }: { className?: string }) {
   );
 }
 
+/** Tiene matrícula o certificado aprobado por administración. `detalle` suma los rubros. */
+export function MatriculadoBadge({ detalle, className = "" }: { detalle?: string; className?: string }) {
+  return (
+    <span title="Matrícula o certificado aprobado por ServiRed" className={`inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ${className}`}>
+      {`🎓 Matriculado${detalle ? ` · ${detalle}` : ""}`}
+    </span>
+  );
+}
+
 /** Calificación con estrella. */
 export function Rating({
   value,

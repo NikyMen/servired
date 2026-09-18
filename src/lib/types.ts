@@ -17,6 +17,8 @@ export type ProCard = {
   externalJobs: number;
   providerType: "profesional" | "oficio";
   verified: boolean;
+  /** Matrícula o certificado aprobado. */
+  matriculado?: boolean;
   featured: boolean;
   yearsExperience: number;
 };

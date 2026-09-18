@@ -4,12 +4,14 @@ import path from "node:path";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 25 * 1024 * 1024;
-const TYPES: Record<string, { ext: string; kind: "image" | "video"; valid: (b: Buffer) => boolean }> = {
+const TYPES: Record<string, { ext: string; kind: "image" | "video" | "document"; valid: (b: Buffer) => boolean }> = {
   "image/jpeg": { ext: "jpg", kind: "image", valid: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
   "image/png": { ext: "png", kind: "image", valid: (b) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 },
   "image/webp": { ext: "webp", kind: "image", valid: (b) => b.subarray(0, 4).toString("ascii") === "RIFF" && b.subarray(8, 12).toString("ascii") === "WEBP" },
   "video/webm": { ext: "webm", kind: "video", valid: (b) => b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3 },
   "video/mp4": { ext: "mp4", kind: "video", valid: (b) => b.subarray(4, 8).toString("ascii") === "ftyp" },
+  // Solo para matrículas y certificados: el KYC no acepta PDF.
+  "application/pdf": { ext: "pdf", kind: "document", valid: (b) => b.subarray(0, 5).toString("ascii") === "%PDF-" },
 };
 
 function key() {
@@ -169,14 +171,37 @@ export async function saveKycDocument(file: File, expected: "image" | "video" = 
   return { filename, mimeType: file.type, size: file.size };
 }
 
+/**
+ * Matrícula o certificado: imagen o PDF de hasta 8 MB, a la misma carpeta
+ * privada que el KYC. Como en el KYC, manda el contenido y no la extensión:
+ * un archivo que dice ser PDF y no empieza con "%PDF-" se rechaza.
+ */
+export async function saveCredentialFile(file: File) {
+  const spec = TYPES[file.type];
+  if (!spec || (spec.kind !== "image" && spec.kind !== "document")) throw new Error("Subí una foto (JPG, PNG o WEBP) o un PDF.");
+  if (!file.size || file.size > MAX_IMAGE_BYTES) throw new Error("El archivo tiene que pesar hasta 8 MB.");
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (!spec.valid(buffer)) throw new Error("El archivo no coincide con su formato.");
+  const filename = `${randomBytes(24).toString("hex")}.${spec.ext}`;
+  await mkdir(privateDir(), { recursive: true });
+  await writeFile(path.join(privateDir(), filename), buffer, { flag: "wx" });
+  return { filename, mimeType: file.type, size: file.size };
+}
+
+/** El formato real de un archivo según sus primeros bytes, o null. */
+export function formatoPorContenido(mimeType: string, buffer: Buffer) {
+  const spec = TYPES[mimeType];
+  return spec && spec.valid(buffer) ? spec.kind : null;
+}
+
 export async function readKycDocument(filename: string) {
-  if (!/^[a-f0-9]{48}\.(jpg|png|webp|webm|mp4)$/.test(filename)) throw new Error("Documento inválido.");
+  if (!/^[a-f0-9]{48}\.(jpg|png|webp|webm|mp4|pdf)$/.test(filename)) throw new Error("Documento inválido.");
   return readFile(path.join(privateDir(), filename));
 }
 
 /** Elimina un documento privado reemplazado; no falla si ya no existe. */
 export async function removeKycDocument(filename: string) {
-  if (!/^[a-f0-9]{48}\.(jpg|png|webp|webm|mp4)$/.test(filename)) return;
+  if (!/^[a-f0-9]{48}\.(jpg|png|webp|webm|mp4|pdf)$/.test(filename)) return;
   await unlink(path.join(privateDir(), filename)).catch((error: NodeJS.ErrnoException) => {
     if (error.code !== "ENOENT") console.error("[kyc] no se pudo eliminar un archivo reemplazado:", error);
   });

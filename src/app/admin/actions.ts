@@ -15,6 +15,7 @@ import { removeUpload } from "@/lib/uploads";
 import { notificar } from "@/lib/notificaciones";
 import { guardarSoporte } from "@/lib/soporte";
 import { guardarTextoLegal } from "@/lib/site-text";
+import { revisarCredencial, type DecisionCredencial } from "@/lib/matriculas";
 import { cambiarLocalidadActiva, crearLocalidad, moverLocalidad } from "@/lib/localidades";
 
 export type AdminAuthState = { error?: string } | undefined;
@@ -287,6 +288,16 @@ export async function deleteCategoryAction(formData: FormData) {
   await prisma.category.delete({ where: { id } });
   revalidatePath("/");
   revalidatePath("/admin");
+}
+
+/** Matrícula o certificado. La decisión viene bindeada, como en el KYC. */
+export async function reviewCredentialAction(decision: DecisionCredencial, formData: FormData) {
+  await requireAdmin();
+  const id = text(formData, "id");
+  if (!id || (decision !== "approve" && decision !== "reject")) return;
+  await revisarCredencial(id, decision, text(formData, "reason"));
+  revalidatePath("/admin");
+  revalidatePath("/");
 }
 
 export type KycDecision = "approve" | "changes" | "reject";

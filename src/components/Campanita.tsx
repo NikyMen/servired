@@ -14,6 +14,7 @@ export const ICONOS_AVISO: Record<string, string> = {
   solicitud_por_vencer: "⏳",
   kyc: "🪪",
   denuncia: "🚩",
+  matricula: "🎓",
 };
 
 /**

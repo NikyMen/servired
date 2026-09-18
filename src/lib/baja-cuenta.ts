@@ -27,6 +27,7 @@ export async function deleteAccount(userId: string) {
           coverUrl: true,
           workPhotos: { select: { url: true } },
           workSamples: { select: { images: { select: { url: true } } } },
+          credentials: { select: { filename: true } },
         },
       },
     },
@@ -64,6 +65,10 @@ export async function deleteAccount(userId: string) {
   await Promise.all(publicos.map((url) => removeUpload(url)));
   for (const document of user.kycCase?.documents ?? []) {
     await removeKycDocument(document.filename);
+  }
+  // Matrículas y certificados: misma carpeta privada que el KYC.
+  for (const credencial of user.professional?.credentials ?? []) {
+    await removeKycDocument(credencial.filename);
   }
 
   await prisma.user.delete({ where: { id: userId } });
