@@ -5,6 +5,7 @@ import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { HeroFondo } from "@/components/HeroFondo";
 import { MapView } from "@/components/MapView";
 import { AdPlate } from "@/components/AdPlate";
+import { TIPOS_PLACA } from "@/lib/publicidad";
 import { getSessionUser } from "@/lib/auth";
 import { buscarProfesionales } from "@/lib/cercanos";
 import { RADIO_KM, formatoDistancia, haversineKm } from "@/lib/geo";
@@ -76,18 +77,32 @@ export default async function HomePage({
   const { user, ubicacion, categories, pros, requests, workPhotos, ads, contactedUserIds } = await getData(params);
   const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
 
+  // Las del pie vacías o apagadas no dejan hueco al final de la portada.
+  const placasPie = TIPOS_PLACA.pie.slots.map((slot) => adMap.get(slot)).filter((ad) => ad?.enabled && ad.imageUrl);
+
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* Laterales: rieles del alto de toda la portada con las placas en
+          sticky, así acompañan el scroll. Solo desde xl, donde hay lugar a los
+          costados sin tapar el contenido. */}
+      <div className="absolute inset-y-0 right-full mr-4 hidden w-28 xl:block 2xl:w-44">
+        <div className="sticky top-24 grid gap-4">
+          <AdPlate tipo="lateral" ad={adMap.get("left-1") || null} label="Publicidad lateral izquierda 1" />
+          <AdPlate tipo="lateral" ad={adMap.get("left-2") || null} label="Publicidad lateral izquierda 2" />
+        </div>
+      </div>
+      <div className="absolute inset-y-0 left-full ml-4 hidden w-28 xl:block 2xl:w-44">
+        <div className="sticky top-24 grid gap-4">
+          <AdPlate tipo="lateral" ad={adMap.get("right-1") || null} label="Publicidad lateral derecha 1" />
+          <AdPlate tipo="lateral" ad={adMap.get("right-2") || null} label="Publicidad lateral derecha 2" />
+        </div>
+      </div>
+
       {/* Hero: banner con la foto de portada (public/servired-panel-entrada2.jpeg;
           si no está, <HeroFondo> cae en la escena dibujada en canvas) y los dos
           filtros Profesionales/Oficios apoyados encima. La búsqueda vive en el
           header, no acá. */}
       <div className="relative">
-        <div className="absolute inset-y-0 right-full mr-4 hidden w-28 grid-rows-2 gap-4 xl:grid 2xl:w-44">
-          <AdPlate ad={adMap.get("left-1") || null} label="Publicidad lateral izquierda 1" />
-          <AdPlate ad={adMap.get("left-2") || null} label="Publicidad lateral izquierda 2" />
-        </div>
-
         {/* min-h más bajo que antes: en móvil el alto es lo que decide cuánto
             se agranda la foto, así que un banner menos alto deja entrar más
             escena a lo ancho en vez de un primer plano. En md+ manda la
@@ -112,16 +127,11 @@ export default async function HomePage({
             </div>
           </div>
         </section>
-
-        <div className="absolute inset-y-0 left-full ml-4 hidden w-28 grid-rows-2 gap-4 xl:grid 2xl:w-44">
-          <AdPlate ad={adMap.get("right-1") || null} label="Publicidad lateral derecha 1" />
-          <AdPlate ad={adMap.get("right-2") || null} label="Publicidad lateral derecha 2" />
-        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:hidden">
         {[1, 2, 3, 4].map((position) => (
-          <AdPlate key={position} ad={adMap.get(`mobile-${position}`) || null} label={`Publicidad ${position}`} className="min-h-24 rounded-2xl" />
+          <AdPlate key={position} tipo="superior" ad={adMap.get(`mobile-${position}`) || null} label={`Publicidad ${position}`} className="rounded-2xl" />
         ))}
       </div>
 
@@ -250,6 +260,14 @@ export default async function HomePage({
           Publicar solicitud
         </Link>
       </section>
+
+      {placasPie.length > 0 && (
+        <section aria-label="Publicidad" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {placasPie.map((ad) => (
+            <AdPlate key={ad!.slot} tipo="pie" ad={ad!} label={`Publicidad ${ad!.slot}`} lazy />
+          ))}
+        </section>
+      )}
 
     </div>
   );

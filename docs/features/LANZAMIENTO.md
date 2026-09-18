@@ -21,7 +21,7 @@ la aprobación explícita de la anterior. Plantillas: [SPEC_TEMPLATE](../SPEC_TE
 | 5 | [Avisos por correo](avisos-correo/SPEC.md) | Aviso de mensajes sin contestar · aviso solo a los rubros propios · propuestas | M | SMTP de producción | Aprobada | [Aprobado](avisos-correo/PLAN.md) · [Tareas](avisos-correo/TASKS.md) |
 | 6 | [Matrículas](matriculas/SPEC.md) | Matrícula o certificado pendiente de aprobación | M | — | Aprobada | [Aprobado](matriculas/PLAN.md) · [Tareas](matriculas/TASKS.md) |
 | 7 | [Mapa y ubicación](mapa-ubicacion/SPEC.md), parte B | Mapa oculto al invitado · ubicación en tiempo real · sección Mapa en el nav · 20 km a la redonda · ideas de elLaburante | L | 3, 4, 6 | Aprobada | [Aprobado](mapa-ubicacion/PLAN-B-mapa.md) · [Tareas](mapa-ubicacion/TASKS-B-mapa.md) |
-| 8 | [Publicidad](publicidad/SPEC.md) | 4 placas al pie · laterales que siguen el scroll · rediseño de la carga | M | 2 | Aprobada | — |
+| 8 | [Publicidad](publicidad/SPEC.md) | 4 placas al pie · laterales que siguen el scroll · rediseño de la carga | M | 2 | Aprobada | [Aprobado](publicidad/PLAN.md) · [Tareas](publicidad/TASKS.md) |
 
 La 8 se puede hacer en paralelo con la 7.
 
@@ -57,3 +57,21 @@ La 8 se puede hacer en paralelo con la 7.
 - [ ] Lista de localidades confirmada por el cliente. (Grupo 3)
 - [ ] Texto de términos revisado y publicado como versión vigente. (Grupo 4)
 - [ ] Imágenes de publicidad re-subidas con el recorte nuevo. (Grupo 8)
+
+## Estado al cierre de la tanda (2026-09-18)
+
+Los 8 grupos están implementados y validados en local, en la rama
+`tanda-lanzamiento` (un commit por grupo). Lo que falta en cada TASKS.md, marcado
+con `[~]` o como pendiente fuera del entorno:
+
+- **Pantallas de `/admin`** (Soporte, Localidades, Legales con versión nueva,
+  Matrículas y Publicidad): el agente no ingresa la contraseña de
+  administración. La lógica de cada una está probada por script.
+- **Producción:** claves de Google y Facebook, SMTP con SPF/DKIM, crontab con
+  `CRON_SECRET`, HTTPS para la ubicación, número de soporte y re-subir las
+  imágenes de publicidad con el recorte nuevo (ver la checklist de arriba).
+- **Deploy, en orden:** backup de la base → `git pull` → `pnpm install` →
+  `npx prisma db push` → `pnpm exec tsx prisma/extender-propuestas.ts` →
+  `pnpm exec tsx prisma/asignar-localidad-pros.ts` → build → `pm2 restart`.
+- **Aviso al cliente:** al desplegar, todas las cuentas existentes ven la
+  pantalla "Completá tu alta" (términos y localidad) en su próxima visita.

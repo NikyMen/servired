@@ -16,6 +16,7 @@ import { notificar } from "@/lib/notificaciones";
 import { guardarSoporte } from "@/lib/soporte";
 import { guardarTextoLegal } from "@/lib/site-text";
 import { revisarCredencial, type DecisionCredencial } from "@/lib/matriculas";
+import { ENCUADRE_NEUTRO, esSlotDePlaca } from "@/lib/publicidad";
 import { cambiarLocalidadActiva, crearLocalidad, moverLocalidad } from "@/lib/localidades";
 
 export type AdminAuthState = { error?: string } | undefined;
@@ -146,41 +147,33 @@ function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
-function num(formData: FormData, key: string, fallback: number, min: number, max: number) {
-  const parsed = parseFloat(String(formData.get(key) ?? ""));
-  return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
-}
-
+/**
+ * Guarda una placa. La imagen llega ya recortada por el panel con la
+ * proporción del tipo; con una nueva, el encuadre viejo (acercar, mover,
+ * estirar) vuelve a neutro y se borra el archivo anterior. Sin imagen nueva
+ * queda lo que había.
+ */
 export async function saveAdAction(formData: FormData) {
   await requireAdmin();
   const slot = text(formData, "slot");
   const title = text(formData, "title");
-  if (!slot) return;
+  // Solo slots del catálogo: "ayuda" y cualquier otro texto quedan afuera.
+  if (!esSlotDePlaca(slot)) return;
 
   const existing = await prisma.ad.findUnique({ where: { slot } });
   let imageUrl = existing?.imageUrl ?? null;
   const file = formData.get("image");
-  if (file instanceof File && file.size > 0) {
-    const saved = await saveUpload(file, { imagesOnly: true });
-    imageUrl = saved.url;
-  }
-
-  const imageScale = num(formData, "imageScale", 1, 0.2, 6);
-  const imageX = num(formData, "imageX", 0, -3, 3);
-  const imageY = num(formData, "imageY", 0, -3, 3);
-  const imageStretchX = num(formData, "imageStretchX", 1, 0.2, 5);
-  const imageStretchY = num(formData, "imageStretchY", 1, 0.2, 5);
+  const nueva = file instanceof File && file.size > 0;
+  if (nueva) imageUrl = (await saveUpload(file, { imagesOnly: true })).url;
 
   const areaCode = text(formData, "whatsappAreaCode").replace(/\D/g, "");
   const number = text(formData, "whatsappNumber").replace(/\D/g, "");
   const whatsappPhone = areaCode.length === 4 && number.length === 6 ? `${areaCode}${number}` : null;
   const whatsappMessage = text(formData, "whatsappMessage") || null;
+  const data = { title, imageUrl, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on", ...(nueva ? ENCUADRE_NEUTRO : {}) };
 
-  await prisma.ad.upsert({
-    where: { slot },
-    create: { slot, title, imageUrl, imageScale, imageX, imageY, imageStretchX, imageStretchY, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
-    update: { title, imageUrl, imageScale, imageX, imageY, imageStretchX, imageStretchY, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on" },
-  });
+  await prisma.ad.upsert({ where: { slot }, create: { slot, ...data }, update: data });
+  if (nueva && existing?.imageUrl && existing.imageUrl !== imageUrl) await removeUpload(existing.imageUrl);
   revalidatePath("/");
   revalidatePath("/admin");
 }

@@ -14,6 +14,7 @@ import { validarCredencial } from "../src/lib/matriculas";
 import { formatoPorContenido } from "../src/lib/kyc";
 import { RADIO_KM, agruparPuntos, formatoDistancia, haversineKm, leerPuntoCookie, puntoDePro, valorCookieUbicacion } from "../src/lib/geo";
 import { rankProfessionals } from "../src/lib/search";
+import { ENCUADRE_NEUTRO, TIPOS_PLACA, esSlotDePlaca, necesitaReencuadre, tipoDeSlot } from "../src/lib/publicidad";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -286,4 +287,23 @@ test("a igual relevancia va primero el más cerca", () => {
   const cerca = { ...base, id: "cerca", name: "Bea", distanciaKm: 2 };
   const orden = rankProfessionals([lejos, cerca], "", (a, b) => a.distanciaKm - b.distanciaKm).map((p) => p.id);
   assert.deepEqual(orden, ["cerca", "lejos"]);
+});
+
+test("cada placa tiene un tipo con una proporción fija", () => {
+  assert.equal(tipoDeSlot("left-1"), "lateral");
+  assert.equal(tipoDeSlot("mobile-3"), "superior");
+  assert.equal(tipoDeSlot("bottom-4"), "pie");
+  assert.equal(tipoDeSlot("ayuda"), null);
+  assert.equal(esSlotDePlaca("cualquiera"), false);
+  assert.equal(TIPOS_PLACA.lateral.alto / TIPOS_PLACA.lateral.ancho, 2);
+  assert.equal(TIPOS_PLACA.superior.ancho / TIPOS_PLACA.superior.alto, 2);
+  assert.equal(TIPOS_PLACA.pie.ancho, TIPOS_PLACA.pie.alto);
+});
+
+test("una placa con el encuadre viejo queda marcada para re-encuadrar", () => {
+  const base = { imageUrl: "/uploads/a.jpg", ...ENCUADRE_NEUTRO };
+  assert.equal(necesitaReencuadre(base), false);
+  assert.equal(necesitaReencuadre({ ...base, imageScale: 1.4 }), true);
+  assert.equal(necesitaReencuadre({ ...base, imageStretchX: 2 }), true);
+  assert.equal(necesitaReencuadre({ ...base, imageUrl: null, imageScale: 3 }), false);
 });
