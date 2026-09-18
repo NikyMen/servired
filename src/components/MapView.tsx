@@ -17,7 +17,7 @@ const MapInner = dynamic(() => import("@/components/MapInner"), {
   loading: () => <div className="h-full min-h-72 animate-pulse rounded-2xl bg-slate-200/70" />,
 });
 
-export function MapView({ points, className = "h-[430px]" }: { points: MapPoint[]; className?: string }) {
-  return <MapInner points={points} className={className} />;
+export function MapView({ points, className = "h-[430px]", centro, radioKm, enVivo }: { points: MapPoint[]; className?: string; centro?: { lat: number; lng: number } | null; radioKm?: number; enVivo?: boolean }) {
+  return <MapInner points={points} className={className} centro={centro} radioKm={radioKm} enVivo={enVivo} />;
 }
 

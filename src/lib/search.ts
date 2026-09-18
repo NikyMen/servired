@@ -262,13 +262,17 @@ function scorePro(pro: SearchablePro, query: ParsedQuery): number {
   return total;
 }
 
-/** Ordena por relevancia y descarta lo que no matchea. Sin query, ordena por destacado/rating. */
-export function rankProfessionals<T extends SearchablePro>(pros: T[], raw: string): T[] {
+/**
+ * Ordena por relevancia y descarta lo que no matchea. Sin query, ordena por
+ * destacado/rating. `desempate` decide entre dos con el mismo lugar (la
+ * portada con sesión pasa la distancia: a igual relevancia, el más cerca).
+ */
+export function rankProfessionals<T extends SearchablePro>(pros: T[], raw: string, desempate: (a: T, b: T) => number = () => 0): T[] {
   const query = parseQuery(raw);
 
   if (query.empty) {
     return [...pros].sort(
-      (a, b) => Number(b.featured) - Number(a.featured) || b.rating - a.rating
+      (a, b) => Number(b.featured) - Number(a.featured) || b.rating - a.rating || desempate(a, b)
     );
   }
 
@@ -283,10 +287,10 @@ export function rankProfessionals<T extends SearchablePro>(pros: T[], raw: strin
   if (scored.length === 0 && query.slugs.length > 0) {
     return pros
       .filter((p) => query.slugs.includes(p.category.slug) || (p.categories ?? []).some((category) => query.slugs.includes(category.slug)))
-      .sort((a, b) => Number(b.featured) - Number(a.featured) || b.rating - a.rating);
+      .sort((a, b) => Number(b.featured) - Number(a.featured) || b.rating - a.rating || desempate(a, b));
   }
 
-  return scored.sort((a, b) => b.score - a.score).map((s) => s.pro);
+  return scored.sort((a, b) => b.score - a.score || desempate(a.pro, b.pro)).map((s) => s.pro);
 }
 
 export type Suggestion = {

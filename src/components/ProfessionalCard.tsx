@@ -31,7 +31,7 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
         <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 font-bold whitespace-nowrap text-amber-800"><Rating value={pro.rating} count={pro.reviewsCount} /></span>
         <span className="flex min-w-0 items-center gap-1 text-slate-500" title={pro.zone}>
           <MapPinIcon width={14} height={14} className="shrink-0 text-slate-400" />
-          <span className="truncate">{pro.zone}</span>
+          <span className="truncate">{pro.distancia ? `${pro.localidad ?? pro.zone} • ${pro.distancia}` : pro.zone}</span>
         </span>
       </div>
 

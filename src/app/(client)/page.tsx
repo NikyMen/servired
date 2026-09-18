@@ -1,60 +1,61 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
 import { ClientResultSwitch } from "@/components/ClientResultSwitch";
 import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { HeroFondo } from "@/components/HeroFondo";
 import { MapView } from "@/components/MapView";
-import { rankProfessionals } from "@/lib/search";
 import { AdPlate } from "@/components/AdPlate";
 import { getSessionUser } from "@/lib/auth";
+import { buscarProfesionales } from "@/lib/cercanos";
+import { RADIO_KM, formatoDistancia, haversineKm } from "@/lib/geo";
+import { resolverUbicacion } from "@/lib/ubicacion";
+import { AvisoUbicacion } from "@/components/AvisoUbicacion";
+import { MapaBloqueado } from "@/components/mapa/MapaBloqueado";
 
 export const dynamic = "force-dynamic";
 
 type Search = { q?: string; categoria?: string; tipo?: "profesional" | "oficio" };
 
 async function getData({ q, categoria, tipo }: Search) {
-  // Categoría y ubicación filtran en la base; el texto libre se rankea en memoria
-  // (ver src/lib/search.ts: LIKE de SQLite no ignora acentos ni tolera typos).
-  const filters: Prisma.ProfessionalWhereInput[] = [
-    { profileStatus: "approved" },
-    { OR: [{ userId: null }, { user: { accountStatus: "approved" } }] },
-  ];
-  if (categoria) filters.push({ OR: [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }, { categoryLinks: { some: { category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }], approvalStatus: "approved" } } } }] });
-  if (tipo) filters.push({ providerType: tipo });
-  const where: Prisma.ProfessionalWhereInput = { AND: filters };
+  const user = await getSessionUser();
+  // Con sesión todo se limita a 20 km de su ubicación; el invitado ve todo,
+  // pero sin ninguna coordenada (ni mapa ni punto de las solicitudes).
+  const ubicacion = user ? await resolverUbicacion(user) : null;
+  const centro = ubicacion?.punto ?? null;
+  const cerca = (lat: number, lng: number) => !centro || haversineKm(centro, { lat, lng }) <= RADIO_KM;
 
-  const [categories, found, requests, workPhotos, ads] = await Promise.all([
+  const [categories, pros, requests, workPhotos, ads] = await Promise.all([
     prisma.category.findMany({ where: { approvalStatus: "approved", ...(tipo ? { kind: tipo } : {}) }, include: { parent: true }, orderBy: [{ parentId: "asc" }, { createdAt: "asc" }] }),
-    prisma.professional.findMany({
-      where,
-      include: {
-        category: true,
-        categoryLinks: { where: { category: { approvalStatus: "approved" } }, include: { category: true } },
-        _count: { select: { bookings: { where: { status: "completed" } }, workSamples: true } },
-        services: {
-          where: { status: "activo" },
-          select: { title: true, description: true, categoryLabel: true },
-        },
-      },
-    }),
+    // Categoría y ubicación filtran; el texto libre se rankea en memoria
+    // (ver src/lib/search.ts: LIKE de SQLite no ignora acentos ni tolera typos).
+    buscarProfesionales({ q, categoria, tipo }, centro),
     prisma.serviceRequest.findMany({
       where: { status: "abierta", expiresAt: { gt: new Date() }, user: { accountStatus: "approved" }, AND: [...(categoria ? [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }] : []), ...(tipo ? [{ category: { kind: tipo } }] : [])] },
       orderBy: { createdAt: "desc" },
       include: { category: true },
     }),
-    prisma.workPhoto.findMany({
-      where: { latitude: { not: null }, longitude: { not: null } },
-      orderBy: { createdAt: "desc" },
-      include: { professional: { select: { id: true, name: true, businessName: true } } },
-    }),
+    user
+      ? prisma.workPhoto.findMany({
+          where: { latitude: { not: null }, longitude: { not: null } },
+          orderBy: { createdAt: "desc" },
+          include: { professional: { select: { id: true, name: true, businessName: true } } },
+        })
+      : Promise.resolve([]),
     prisma.ad.findMany(),
   ]);
-  const user = await getSessionUser();
   const contactedUserIds = user?.professionalId
     ? new Set((await prisma.conversation.findMany({ where: { professionalId: user.professionalId }, select: { userId: true } })).map((conversation) => conversation.userId))
     : new Set<string>();
-  return { categories, pros: rankProfessionals(found.map((professional) => ({ ...professional, categories: professional.categoryLinks.map((link) => link.category) })), q ?? ""), requests, workPhotos, ads, contactedUserIds };
+  return {
+    user,
+    ubicacion,
+    categories,
+    pros,
+    requests: requests.filter((r) => cerca(r.latitude, r.longitude)),
+    workPhotos: workPhotos.filter((w) => cerca(w.latitude!, w.longitude!)),
+    ads,
+    contactedUserIds,
+  };
 }
 
 function chipHref(params: Search, categoria: string) {
@@ -72,7 +73,7 @@ export default async function HomePage({
   searchParams: Promise<Search>;
 }) {
   const params = await searchParams;
-  const { categories, pros, requests, workPhotos, ads, contactedUserIds } = await getData(params);
+  const { user, ubicacion, categories, pros, requests, workPhotos, ads, contactedUserIds } = await getData(params);
   const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
 
   return (
@@ -151,19 +152,24 @@ export default async function HomePage({
       <ClientResultSwitch
         requests={requests.map((r) => ({
           ...r,
+          latitude: user ? r.latitude : null,
+          longitude: user ? r.longitude : null,
           createdAt: r.createdAt.toISOString(),
           category: r.category ? { name: r.category.name, icon: r.category.icon } : null,
           alreadyContacted: contactedUserIds.has(r.userId),
         }))}
       />
 
+      {ubicacion && <AvisoUbicacion origen={ubicacion.origen} localidad={ubicacion.localidad} />}
+
       {/* Resultados */}
       {pros.length === 0 ? (
         <div className="glass glass-solid rounded-[1.5rem] p-12 text-center">
-          <p className="text-lg font-semibold text-slate-900">Sin resultados</p>
+          <p className="text-lg font-semibold text-slate-900">{ubicacion ? `No encontramos profesionales a ${RADIO_KM} km` : "Sin resultados"}</p>
           <p className="mt-1 text-slate-500">
-            Probá con otra categoría o término de búsqueda.
+            {ubicacion ? "Probá con otra búsqueda, o publicá una solicitud y te contactan." : "Probá con otra categoría o término de búsqueda."}
           </p>
+          {ubicacion && <Link href="/publicar-solicitud" className="glass-btn mt-4 inline-flex px-4 py-2 text-sm">Publicar solicitud</Link>}
         </div>
       ) : (
         <div id="professional-results" className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
@@ -181,6 +187,8 @@ export default async function HomePage({
                 reviewsCount: p.reviewsCount,
                 bio: p.bio,
                 zone: p.zone,
+                localidad: p.localidadNombre,
+                distancia: p.distanciaKm != null ? formatoDistancia(p.distanciaKm) : null,
                 completedJobs: p._count.bookings,
                 externalJobs: p._count.workSamples,
                 providerType: p.providerType === "profesional" ? "profesional" : "oficio",
@@ -195,27 +203,39 @@ export default async function HomePage({
       )}
 
       <section className="space-y-3">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">Mapa de oportunidades</h2>
-          <p className="text-sm text-slate-500">Trabajos abiertos y profesionales o negocios adheridos en Corrientes.</p>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Mapa de oportunidades</h2>
+            <p className="text-sm text-slate-500">{ubicacion ? `Profesionales, trabajos abiertos y trabajos realizados a ${RADIO_KM} km.` : "Profesionales y trabajos cerca tuyo."}</p>
+          </div>
+          {ubicacion && <Link href="/mapa" className="text-sm font-semibold text-cliente-dark hover:underline">Ver mapa completo →</Link>}
         </div>
-        <MapView
-          points={[
-            ...pros.map((p, index) => ({
-              id: p.id, type: "profesional" as const, title: p.businessName || p.name,
-              subtitle: `${p.headline} · ${p.zone}`, latitude: p.latitude ?? -27.4692 + (index % 4) * 0.008, longitude: p.longitude ?? -58.8306 + (index % 5) * 0.009, href: `/profesionales/${p.id}`,
-            })),
-            ...requests.map((r) => ({
-              id: r.id, type: "solicitud" as const, title: r.title,
-              subtitle: `${r.category?.name ?? "Otro"} · ${r.zone}`, latitude: r.latitude, longitude: r.longitude, href: "/solicitudes",
-            })),
-            ...workPhotos.map((work) => ({
-              id: work.id, type: "trabajo" as const, title: work.title,
-              subtitle: `${work.professional.businessName || work.professional.name} · ${work.address || "Corrientes"}`, latitude: work.latitude!, longitude: work.longitude!, href: `/profesionales/${work.professional.id}`,
-            })),
-          ]}
-        />
-        <div className="flex flex-wrap gap-3 text-xs text-slate-500"><span>🟢 Profesionales</span><span>🔵 Trabajos abiertos</span><span>🟠 Trabajos realizados</span></div>
+        {ubicacion ? (
+          <>
+            <MapView
+              centro={ubicacion.punto}
+              radioKm={RADIO_KM}
+              enVivo
+              points={[
+                ...pros.map((p) => ({
+                  id: p.id, type: "profesional" as const, title: p.businessName || p.name,
+                  subtitle: `${p.headline} · ${p.localidadNombre ?? p.zone}${p.distanciaKm != null ? ` · ${formatoDistancia(p.distanciaKm)}` : ""}`, latitude: p.punto.lat, longitude: p.punto.lng, href: `/profesionales/${p.id}`,
+                })),
+                ...requests.map((r) => ({
+                  id: r.id, type: "solicitud" as const, title: r.title,
+                  subtitle: `${r.category?.name ?? "Otro"} · ${r.zone}`, latitude: r.latitude, longitude: r.longitude, href: "/solicitudes",
+                })),
+                ...workPhotos.map((work) => ({
+                  id: work.id, type: "trabajo" as const, title: work.title,
+                  subtitle: `${work.professional.businessName || work.professional.name} · ${work.address || "Corrientes"}`, latitude: work.latitude!, longitude: work.longitude!, href: `/profesionales/${work.professional.id}`,
+                })),
+              ]}
+            />
+            <div className="flex flex-wrap gap-3 text-xs text-slate-500"><span>🟢 Profesionales</span><span>🔵 Trabajos abiertos</span><span>🟠 Trabajos realizados</span></div>
+          </>
+        ) : (
+          <MapaBloqueado />
+        )}
       </section>
 
       {/* CTA solicitud */}

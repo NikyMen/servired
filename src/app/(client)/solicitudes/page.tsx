@@ -68,8 +68,9 @@ export default async function SolicitudesPage({
               description: r.description,
               zone: r.zone,
               contactName: r.contactName,
-              latitude: r.latitude,
-              longitude: r.longitude,
+              // El invitado no recibe ubicaciones (ni el mapita del detalle).
+              latitude: user ? r.latitude : null,
+              longitude: user ? r.longitude : null,
               createdAt: r.createdAt.toISOString(),
               category: r.category ? { name: r.category.name, icon: r.category.icon } : null,
             }}

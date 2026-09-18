@@ -9,7 +9,8 @@ import { formatDate } from "@/lib/format";
 
 type Solicitud = {
   id: string; title: string; description: string; zone: string; contactName: string;
-  latitude: number; longitude: number; createdAt: string;
+  /** Sin sesión no viajan: el invitado no ve ubicaciones. */
+  latitude?: number | null; longitude?: number | null; createdAt: string;
   category: { name: string; icon: string } | null;
 };
 
@@ -56,7 +57,7 @@ export function SolicitudCard({ request, alreadyContacted = false, puedeDescarta
         <div className="flex items-start justify-between gap-3"><div><span className="text-xs font-semibold text-pro">{request.category?.name ?? "Otro"}</span><h2 className="mt-1 text-xl font-bold text-slate-900">{request.title}</h2></div><button onClick={() => setOpen(false)} aria-label="Cerrar" className="rounded-full p-2 hover:bg-slate-100"><XIcon width={20} height={20} /></button></div>
         <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-600">{request.description}</p>
         <dl className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-white/60 p-4 text-sm"><div><dt className="text-xs text-slate-400">Cliente</dt><dd className="font-semibold text-slate-800">{request.contactName}</dd></div><div><dt className="text-xs text-slate-400">Publicado</dt><dd className="font-semibold text-slate-800">{formatDate(request.createdAt)}</dd></div><div className="col-span-2"><dt className="text-xs text-slate-400">Ubicación</dt><dd className="font-semibold text-slate-800">{request.zone}</dd></div></dl>
-        <div className="mt-4"><MapView className="h-64" points={[{ id: request.id, type: "solicitud", title: request.title, subtitle: request.zone, latitude: request.latitude, longitude: request.longitude }]} /></div>
+        {request.latitude != null && request.longitude != null && <div className="mt-4"><MapView className="h-64" points={[{ id: request.id, type: "solicitud", title: request.title, subtitle: request.zone, latitude: request.latitude, longitude: request.longitude }]} /></div>}
         <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
           {puedeDescartar && <button type="button" disabled={descartando} onClick={descartar} className="glass-btn glass-btn-ghost px-4 py-2 text-sm disabled:opacity-60">{descartando ? "Sacando…" : "No me interesa"}</button>}
           <ResponderSolicitud requestId={request.id} clientName={request.contactName} requestTitle={request.title} />

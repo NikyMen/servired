@@ -9,6 +9,7 @@ import {
   BriefcaseIcon,
   ChatIcon,
   GridIcon,
+  MapPinIcon,
 } from "@/components/icons";
 import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
 import type { Mode } from "@/lib/types";
@@ -24,6 +25,7 @@ type Item = {
 
 const clientItems: Item[] = [
   { href: "/", label: "Buscar", icon: SearchIcon, exact: true },
+  { href: "/mapa", label: "Mapa", icon: MapPinIcon },
   { href: "/solicitudes", label: "Solicitudes", icon: ClipboardIcon },
   { href: "/contrataciones", label: "Propuestas", icon: BriefcaseIcon },
   { href: "/mensajes", label: "Mensajes", icon: ChatIcon, noLeidos: true },
@@ -37,7 +39,7 @@ const proItems: Item[] = [
 
 /* Tailwind no puede armar la clase en tiempo de ejecución: las columnas van
    escritas enteras o la purga se las lleva. */
-const COLUMNAS: Record<number, string> = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" };
+const COLUMNAS: Record<number, string> = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" };
 
 /** Barra de pestañas inferior, solo móvil. En desktop navega el header. */
 export function BottomNav({ mode }: { mode: Mode }) {

@@ -12,6 +12,8 @@ import { pendienteDeAlta } from "../src/lib/auth";
 import { PLAZO_MENSAJES_MS, debeAvisarMensaje, firmaBaja, firmaValida, puedeRecibir } from "../src/lib/avisos-correo";
 import { validarCredencial } from "../src/lib/matriculas";
 import { formatoPorContenido } from "../src/lib/kyc";
+import { RADIO_KM, agruparPuntos, formatoDistancia, haversineKm, leerPuntoCookie, puntoDePro, valorCookieUbicacion } from "../src/lib/geo";
+import { rankProfessionals } from "../src/lib/search";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -233,4 +235,55 @@ test("un PDF se reconoce por su contenido, no por el nombre", () => {
   assert.equal(formatoPorContenido("application/pdf", Buffer.from("%PDF-1.7 prueba")), "document");
   assert.equal(formatoPorContenido("application/pdf", Buffer.from("MZ ejecutable")), null);
   assert.equal(formatoPorContenido("image/png", Buffer.from([0x89, 0x50, 0x4e, 0x47])), "image");
+});
+
+test("las distancias entre localidades dan lo que dan en el mapa", () => {
+  const capital = { lat: -27.4692, lng: -58.8306 };
+  const resistencia = { lat: -27.4514, lng: -58.9867 };
+  const goya = { lat: -29.1439, lng: -59.2651 };
+  const aResistencia = haversineKm(capital, resistencia);
+  assert.ok(aResistencia > 14 && aResistencia < 17, String(aResistencia));
+  assert.ok(haversineKm(capital, goya) > 150);
+  assert.equal(haversineKm(capital, capital), 0);
+  assert.equal(RADIO_KM, 20);
+});
+
+test("la distancia se muestra corta y en castellano", () => {
+  assert.equal(formatoDistancia(0.4), "a menos de 1 km");
+  assert.equal(formatoDistancia(3.24), "3,2 km");
+  assert.equal(formatoDistancia(15.6), "16 km");
+});
+
+test("la cookie de ubicación se lee redondeada y solo si cae en Argentina", () => {
+  const valor = valorCookieUbicacion({ lat: -27.46921, lng: -58.83061 });
+  assert.equal(valor, "-27.469|-58.831");
+  assert.deepEqual(leerPuntoCookie(valor), { lat: -27.469, lng: -58.831 });
+  assert.deepEqual(leerPuntoCookie(encodeURIComponent(valor)), { lat: -27.469, lng: -58.831 });
+  assert.equal(leerPuntoCookie("40.4|-3.7"), null);
+  assert.equal(leerPuntoCookie("hola"), null);
+  assert.equal(leerPuntoCookie(undefined), null);
+});
+
+test("un profesional sin punto propio se ubica en su localidad, y si no tiene, en el respaldo", () => {
+  const localidad = { lat: -29.14, lng: -59.26 };
+  const respaldo = { lat: -27.47, lng: -58.83 };
+  assert.deepEqual(puntoDePro({ latitude: -27.5, longitude: -58.8 }, localidad, respaldo), { lat: -27.5, lng: -58.8 });
+  assert.deepEqual(puntoDePro({ latitude: null, longitude: null }, localidad, respaldo), localidad);
+  assert.deepEqual(puntoDePro({ latitude: null, longitude: null }, null, respaldo), respaldo);
+});
+
+test("los pines cercanos se agrupan de lejos y se separan al acercarse", () => {
+  const puntos = [{ lat: -27.469, lng: -58.83 }, { lat: -27.47, lng: -58.831 }, { lat: -29.14, lng: -59.26 }];
+  assert.equal(agruparPuntos(puntos, 8).length, 2);
+  assert.equal(agruparPuntos(puntos, 18).length, 3);
+  const grupo = agruparPuntos(puntos, 8).find((g) => g.items.length === 2)!;
+  assert.ok(Math.abs(grupo.lat - -27.4695) < 1e-9);
+});
+
+test("a igual relevancia va primero el más cerca", () => {
+  const base = { headline: "Plomero", bio: null, zone: "", category: { slug: "plomeria", name: "Plomería" }, categories: [], services: [], verified: false, featured: false, rating: 4 };
+  const lejos = { ...base, id: "lejos", name: "Ana", distanciaKm: 12 };
+  const cerca = { ...base, id: "cerca", name: "Bea", distanciaKm: 2 };
+  const orden = rankProfessionals([lejos, cerca], "", (a, b) => a.distanciaKm - b.distanciaKm).map((p) => p.id);
+  assert.deepEqual(orden, ["cerca", "lejos"]);
 });

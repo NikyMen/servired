@@ -21,6 +21,7 @@ type NavItem = {
 };
 
 const clientNav: NavItem[] = [
+  { href: "/mapa", label: "Mapa" },
   { href: "/solicitudes", label: "Solicitudes" },
   { href: "/contrataciones", label: "Propuestas" },
   { href: "/mensajes", label: "Mensajes", noLeidos: true },

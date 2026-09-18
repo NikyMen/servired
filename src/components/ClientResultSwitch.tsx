@@ -6,7 +6,7 @@ import { SolicitudCard } from "@/components/pro/SolicitudCard";
 
 type RequestCard = {
   id: string; title: string; description: string; zone: string; contactName: string;
-  latitude: number; longitude: number; createdAt: string;
+  latitude?: number | null; longitude?: number | null; createdAt: string;
   category: { name: string; icon: string } | null;
   alreadyContacted?: boolean;
 };

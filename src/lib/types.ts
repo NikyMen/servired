@@ -13,6 +13,9 @@ export type ProCard = {
   reviewsCount: number;
   bio: string | null;
   zone: string;
+  /** Con sesión: su localidad y la distancia ya formateada ("3,2 km"). */
+  localidad?: string | null;
+  distancia?: string | null;
   completedJobs: number;
   externalJobs: number;
   providerType: "profesional" | "oficio";
