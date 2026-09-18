@@ -27,6 +27,11 @@ pnpm migrate:servired # migra datos existentes sin borrarlos
 pnpm dev            # levanta el servidor en http://localhost:3000
 ```
 
+> **Deploy de las propuestas a 5 días (una sola vez):** después de subir ese
+> cambio, `pnpm exec tsx prisma/extender-propuestas.ts` alarga las propuestas
+> que quedaron pendientes con el plazo viejo de 72 h. Correrlo de nuevo no
+> cambia nada.
+
 > `pnpm setup` = `prisma db push` + `prisma db seed`.
 > Si cambiás el esquema (`prisma/schema.prisma`), corré `pnpm db:push` **y
 > reiniciá el dev server**: el cliente de Prisma se carga al arrancar el proceso.
@@ -227,6 +232,13 @@ src/
 | `pnpm migrate:servired` | Migra tipos de oferente, cuentas, muestras y contrataciones existentes |
 | `pnpm test`       | Pruebas de reglas con `tsx --test`        |
 | `pnpm db:studio`  | Prisma Studio (explorar la base de datos) |
+
+## Especificaciones
+
+Los cambios grandes se trabajan con spec → plan → tareas, cada etapa aprobada
+antes de pasar a la siguiente. Las plantillas están en [`docs/`](docs/) y el
+índice de la tanda de lanzamiento en
+[`docs/features/LANZAMIENTO.md`](docs/features/LANZAMIENTO.md).
 
 ## Pendientes conocidos
 

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { participantIn } from "@/lib/mensajes-server";
 import { OPEN_BOOKING_STATUSES, PROPOSAL_TTL_MS, expirePendingProposals } from "@/lib/workflow";
 import { canRevealPaymentDetails } from "@/lib/payments";
-import { validEstimatedDays } from "@/lib/trabajo";
+import { PROPOSAL_TTL_LABEL, validEstimatedDays } from "@/lib/trabajo";
 import { notificar } from "@/lib/notificaciones";
 
 async function currentBooking(userId: string, professionalId: string) {
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const booking = await prisma.$transaction(async (tx) => {
     const created = await tx.booking.create({ data: { userId: conversation.userId, clientName: conversation.clientName, professionalId: conversation.professionalId, note: detail || null, quotedPrice: amount, status: "requested" } });
     await tx.proposal.create({ data: { bookingId: created.id, amount, message: detail || null, estimatedDays, expiresAt: new Date(Date.now() + PROPOSAL_TTL_MS) } });
-    await tx.message.create({ data: { conversationId: conversation.id, sender: "profesional", text: `💰 PROPUESTA · $${amount.toLocaleString("es-AR")} · ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo · Vence en 3 días${detail ? ` · ${detail}` : ""}` } });
+    await tx.message.create({ data: { conversationId: conversation.id, sender: "profesional", text: `💰 PROPUESTA · $${amount.toLocaleString("es-AR")} · ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo · Vence en ${PROPOSAL_TTL_LABEL}${detail ? ` · ${detail}` : ""}` } });
     await tx.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
     await notificar(tx, conversation.userId, {
       kind: "propuesta",

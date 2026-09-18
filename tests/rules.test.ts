@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createVideoChallenge, cuilMatchesDni, parsePaymentHandle, validCuil, validCvu, validDni, validPhone, verifyVideoChallenge } from "../src/lib/kyc";
-import { ACTIVE_JOB_STATUSES, PROPOSAL_TTL_MS, hasJobCapacity, proposalIsActive } from "../src/lib/workflow";
+import { ACTIVE_JOB_STATUSES, PROPOSAL_TTL_MS, proposalIsActive } from "../src/lib/workflow";
 import { canRevealPaymentDetails } from "../src/lib/payments";
 import { MAX_REPUBLISH, REQUEST_TTL_MS, requestDaysLeft, requestIsLastDay } from "../src/lib/solicitudes";
-import { jobProgress, validEstimatedDays } from "../src/lib/trabajo";
+import { PROPOSAL_TTL_LABEL, jobProgress, validEstimatedDays } from "../src/lib/trabajo";
 import { parseTexto } from "../src/lib/site-text";
 
 test("valida CUIL por formato y dígito verificador", () => {
@@ -53,16 +53,15 @@ test("el desafío es una frase legible, sin dígitos", () => {
 
 test("una propuesta solo está activa si está pendiente y no venció", () => {
   const now = new Date("2026-01-01T00:00:00Z");
-  assert.equal(PROPOSAL_TTL_MS, 72 * 60 * 60 * 1000);
+  assert.equal(PROPOSAL_TTL_MS, 5 * 24 * 60 * 60 * 1000);
+  assert.equal(PROPOSAL_TTL_LABEL, "5 días");
   assert.equal(proposalIsActive({ status: "pending", expiresAt: new Date("2026-01-01T00:00:01Z") }, now), true);
   assert.equal(proposalIsActive({ status: "pending", expiresAt: now }, now), false);
   assert.equal(proposalIsActive({ status: "rejected", expiresAt: new Date("2026-01-02T00:00:00Z") }, now), false);
 });
 
-test("el cupo cuenta todos los estados activos y bloquea el cuarto trabajo", () => {
+test("los trabajos activos incluyen todo lo que todavía no se cobró y calificó", () => {
   assert.deepEqual(ACTIVE_JOB_STATUSES, ["in_progress", "finished", "payment_reported", "paid_awaiting_review"]);
-  assert.equal(hasJobCapacity(2), true);
-  assert.equal(hasJobCapacity(3), false);
 });
 
 test("los datos de cobro se revelan recién al terminar", () => {

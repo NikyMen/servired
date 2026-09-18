@@ -5,6 +5,15 @@
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Cuánto vive una propuesta sin respuesta. Vive acá y no en `workflow.ts`
+ * porque los textos de "vence en…" también están en componentes de cliente,
+ * que no pueden importar prisma: una sola regla para el plazo y para el texto.
+ */
+export const PROPOSAL_TTL_DAYS = 5;
+export const PROPOSAL_TTL_MS = PROPOSAL_TTL_DAYS * DIA_MS;
+export const PROPOSAL_TTL_LABEL = `${PROPOSAL_TTL_DAYS} días`;
+
 export const MIN_ESTIMATED_DAYS = 1;
 export const MAX_ESTIMATED_DAYS = 365;
 
