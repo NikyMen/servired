@@ -33,6 +33,12 @@ model User {
   termsVersion    Int?
   termsAcceptedAt DateTime?
 
+  /// Qué avisos quiere recibir por correo. Arrancan prendidos; cada mail trae
+  /// su enlace para apagar ese tipo.
+  mailMensajes    Boolean @default(true)
+  mailSolicitudes Boolean @default(true)
+  mailPropuestas  Boolean @default(true)
+
   /// Perfil público de Ofrezco, creado recién al iniciar ese alta.
   professional Professional?
 
@@ -502,6 +508,11 @@ model Conversation {
   acuerdoLeidoPro     DateTime?
   pagoLeidoCliente    DateTime?
   pagoLeidoPro        DateTime?
+
+  /// Cuándo se le mandó a cada lado el mail de "tenés mensajes sin contestar".
+  /// Mientras sea posterior a su última lectura no se repite.
+  mailAvisoClienteAt DateTime?
+  mailAvisoProAt     DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

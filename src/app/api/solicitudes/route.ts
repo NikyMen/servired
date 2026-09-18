@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { interactionAccess } from "@/lib/auth";
 import { REQUEST_TTL_MS } from "@/lib/solicitudes";
 import { notificarA } from "@/lib/notificaciones";
+import { mandarAviso } from "@/lib/avisos-correo";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +73,23 @@ export async function POST(req: NextRequest) {
       title: "Nueva solicitud en tu rubro",
       body: created.title,
       url: "/pro/solicitudes",
+    });
+    /* Por correo va a todos los del rubro, sin el corte de la campanita:
+       sale una sola vez, al publicar, y cada uno puede apagarlo. */
+    const rubroId = categoryId;
+    after(async () => {
+      const [rubro, pros] = await Promise.all([
+        prisma.category.findUnique({ where: { id: rubroId }, select: { name: true } }),
+        prisma.professional.findMany({
+          where: { profileStatus: "approved", userId: { not: null }, user: { accountStatus: "approved" }, categoryLinks: { some: { categoryId: rubroId } } },
+          select: { userId: true },
+        }),
+      ]);
+      const nombre = rubro?.name ?? "tu rubro";
+      for (const pro of pros) {
+        if (!pro.userId || pro.userId === user.id) continue;
+        await mandarAviso(pro.userId, "solicitudes", { asunto: `Nueva solicitud de ${nombre} en ${created.zone}`, titulo: created.title, texto: `Publicaron una solicitud de ${nombre} en ${created.zone}. Si te interesa, respondé antes de que la tome otro.`, url: "/pro/solicitudes", boton: "Ver solicitud" });
+      }
     });
   }
 

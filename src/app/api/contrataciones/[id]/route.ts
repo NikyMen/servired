@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { interactionAccess } from "@/lib/auth";
 import { PROPOSAL_TTL_LABEL, validEstimatedDays } from "@/lib/trabajo";
 import { PROPOSAL_TTL_MS, expirePendingProposals, proposalIsActive } from "@/lib/workflow";
 import { manualAliasProvider } from "@/lib/payments";
 import { notificar } from "@/lib/notificaciones";
+import { mandarAviso } from "@/lib/avisos-correo";
 
 function messageText(amount: number) { return `$${amount.toLocaleString("es-AR")}`; }
 
@@ -38,6 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!proposal) return NextResponse.json({ error: "Ya hay una propuesta activa. El cliente debe rechazarla o esperar su vencimiento." }, { status: 409 });
     if (conversation) await prisma.$transaction([prisma.message.create({ data: { conversationId: conversation.id, sender: "profesional", text: `💰 PROPUESTA · ${messageText(amount)} · ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo · Vence en ${PROPOSAL_TTL_LABEL}${proposalMessage ? ` · ${proposalMessage}` : ""}` } }), prisma.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } })]);
     await notificar(prisma, booking.userId, { kind: "propuesta", title: `${booking.professional.name} te mandó una propuesta`, body: `${messageText(amount)} · ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo`, url: "/contrataciones", groupKey: `prop:${booking.id}` });
+    after(() => mandarAviso(booking.userId, "propuestas", { asunto: `${booking.professional.name} te mandó un presupuesto`, titulo: `Presupuesto de ${booking.professional.name}`, texto: `${messageText(amount)} por ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo. Tenés ${PROPOSAL_TTL_LABEL} para aceptarlo o rechazarlo.`, url: "/contrataciones", boton: "Ver presupuesto" }));
     return NextResponse.json(proposal, { status: 201 });
   }
 
@@ -48,6 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await prisma.proposal.update({ where: { id: proposal.id }, data: { status: "rejected", decidedAt: new Date() } });
     if (conversation) await prisma.message.create({ data: { conversationId: conversation.id, sender: "cliente", text: "❌ PROPUESTA RECHAZADA · El profesional ya puede enviar una nueva." } });
     if (booking.professional.userId) await notificar(prisma, booking.professional.userId, { kind: "propuesta_resuelta", title: "Rechazaron tu propuesta", body: `${booking.clientName} la rechazó. Podés mandar otra.`, url: "/pro", groupKey: `propres:${booking.id}` });
+    if (booking.professional.userId) { const proUserId = booking.professional.userId; after(() => mandarAviso(proUserId, "propuestas", { asunto: "Rechazaron tu presupuesto", titulo: "Rechazaron tu presupuesto", texto: `${booking.clientName} rechazó tu presupuesto de ${messageText(proposal.amount)}. Si querés, podés mandarle otro.`, url: "/pro", boton: "Ir a mi panel" })); }
     return NextResponse.json({ ok: true });
   }
 
@@ -66,6 +69,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
     if (conversation) await prisma.message.create({ data: { conversationId: conversation.id, sender: "cliente", text: `✅ PROPUESTA ACEPTADA · ${messageText(proposal.amount)} · Trabajo en curso${proposal.estimatedDays ? `, ${proposal.estimatedDays} ${proposal.estimatedDays === 1 ? "día" : "días"} de plazo` : ""}.` } });
     if (booking.professional.userId) await notificar(prisma, booking.professional.userId, { kind: "propuesta_resuelta", title: "Aceptaron tu propuesta", body: `${booking.clientName} aceptó ${messageText(proposal.amount)}${proposal.estimatedDays ? ` · ${proposal.estimatedDays} ${proposal.estimatedDays === 1 ? "día" : "días"} de plazo` : ""}`, url: "/pro", groupKey: `propres:${booking.id}` });
+    if (booking.professional.userId) { const proUserId = booking.professional.userId; after(() => mandarAviso(proUserId, "propuestas", { asunto: "¡Aceptaron tu presupuesto!", titulo: "Aceptaron tu presupuesto", texto: `${booking.clientName} aceptó tu presupuesto de ${messageText(proposal.amount)}. El trabajo ya figura en curso.`, url: "/pro", boton: "Ir a mi panel" })); }
     return NextResponse.json(updated);
   }
 

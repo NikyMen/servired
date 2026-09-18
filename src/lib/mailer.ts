@@ -12,7 +12,7 @@ export function appUrl() {
   return (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
 }
 
-export async function sendMail({ to, subject, text, html, devNote }: { to: string; subject: string; text: string; html?: string; devNote?: string }) {
+export async function sendMail({ to, subject, text, html, devNote, headers }: { to: string; subject: string; text: string; html?: string; devNote?: string; headers?: Record<string, string> }) {
   const host = process.env.SMTP_HOST;
   if (!host) {
     if (process.env.NODE_ENV !== "production") {
@@ -34,5 +34,6 @@ export async function sendMail({ to, subject, text, html, devNote }: { to: strin
     subject,
     text,
     html,
+    headers,
   });
 }

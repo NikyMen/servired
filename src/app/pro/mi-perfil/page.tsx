@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { PerfilForm } from "@/components/PerfilForm";
 import { getSessionUser } from "@/lib/auth";
+import { AvisosCorreo } from "@/components/AvisosCorreo";
+import { preferenciasAvisos } from "@/lib/avisos-correo";
 import { prisma } from "@/lib/prisma";
 import { TrabajosParticulares } from "@/components/pro/TrabajosParticulares";
 import { ACTIVE_JOB_STATUSES } from "@/lib/workflow";
@@ -18,5 +20,5 @@ export default async function MiPerfilProfesionalPage() {
     prisma.workSample.findMany({ where: { professionalId: user.professionalId }, orderBy: { createdAt: "desc" }, include: { images: { orderBy: { position: "asc" } } } }),
     prisma.booking.count({ where: { professionalId: user.professionalId, status: { in: ACTIVE_JOB_STATUSES } } }),
   ]);
-  return <div className="mx-auto max-w-3xl space-y-6"><div><h1 className="text-2xl font-bold text-slate-900">Mi perfil</h1><p className="text-sm text-slate-500">Perfil de tipo {pro.providerType}. Cambiar el tipo o la identidad requiere una nueva verificación.</p>{activeJobs === 0 ? <a href="/pro?editarKyc=1" className="mt-2 inline-block text-sm font-semibold text-pro-dark hover:underline">Solicitar cambio de tipo o datos de identidad</a> : <p className="mt-2 text-xs text-amber-700">Terminá tus trabajos activos antes de solicitar ese cambio.</p>}</div><PerfilForm categories={categories} perfil={{ name: pro.name, avatarUrl: pro.avatarUrl, businessName: pro.businessName, headline: pro.headline, bio: pro.bio, address: pro.address, zone: pro.zone, categoryId: pro.categoryId, categoryIds: pro.categoryLinks.map((link) => link.categoryId), latitude: pro.latitude, longitude: pro.longitude, providerType: pro.providerType === "profesional" ? "profesional" : "oficio", paymentHandle: pro.paymentHandle, phone: pro.phone, yearsExperience: pro.yearsExperience }} /><TrabajosParticulares fotos={workSamples} /><BajaCuentaAviso /></div>;
+  return <div className="mx-auto max-w-3xl space-y-6"><div><h1 className="text-2xl font-bold text-slate-900">Mi perfil</h1><p className="text-sm text-slate-500">Perfil de tipo {pro.providerType}. Cambiar el tipo o la identidad requiere una nueva verificación.</p>{activeJobs === 0 ? <a href="/pro?editarKyc=1" className="mt-2 inline-block text-sm font-semibold text-pro-dark hover:underline">Solicitar cambio de tipo o datos de identidad</a> : <p className="mt-2 text-xs text-amber-700">Terminá tus trabajos activos antes de solicitar ese cambio.</p>}</div><PerfilForm categories={categories} perfil={{ name: pro.name, avatarUrl: pro.avatarUrl, businessName: pro.businessName, headline: pro.headline, bio: pro.bio, address: pro.address, zone: pro.zone, categoryId: pro.categoryId, categoryIds: pro.categoryLinks.map((link) => link.categoryId), latitude: pro.latitude, longitude: pro.longitude, providerType: pro.providerType === "profesional" ? "profesional" : "oficio", paymentHandle: pro.paymentHandle, phone: pro.phone, yearsExperience: pro.yearsExperience }} /><TrabajosParticulares fotos={workSamples} /><AvisosCorreo inicial={await preferenciasAvisos(user.id)} /><BajaCuentaAviso /></div>;
 }

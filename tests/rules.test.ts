@@ -9,6 +9,7 @@ import { parseTexto } from "../src/lib/site-text";
 import { AYUDA_DEFAULT, saludoPerfil, validSupportPhone, waLink } from "../src/lib/whatsapp";
 import { CAPITAL, LOCALIDADES_BASE, validarLocalidad, validarPunto, zonaDe } from "../src/lib/localidades";
 import { pendienteDeAlta } from "../src/lib/auth";
+import { PLAZO_MENSAJES_MS, debeAvisarMensaje, firmaBaja, firmaValida, puedeRecibir } from "../src/lib/avisos-correo";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -181,4 +182,39 @@ test("una cuenta está al día con los términos vigentes aceptados y una locali
   assert.equal(pendienteDeAlta({ termsOk: true, localityId: null }), "Elegí tu localidad para seguir.");
   // Los términos van primero: son los que la pantalla de aceptación muestra arriba.
   assert.equal(pendienteDeAlta({ termsOk: false, localityId: null }), "Aceptá los términos actualizados para seguir.");
+});
+
+test("el mail de mensajes sin contestar sale una vez por tanda sin leer", () => {
+  const now = new Date("2026-03-10T12:00:00Z");
+  const hace = (horas: number) => new Date(now.getTime() - horas * 3600 * 1000);
+  assert.equal(PLAZO_MENSAJES_MS, 12 * 3600 * 1000);
+  // Nada sin leer, o sin leer desde hace poco: no.
+  assert.equal(debeAvisarMensaje({ primerNoLeido: null, leido: null, avisado: null, now }), false);
+  assert.equal(debeAvisarMensaje({ primerNoLeido: hace(2), leido: null, avisado: null, now }), false);
+  // Más de 12 h sin leer y sin aviso previo: sí.
+  assert.equal(debeAvisarMensaje({ primerNoLeido: hace(13), leido: null, avisado: null, now }), true);
+  // Ya avisado y no lo leyó: no se repite.
+  assert.equal(debeAvisarMensaje({ primerNoLeido: hace(30), leido: null, avisado: hace(10), now }), false);
+  assert.equal(debeAvisarMensaje({ primerNoLeido: hace(30), leido: hace(40), avisado: hace(10), now }), false);
+  // Lo leyó después del aviso y le volvieron a escribir hace más de 12 h: sale otro.
+  assert.equal(debeAvisarMensaje({ primerNoLeido: hace(14), leido: hace(20), avisado: hace(30), now }), true);
+  // Charlas de más de 7 días: no.
+  assert.equal(debeAvisarMensaje({ primerNoLeido: hace(24 * 8), leido: null, avisado: null, now }), false);
+});
+
+test("el enlace de baja solo sirve para esa cuenta y ese tipo", () => {
+  const firma = firmaBaja("u1", "solicitudes");
+  assert.equal(firmaValida("u1", "solicitudes", firma), true);
+  assert.equal(firmaValida("u2", "solicitudes", firma), false);
+  assert.equal(firmaValida("u1", "mensajes", firma), false);
+  assert.equal(firmaValida("u1", "otro", firma), false);
+  assert.equal(firmaValida("u1", "solicitudes", "abc"), false);
+});
+
+test("solo reciben avisos las cuentas aprobadas con email verificado y real", () => {
+  const base = { accountStatus: "approved", emailVerifiedAt: new Date(), email: "ana@mail.com" };
+  assert.equal(puedeRecibir(base), true);
+  assert.equal(puedeRecibir({ ...base, accountStatus: "suspended" }), false);
+  assert.equal(puedeRecibir({ ...base, emailVerifiedAt: null }), false);
+  assert.equal(puedeRecibir({ ...base, email: "facebook-1@pending.servired.invalid" }), false);
 });

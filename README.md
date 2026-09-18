@@ -37,6 +37,11 @@ pnpm dev            # levanta el servidor en http://localhost:3000
 > los profesionales que se dieron de alta cuando era la única opción. La lista
 > de localidades se carga sola la primera vez que se pide.
 
+> **Avisos por correo:** con SMTP configurado, los presupuestos y las
+> solicitudes del rubro salen en el momento. El recordatorio de "mensajes sin
+> contestar" lo dispara un crontab cada 15 minutos (ver `CRON_SECRET` en
+> `.env.example`); sin esa clave la ruta queda apagada.
+
 > `pnpm setup` = `prisma db push` + `prisma db seed`.
 > Si cambiás el esquema (`prisma/schema.prisma`), corré `pnpm db:push` **y
 > reiniciá el dev server**: el cliente de Prisma se carga al arrancar el proceso.
@@ -185,8 +190,9 @@ botón de volver a publicarla, con tope de cinco veces. El oferente puede descar
 una sin contestarla: es una decisión privada suya, la solicitud sigue abierta para
 los demás.
 
-No hay cron: vencer y avisar viaja en los listados, igual que el vencimiento de las
-propuestas (`expireServiceRequests` en `src/lib/workflow.ts`).
+Vencer y avisar por campanita viaja en los listados, igual que el vencimiento de
+las propuestas (`expireServiceRequests` en `src/lib/workflow.ts`). El único cron es
+el de los avisos por correo de mensajes sin contestar (`/api/cron/avisos`).
 
 ## Avisos
 

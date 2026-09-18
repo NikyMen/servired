@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import { PerfilForm } from "@/components/PerfilForm";
 import { getSessionUser } from "@/lib/auth";
+import { AvisosCorreo } from "@/components/AvisosCorreo";
+import { preferenciasAvisos } from "@/lib/avisos-correo";
 import { BajaCuentaAviso } from "@/components/BajaCuentaAviso";
 
 export default async function MiPerfilPage() {
   const user = await getSessionUser();
   if (!user) redirect("/entrar?next=/mi-perfil");
-  return <div className="mx-auto max-w-2xl space-y-4"><div><h1 className="text-2xl font-bold text-slate-900">Mi perfil</h1><p className="text-sm text-slate-500">Actualizá tus datos personales.</p></div><PerfilForm perfil={{ name: user.name, avatarUrl: user.avatarUrl }} /><BajaCuentaAviso /></div>;
+  return <div className="mx-auto max-w-2xl space-y-4"><div><h1 className="text-2xl font-bold text-slate-900">Mi perfil</h1><p className="text-sm text-slate-500">Actualizá tus datos personales.</p></div><PerfilForm perfil={{ name: user.name, avatarUrl: user.avatarUrl }} /><AvisosCorreo inicial={await preferenciasAvisos(user.id)} /><BajaCuentaAviso /></div>;
 }
 

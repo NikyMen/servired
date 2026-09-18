@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { participantIn } from "@/lib/mensajes-server";
 import { pendienteDeAlta } from "@/lib/auth";
@@ -6,6 +6,7 @@ import { OPEN_BOOKING_STATUSES, PROPOSAL_TTL_MS, expirePendingProposals } from "
 import { canRevealPaymentDetails } from "@/lib/payments";
 import { PROPOSAL_TTL_LABEL, validEstimatedDays } from "@/lib/trabajo";
 import { notificar } from "@/lib/notificaciones";
+import { mandarAviso } from "@/lib/avisos-correo";
 
 async function currentBooking(userId: string, professionalId: string) {
   await expirePendingProposals();
@@ -60,6 +61,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       groupKey: `prop:${created.id}`,
     });
     return created;
+  });
+  after(async () => {
+    const pro = await prisma.professional.findUnique({ where: { id: conversation.professionalId }, select: { name: true } });
+    const nombre = pro?.name ?? "Un profesional";
+    await mandarAviso(conversation.userId, "propuestas", { asunto: `${nombre} te mandó un presupuesto`, titulo: `Presupuesto de ${nombre}`, texto: `$${amount.toLocaleString("es-AR")} por ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo. Tenés ${PROPOSAL_TTL_LABEL} para aceptarlo o rechazarlo.`, url: `/mensajes?conversacion=${conversation.id}`, boton: "Ver presupuesto" });
   });
   return NextResponse.json(booking, { status: 201 });
 }
