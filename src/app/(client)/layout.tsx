@@ -4,7 +4,9 @@ import { Footer } from "@/components/Footer";
 import { AsistenteIA } from "@/components/AsistenteIA";
 import { MensajesFlotante } from "@/components/MensajesFlotante";
 import { NoLeidosProvider } from "@/components/NoLeidos";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, pendienteDeAlta } from "@/lib/auth";
+import { CompletarAlta } from "@/components/CompletarAlta";
+import { datosCompletarAlta } from "@/lib/completar-alta";
 import { AyudaFlotante } from "@/components/AyudaFlotante";
 import { getSoporte } from "@/lib/soporte";
 
@@ -14,6 +16,8 @@ export default async function ClientLayout({
   children: React.ReactNode;
 }) {
   const [user, soporte] = await Promise.all([getSessionUser(), getSoporte()]);
+  // Cuenta sin términos vigentes o sin localidad: la pantalla de aceptación tapa todo.
+  const alta = user && pendienteDeAlta(user) ? await datosCompletarAlta(user) : null;
 
   return (
     // data-modo pinta el fondo azulado desde el CSS (ver globals.css).
@@ -34,6 +38,7 @@ export default async function ClientLayout({
         {/* Sólo con sesión: sin cuenta no hay bandeja a la que ir. */}
         {user && <MensajesFlotante mode="cliente" />}
       </NoLeidosProvider>
+      {alta && <CompletarAlta {...alta} tono="cliente" />}
     </div>
   );
 }

@@ -28,6 +28,11 @@ model User {
   localityId String?
   locality   Locality? @relation(fields: [localityId], references: [id], onDelete: SetNull)
 
+  /// Versión de los términos que aceptó y cuándo. Null = nunca aceptó (cuentas
+  /// viejas y altas por Google/Facebook): se le pide al entrar.
+  termsVersion    Int?
+  termsAcceptedAt DateTime?
+
   /// Perfil público de Ofrezco, creado recién al iniciar ese alta.
   professional Professional?
 
@@ -652,5 +657,8 @@ model SiteText {
   slug      String   @id // terminos
   title     String
   body      String
+  /// Sube solo cuando administración publica una versión nueva: corregir un
+  /// error de tipeo no obliga a todos a volver a aceptar.
+  version   Int      @default(1)
   updatedAt DateTime @updatedAt
 }

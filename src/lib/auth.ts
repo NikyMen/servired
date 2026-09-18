@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { getTermsVersion } from "@/lib/site-text";
 
 /**
  * Sesiones con token opaco guardado en la base: se pueden revocar de verdad
@@ -60,6 +61,10 @@ export type SessionUser = {
   professionalStatus: string | null;
   /** Localidad elegida; respaldo del mapa cuando no hay GPS. Null en cuentas viejas. */
   localityId: string | null;
+  /** Versión de términos aceptada; null si nunca aceptó. */
+  termsVersion: number | null;
+  /** Aceptó la versión vigente. */
+  termsOk: boolean;
 };
 
 /**
@@ -104,6 +109,8 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     canInteract: user.emailVerifiedAt != null && user.accountStatus === "approved",
     professionalStatus: user.professional?.profileStatus ?? null,
     localityId: user.localityId,
+    termsVersion: user.termsVersion,
+    termsOk: (user.termsVersion ?? 0) >= (await getTermsVersion()),
   };
 });
 
@@ -121,7 +128,21 @@ export async function interactionAccess(): Promise<InteractionAccess> {
       status: 403,
     };
   }
+  const pendiente = pendienteDeAlta(user);
+  if (pendiente) return { error: pendiente, status: 403 };
   return { user };
+}
+
+/**
+ * Qué le falta a la cuenta para estar al día, o null. Sin términos aceptados o
+ * sin localidad solo se puede mirar: la pantalla de aceptación lo pide al
+ * entrar y acá se frena cualquier escritura que llegue directo a la API.
+ * Toda ruta que escriba sin pasar por `interactionAccess()` tiene que llamarla.
+ */
+export function pendienteDeAlta(user: { termsOk: boolean; localityId: string | null }) {
+  if (!user.termsOk) return "Aceptá los términos actualizados para seguir.";
+  if (!user.localityId) return "Elegí tu localidad para seguir.";
+  return null;
 }
 
 /*

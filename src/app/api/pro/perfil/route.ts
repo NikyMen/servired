@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, pendienteDeAlta } from "@/lib/auth";
 import { UPLOAD_URL } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +28,8 @@ export async function PATCH(req: NextRequest) {
   if (!user.canInteract || user.professionalStatus !== "approved") {
     return NextResponse.json({ error: "Tu perfil profesional todavía no fue aprobado." }, { status: 403 });
   }
+  const pendiente = pendienteDeAlta(user);
+  if (pendiente) return NextResponse.json({ error: pendiente }, { status: 403 });
 
   let body: unknown;
   try {

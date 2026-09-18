@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -87,5 +88,27 @@ export function parseTexto(body: string): Bloque[] {
 
 export async function getSiteText(slug: string, porDefecto: { title: string; body: string }) {
   const fila = await prisma.siteText.findUnique({ where: { slug } });
-  return { title: fila?.title || porDefecto.title, body: fila?.body || porDefecto.body, updatedAt: fila?.updatedAt ?? null };
+  return { title: fila?.title || porDefecto.title, body: fila?.body || porDefecto.body, updatedAt: fila?.updatedAt ?? null, version: fila?.version ?? 1 };
+}
+
+/**
+ * Versión vigente de los términos: la que hay que haber aceptado para estar al
+ * día. Sin fila todavía, vale 1 (el texto por defecto). Una consulta por request.
+ */
+export const getTermsVersion = cache(async () => {
+  const fila = await prisma.siteText.findUnique({ where: { slug: TERMS_SLUG }, select: { version: true } });
+  return fila?.version ?? 1;
+});
+
+/**
+ * Guarda un texto legal. La versión sube solo si administración lo pide: así
+ * corregir un error de tipeo no obliga a nadie a volver a aceptar.
+ */
+export async function guardarTextoLegal({ slug, title, body, nuevaVersion }: { slug: string; title: string; body: string; nuevaVersion: boolean }) {
+  return prisma.siteText.upsert({
+    where: { slug },
+    // Si la fila nace con "versión nueva", el texto por defecto era la 1.
+    create: { slug, title, body, version: nuevaVersion ? 2 : 1 },
+    update: { title, body, ...(nuevaVersion ? { version: { increment: 1 } } : {}) },
+  });
 }

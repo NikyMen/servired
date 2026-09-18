@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { participantIn } from "@/lib/mensajes-server";
+import { pendienteDeAlta } from "@/lib/auth";
 import { notificarMensaje } from "@/lib/notificaciones";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,8 @@ export async function POST(
 
   if (!user) return NextResponse.json({ error: "Entrá para poder escribir." }, { status: 401 });
   if (!user.canInteract) return NextResponse.json({ error: "Tu cuenta todavía no fue aprobada." }, { status: 403 });
+  const pendiente = pendienteDeAlta(user);
+  if (pendiente) return NextResponse.json({ error: pendiente }, { status: 403 });
   if (!conversation || !role) {
     return NextResponse.json({ error: "La conversación no existe." }, { status: 404 });
   }

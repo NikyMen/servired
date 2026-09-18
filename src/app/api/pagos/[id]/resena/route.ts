@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, pendienteDeAlta } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UPLOAD_URL } from "@/lib/uploads";
 
@@ -7,6 +7,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Sin sesión." }, { status: 401 });
   if (!user.canInteract) return NextResponse.json({ error: "Tu cuenta todavía no fue aprobada." }, { status: 403 });
+  const pendiente = pendienteDeAlta(user);
+  if (pendiente) return NextResponse.json({ error: pendiente }, { status: 403 });
   const { id } = await params;
   const payment = await prisma.payment.findUnique({ where: { id }, include: { review: true } });
   if (!payment || payment.userId !== user.id) return NextResponse.json({ error: "El pago no existe." }, { status: 404 });

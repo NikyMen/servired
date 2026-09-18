@@ -48,6 +48,13 @@ pnpm dev            # levanta el servidor en http://localhost:3000
 | `.env`       | `DATABASE_URL`, sin secretos | Sí, está trackeado |
 | `.env.local` | OAuth, SMTP, KYC, administración e IA | **No**, lo ignora `.gitignore` |
 
+**Google y Facebook en producción:** `APP_URL` con el dominio real,
+`OAUTH_STATE_SECRET` y las claves de los dos proveedores en `.env.local`; en las
+consolas de Google y de Meta, las URL de retorno `APP_URL/api/auth/callback/google`
+y `APP_URL/api/auth/callback/facebook`, y la app de Facebook en modo Live con
+permiso de email. Quien entra por primera vez así acepta los términos y elige su
+localidad en la pantalla "Completá tu alta".
+
 Copiá `.env.example` como referencia. **La API key va en `.env.local`**: `.env`
 está trackeado por git y terminaría publicada.
 

@@ -4,12 +4,15 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
+import { createSession, destroySession, getSessionUser, hashPassword, verifyPassword } from "@/lib/auth";
+import { getTermsVersion } from "@/lib/site-text";
+import { resolverLocalidad } from "@/lib/localidades";
 import { issueEmailVerification } from "@/lib/email-verification";
 import { setPendingVerification } from "@/lib/pending-verification";
 import { consumePasswordReset, issuePasswordReset } from "@/lib/password-reset";
 
-export type AuthState = { error?: string; field?: string } | undefined;
+/** `values` repone lo escrito después de un error (React 19 vacía el form). Nunca lleva la contraseña. */
+export type AuthState = { error?: string; field?: string; values?: Record<string, string> } | undefined;
 
 /**
  * Solo se acepta volver a una ruta interna.
@@ -65,15 +68,21 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const localityId = String(formData.get("localityId") ?? "");
   const next = safeNext(formData.get("next"));
+  // Lo que se repone si algo falla. La contraseña no: no vuelve al navegador.
+  const values = { name, email, localityId };
 
-  if (name.length < 3 || name.split(/\s+/).length < 2) return { error: "Ingresá nombre y apellido.", field: "name" };
+  if (name.length < 3 || name.split(/\s+/).length < 2) return { error: "Ingresá nombre y apellido.", field: "name", values };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { error: "Ese email no parece válido.", field: "email" };
+    return { error: "Ese email no parece válido.", field: "email", values };
   }
   if (password.length < 8) {
-    return { error: "La contraseña necesita al menos 8 caracteres.", field: "password" };
+    return { error: "La contraseña necesita al menos 8 caracteres.", field: "password", values };
   }
+  const localidad = await resolverLocalidad(localityId, null);
+  if (!localidad) return { error: "Elegí tu localidad de la lista.", field: "localityId", values };
+  if (formData.get("acceptTerms") !== "on") return { error: "Para crear la cuenta tenés que aceptar los términos y condiciones.", field: "acceptTerms", values };
 
   const passwordHash = await hashPassword(password);
 
@@ -81,8 +90,8 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
   // email_pending + cookie firmada de vida corta) y la persona sigue navegando
   // como invitada. La sesión se crea recién cuando confirma el código en
   // /onboarding — ver src/lib/pending-verification.ts y el endpoint de verify.
-  const pendingUserId = await createPendingUser({ email, passwordHash, name });
-  if (typeof pendingUserId !== "string") return pendingUserId;
+  const pendingUserId = await createPendingUser({ email, passwordHash, name, localityId: localidad.id, termsVersion: await getTermsVersion() });
+  if (typeof pendingUserId !== "string") return { ...pendingUserId, values };
 
   if (next) (await cookies()).set("servired_after_verify", next, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 });
   await issueEmailVerification(pendingUserId);
@@ -95,10 +104,12 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
  * Si ya hay una fila con ese email pero nunca se verificó, no tiene dueño
  * todavía: se retoma con los datos nuevos en vez de rebotar.
  */
-async function createPendingUser({ email, passwordHash, name }: { email: string; passwordHash: string; name: string }): Promise<string | AuthState> {
+async function createPendingUser({ email, passwordHash, name, localityId, termsVersion }: { email: string; passwordHash: string; name: string; localityId: string; termsVersion: number }): Promise<string | AuthState> {
+  // Aceptó los términos y eligió localidad en el formulario: queda registrado desde el alta.
+  const alta = { localityId, termsVersion, termsAcceptedAt: new Date() };
   try {
     const user = await prisma.user.create({
-      data: { email, passwordHash, name, role: "cliente", avatarColor: "#2563eb", accountStatus: "email_pending" },
+      data: { email, passwordHash, name, role: "cliente", avatarColor: "#2563eb", accountStatus: "email_pending", ...alta },
     });
     return user.id;
   } catch (e) {
@@ -108,7 +119,7 @@ async function createPendingUser({ email, passwordHash, name }: { email: string;
     if (existing && !existing.emailVerifiedAt) {
       await prisma.user.update({
         where: { id: existing.id },
-        data: { name, passwordHash, role: "cliente", accountStatus: "email_pending" },
+        data: { name, passwordHash, role: "cliente", accountStatus: "email_pending", ...alta },
       });
       return existing.id;
     }
@@ -148,4 +159,36 @@ export async function resetPasswordAction(_prev: AuthState, formData: FormData):
 export async function logoutAction() {
   await destroySession();
   redirect("/entrar");
+}
+
+export type CompletarAltaState = { error?: string; ok?: boolean } | undefined;
+
+/**
+ * Pantalla de aceptación: términos vigentes y, si falta, la localidad. La usan
+ * las altas por Google/Facebook, las cuentas viejas y cualquiera cuando se
+ * publica una versión nueva. No revalida desde acá: `getSessionUser` quedó
+ * cacheado con el usuario de antes en este request, así que el cliente hace
+ * `router.refresh()` y el layout se vuelve a armar con el dato nuevo.
+ */
+export async function completarAltaAction(_prev: CompletarAltaState, formData: FormData): Promise<CompletarAltaState> {
+  const user = await getSessionUser();
+  if (!user) return { error: "Entrá para continuar." };
+  const vigente = await getTermsVersion();
+  if (!user.termsOk) {
+    if (formData.get("acceptTerms") !== "on") return { error: "Para seguir tenés que aceptar los términos y condiciones." };
+    // Si administración publicó otra versión mientras la persona leía, no se le
+    // registra una que no vio.
+    if (Number(formData.get("version")) !== vigente) return { error: "Los términos cambiaron mientras los leías. Recargá la página y revisalos de nuevo." };
+  }
+  let localityId = user.localityId;
+  if (!localityId) {
+    const localidad = await resolverLocalidad(String(formData.get("localityId") ?? ""), null);
+    if (!localidad) return { error: "Elegí tu localidad de la lista." };
+    localityId = localidad.id;
+  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { localityId, ...(user.termsOk ? {} : { termsVersion: vigente, termsAcceptedAt: new Date() }) },
+  });
+  return { ok: true };
 }

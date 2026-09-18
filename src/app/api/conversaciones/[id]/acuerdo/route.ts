@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { participantIn } from "@/lib/mensajes-server";
+import { pendienteDeAlta } from "@/lib/auth";
 import { OPEN_BOOKING_STATUSES, PROPOSAL_TTL_MS, expirePendingProposals } from "@/lib/workflow";
 import { canRevealPaymentDetails } from "@/lib/payments";
 import { PROPOSAL_TTL_LABEL, validEstimatedDays } from "@/lib/trabajo";
@@ -30,6 +31,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!role || !conversation) return NextResponse.json({ error: "La conversación no existe." }, { status: 404 });
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!user.canInteract) return NextResponse.json({ error: "Tu cuenta todavía no fue aprobada." }, { status: 403 });
+  const pendiente = pendienteDeAlta(user);
+  if (pendiente) return NextResponse.json({ error: pendiente }, { status: 403 });
   // Ahora el acuerdo lo abre el oferente con una propuesta y su monto: el
   // cliente ya no "pide" trabajo, sólo acepta o rechaza lo que le proponen.
   if (body?.action !== "propose") return NextResponse.json({ error: "Acción inválida." }, { status: 422 });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, pendienteDeAlta } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UPLOAD_URL } from "@/lib/uploads";
 import { parsePaymentHandle, validPhone } from "@/lib/kyc";
@@ -9,6 +9,8 @@ export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Entrá para editar tu perfil." }, { status: 401 });
   if (!user.canInteract) return NextResponse.json({ error: "Completá y aprobá tu verificación antes de editar el perfil." }, { status: 403 });
+  const pendiente = pendienteDeAlta(user);
+  if (pendiente) return NextResponse.json({ error: pendiente }, { status: 403 });
   const body = await req.json().catch(() => null) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: "Datos inválidos." }, { status: 400 });
   const name = typeof body.name === "string" ? body.name.trim().slice(0, 80) : "";

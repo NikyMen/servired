@@ -8,6 +8,7 @@ import { PROPOSAL_TTL_LABEL, jobProgress, validEstimatedDays } from "../src/lib/
 import { parseTexto } from "../src/lib/site-text";
 import { AYUDA_DEFAULT, saludoPerfil, validSupportPhone, waLink } from "../src/lib/whatsapp";
 import { CAPITAL, LOCALIDADES_BASE, validarLocalidad, validarPunto, zonaDe } from "../src/lib/localidades";
+import { pendienteDeAlta } from "../src/lib/auth";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -172,4 +173,12 @@ test("una localidad nueva necesita nombre, provincia y un punto en Argentina", (
   assert.ok("error" in validarPunto(40.4, -3.7));
   assert.ok("error" in validarPunto(Number.NaN, -58.8));
   assert.ok("data" in validarPunto(-27.46, -58.83));
+});
+
+test("una cuenta está al día con los términos vigentes aceptados y una localidad", () => {
+  assert.equal(pendienteDeAlta({ termsOk: true, localityId: "loc" }), null);
+  assert.equal(pendienteDeAlta({ termsOk: false, localityId: "loc" }), "Aceptá los términos actualizados para seguir.");
+  assert.equal(pendienteDeAlta({ termsOk: true, localityId: null }), "Elegí tu localidad para seguir.");
+  // Los términos van primero: son los que la pantalla de aceptación muestra arriba.
+  assert.equal(pendienteDeAlta({ termsOk: false, localityId: null }), "Aceptá los términos actualizados para seguir.");
 });

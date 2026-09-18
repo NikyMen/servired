@@ -14,6 +14,7 @@ import { slugify } from "@/lib/format";
 import { removeUpload } from "@/lib/uploads";
 import { notificar } from "@/lib/notificaciones";
 import { guardarSoporte } from "@/lib/soporte";
+import { guardarTextoLegal } from "@/lib/site-text";
 import { cambiarLocalidadActiva, crearLocalidad, moverLocalidad } from "@/lib/localidades";
 
 export type AdminAuthState = { error?: string } | undefined;
@@ -49,13 +50,12 @@ export async function saveSiteTextAction(formData: FormData) {
   const title = text(formData, "title").slice(0, 160);
   const body = String(formData.get("body") ?? "").trim().slice(0, 40000);
   if (!slug || !title || body.length < 20) return;
-  await prisma.siteText.upsert({
-    where: { slug },
-    create: { slug, title, body },
-    update: { title, body },
-  });
+  // Versión nueva solo si se tildó: todas las cuentas vuelven a aceptar.
+  await guardarTextoLegal({ slug, title, body, nuevaVersion: formData.get("nuevaVersion") === "on" });
   revalidatePath("/admin");
   revalidatePath(`/${slug}`);
+  // La pantalla de aceptación está en los layouts de todo el sitio.
+  revalidatePath("/", "layout");
 }
 
 export type ReportDecision = "dismiss" | "remove" | "ban";
