@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatARS, formatDate, formatMonthYear } from "@/lib/format";
 import { getSessionUser } from "@/lib/auth";
+import { saludoPerfil, waLink } from "@/lib/whatsapp";
 import { Avatar, Rating, VerifiedBadge } from "@/components/ui";
 import { ContratarBox } from "@/components/ContratarBox";
 import { ContratarSheet } from "@/components/ContratarSheet";
@@ -120,7 +121,7 @@ export default async function ProfesionalPage({
                       <a href={`tel:${telLink(pro.phone)}`} className="glass-chip px-3 py-1.5 text-sm font-semibold text-slate-700">
                         📞 {pro.phone}
                       </a>
-                      <a href={whatsappLink(pro.phone)} target="_blank" rel="noopener noreferrer" className="glass-chip px-3 py-1.5 text-sm font-semibold text-pro-dark">
+                      <a href={waLink(pro.phone, saludoPerfil(pro.name))} target="_blank" rel="noopener noreferrer" className="glass-chip px-3 py-1.5 text-sm font-semibold text-pro-dark">
                         WhatsApp
                       </a>
                     </>
@@ -322,10 +323,4 @@ export default async function ProfesionalPage({
 /** El teléfono se guarda como lo escribió la persona; para marcar hay que limpiarlo. */
 function telLink(phone: string) {
   return phone.replace(/[^\d+]/g, "");
-}
-
-/** wa.me quiere el número con país y sin signos. Si no trae el 54, se lo ponemos. */
-function whatsappLink(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  return `https://wa.me/${digits.startsWith("54") ? digits : `549${digits}`}`;
 }

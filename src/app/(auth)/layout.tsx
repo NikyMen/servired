@@ -3,6 +3,8 @@ import { FondoLiquido } from "@/components/FondoLiquido";
 import { LogoMark } from "@/components/Logo";
 import { FacebookIcon, SearchIcon, BriefcaseIcon, VerifiedIcon, ChatIcon } from "@/components/icons";
 import { FACEBOOK_URL } from "@/lib/links";
+import { AyudaFlotante } from "@/components/AyudaFlotante";
+import { getSoporte } from "@/lib/soporte";
 
 /**
  * Marco de las pantallas de cuenta.
@@ -11,7 +13,8 @@ import { FACEBOOK_URL } from "@/lib/links";
  * contrata, verde para quien ofrece. Es el punto donde la persona elige de qué
  * lado de ServiRed está, así que los dos tienen que verse desde el primer segundo.
  */
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+  const soporte = await getSoporte();
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
       {/* Panel de marca */}
@@ -100,6 +103,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <main className="flex items-center justify-center px-5 py-10 lg:px-10">
         <div className="w-full max-w-md">{children}</div>
       </main>
+
+      {/* Acá no hay barra inferior: el botón baja hasta el borde. */}
+      {soporte && <AyudaFlotante href={soporte.href} abajo="bottom-4" />}
     </div>
   );
 }

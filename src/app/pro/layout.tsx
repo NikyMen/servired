@@ -6,6 +6,8 @@ import { AsistenteIA } from "@/components/AsistenteIA";
 import { MensajesFlotante } from "@/components/MensajesFlotante";
 import { NoLeidosProvider } from "@/components/NoLeidos";
 import { getSessionUser } from "@/lib/auth";
+import { AyudaFlotante } from "@/components/AyudaFlotante";
+import { getSoporte } from "@/lib/soporte";
 
 export const metadata: Metadata = { title: "Modo profesional" };
 
@@ -14,7 +16,7 @@ export default async function ProLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getSessionUser();
+  const [user, soporte] = await Promise.all([getSessionUser(), getSoporte()]);
 
   return (
     // data-modo pinta el fondo verdoso desde el CSS (ver globals.css).
@@ -28,6 +30,8 @@ export default async function ProLayout({
         </main>
         <Footer mode="pro" />
         <BottomNav mode="pro" />
+        {/* Antes que los paneles flotantes: sus fondos lo tapan al abrirse. */}
+        {soporte && <AyudaFlotante href={soporte.href} />}
         <AsistenteIA mode="pro" />
         {/* Sólo con sesión: sin cuenta no hay bandeja a la que ir. */}
         {user && <MensajesFlotante mode="pro" />}

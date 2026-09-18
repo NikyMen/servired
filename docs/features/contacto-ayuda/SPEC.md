@@ -1,6 +1,6 @@
 # SPEC: Mensaje predeterminado de WhatsApp y botón "Necesito ayuda"
 
-**Estado:** Borrador <!-- Borrador | En revisión | Aprobada -->
+**Estado:** Aprobada <!-- Borrador | En revisión | Aprobada -->
 
 <!-- PARA LA PERSONA
 Copia esta plantilla como SPEC.md en una carpeta de la funcionalidad.

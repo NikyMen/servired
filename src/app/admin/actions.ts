@@ -13,6 +13,7 @@ import { saveUpload } from "@/lib/uploads";
 import { slugify } from "@/lib/format";
 import { removeUpload } from "@/lib/uploads";
 import { notificar } from "@/lib/notificaciones";
+import { guardarSoporte } from "@/lib/soporte";
 
 export type AdminAuthState = { error?: string } | undefined;
 
@@ -180,6 +181,23 @@ export async function saveAdAction(formData: FormData) {
   });
   revalidatePath("/");
   revalidatePath("/admin");
+}
+
+export type SoporteState = { error?: string; ok?: boolean; values: { phone: string; message: string; enabled: boolean } } | undefined;
+
+/**
+ * WhatsApp del botón "Necesito ayuda". A diferencia de las placas, un número
+ * mal cargado se avisa y no se guarda. Devuelve lo enviado porque React 19
+ * vacía el formulario después de cada acción y el error tiene que dejar lo escrito.
+ */
+export async function saveSoporteAction(_previous: SoporteState, formData: FormData): Promise<SoporteState> {
+  await requireAdmin();
+  const values = { phone: text(formData, "phone"), message: text(formData, "message"), enabled: formData.get("enabled") === "on" };
+  const result = await guardarSoporte(values);
+  if ("error" in result) return { error: result.error, values };
+  // El botón está en los layouts de todo el sitio.
+  revalidatePath("/", "layout");
+  return { ok: true, values };
 }
 
 export async function createCategoryAction(formData: FormData) {

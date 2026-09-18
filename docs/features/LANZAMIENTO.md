@@ -15,7 +15,7 @@ la aprobación explícita de la anterior. Plantillas: [SPEC_TEMPLATE](../SPEC_TE
 | # | Grupo | Pedidos de la minuta | Tamaño | Depende de | Spec | Plan |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | [Propuestas y trabajos](propuestas-trabajos/SPEC.md) | La propuesta vence a los 5 días · quitar el tope de trabajos en curso | S | — | Aprobada | [Aprobado](propuestas-trabajos/PLAN.md) · [Tareas](propuestas-trabajos/TASKS.md) |
-| 2 | [Contacto y ayuda](contacto-ayuda/SPEC.md) | Mensaje predeterminado al hacer clic · botón flotante "Necesito ayuda" | S | — | Borrador | — |
+| 2 | [Contacto y ayuda](contacto-ayuda/SPEC.md) | Mensaje predeterminado al hacer clic · botón flotante "Necesito ayuda" | S | — | Aprobada | [Aprobado](contacto-ayuda/PLAN.md) · [Tareas](contacto-ayuda/TASKS.md) |
 | 3 | [Mapa y ubicación](mapa-ubicacion/SPEC.md), parte A: localidades | Lista de localidades con su punto en el mapa, administrable | S | — | Borrador | — |
 | 4 | [Alta y términos](alta-terminos/SPEC.md) | Términos y condiciones al crear el usuario · login con Facebook y Google | M | 3 | Borrador | — |
 | 5 | [Avisos por correo](avisos-correo/SPEC.md) | Aviso de mensajes sin contestar · aviso solo a los rubros propios · propuestas | M | SMTP de producción | Borrador | — |

@@ -5,13 +5,15 @@ import { AsistenteIA } from "@/components/AsistenteIA";
 import { MensajesFlotante } from "@/components/MensajesFlotante";
 import { NoLeidosProvider } from "@/components/NoLeidos";
 import { getSessionUser } from "@/lib/auth";
+import { AyudaFlotante } from "@/components/AyudaFlotante";
+import { getSoporte } from "@/lib/soporte";
 
 export default async function ClientLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getSessionUser();
+  const [user, soporte] = await Promise.all([getSessionUser(), getSoporte()]);
 
   return (
     // data-modo pinta el fondo azulado desde el CSS (ver globals.css).
@@ -26,6 +28,8 @@ export default async function ClientLayout({
         </main>
         <Footer mode="cliente" />
         <BottomNav mode="cliente" />
+        {/* Antes que los paneles flotantes: sus fondos lo tapan al abrirse. */}
+        {soporte && <AyudaFlotante href={soporte.href} />}
         <AsistenteIA mode="cliente" />
         {/* Sólo con sesión: sin cuenta no hay bandeja a la que ir. */}
         {user && <MensajesFlotante mode="cliente" />}

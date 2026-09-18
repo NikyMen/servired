@@ -6,6 +6,7 @@ import { canRevealPaymentDetails } from "../src/lib/payments";
 import { MAX_REPUBLISH, REQUEST_TTL_MS, requestDaysLeft, requestIsLastDay } from "../src/lib/solicitudes";
 import { PROPOSAL_TTL_LABEL, jobProgress, validEstimatedDays } from "../src/lib/trabajo";
 import { parseTexto } from "../src/lib/site-text";
+import { AYUDA_DEFAULT, saludoPerfil, validSupportPhone, waLink } from "../src/lib/whatsapp";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -124,4 +125,29 @@ test("el texto legal se lee con subtítulos, listas y párrafos", () => {
     { tipo: "parrafo", texto: "Cierre." },
   ]);
   assert.deepEqual(parseTexto("   \n\n  "), []);
+});
+
+test("los enlaces de WhatsApp llevan país, número limpio y el texto codificado", () => {
+  // Las placas guardan 10 dígitos locales: tiene que salir igual que antes.
+  assert.equal(waLink("3794123456", "Hola, vi tu aviso"), "https://wa.me/5493794123456?text=Hola%2C%20vi%20tu%20aviso");
+  assert.equal(waLink("3794123456"), "https://wa.me/5493794123456");
+  // Perfiles: formato libre, con 0 de larga distancia o ya con el 54.
+  assert.equal(waLink("(0379) 412-3456"), "https://wa.me/5493794123456");
+  assert.equal(waLink("+54 9 379 412 3456"), "https://wa.me/5493794123456");
+  assert.equal(
+    waLink("3794123456", saludoPerfil("Martín")),
+    "https://wa.me/5493794123456?text=" + encodeURIComponent("Hola Martín, te encontré en ServiRed y quería consultarte por un trabajo."),
+  );
+  assert.equal(AYUDA_DEFAULT, "Hola, necesito ayuda con ServiRed.");
+});
+
+test("el número de soporte son 10 dígitos sin 0 ni 15 adelante", () => {
+  assert.equal(validSupportPhone("3794123456"), "3794123456");
+  assert.equal(validSupportPhone("379 412-3456"), "3794123456");
+  assert.equal(validSupportPhone("12345678"), null);
+  assert.equal(validSupportPhone("03794123456"), null);
+  assert.equal(validSupportPhone("0379412345"), null);
+  assert.equal(validSupportPhone("1541234567"), null);
+  assert.equal(validSupportPhone("37941234567"), null);
+  assert.equal(validSupportPhone("abc"), null);
 });
