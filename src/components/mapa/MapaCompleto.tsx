@@ -4,7 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Avatar, MatriculadoBadge, VerifiedBadge } from "@/components/ui";
-import type { Punto } from "@/lib/geo";
+import { RADIO_KM, type Punto } from "@/lib/geo";
 
 export type ItemMapa = Punto & {
   id: string;
@@ -36,7 +36,8 @@ export function MapaCompleto({ items, centro }: { items: ItemMapa[]; centro: Pun
   const elegir = (id: string) => { setSeleccionado(id); setHojaAbierta(false); };
 
   return (
-    <div className="relative h-full overflow-hidden rounded-2xl md:grid md:grid-cols-[340px_1fr] md:rounded-2xl">
+    // isolate: la hoja (z 600) y la tarjeta (z 650) no tapan el encabezado ni la barra de abajo.
+    <div className="relative isolate h-full overflow-hidden rounded-2xl md:grid md:grid-cols-[340px_1fr] md:rounded-2xl">
       <aside
         aria-label="Profesionales cerca tuyo"
         className={`glass glass-solid absolute inset-x-0 bottom-0 z-[600] flex flex-col rounded-t-3xl transition-[max-height] md:static md:max-h-none md:rounded-none md:rounded-l-2xl ${hojaAbierta ? "max-h-[65%]" : "max-h-[68px]"}`}
@@ -44,7 +45,7 @@ export function MapaCompleto({ items, centro }: { items: ItemMapa[]; centro: Pun
         <button type="button" onClick={() => setHojaAbierta((v) => !v)} aria-expanded={hojaAbierta} className="flex shrink-0 flex-col items-center gap-1 px-4 pt-2 pb-3 md:pointer-events-none md:items-start md:pt-4">
           <span aria-hidden className="h-1 w-10 rounded-full bg-slate-300 md:hidden" />
           <span className="font-bold text-slate-900">Profesionales cerca tuyo</span>
-          <span className="text-xs text-slate-500">{items.length ? `${items.length} a 20 km o menos` : "Nadie a 20 km con esta búsqueda"}</span>
+          <span className="text-xs text-slate-500">{items.length ? `${items.length} a ${RADIO_KM} km o menos` : `Nadie a ${RADIO_KM} km con esta búsqueda`}</span>
         </button>
         <ul className="min-h-0 flex-1 divide-y divide-white/70 overflow-y-auto px-2 pb-3">
           {items.map((item) => (
@@ -73,7 +74,7 @@ export function MapaCompleto({ items, centro }: { items: ItemMapa[]; centro: Pun
       <Inner items={items} centro={centro} seleccionado={seleccionado} onSeleccionar={elegir} className="h-full" />
 
       {elegido && (
-        <div role="dialog" aria-label={elegido.nombre} className="glass glass-solid absolute top-3 left-3 z-[650] w-[min(20rem,calc(100%-7.5rem))] rounded-2xl p-3 shadow-xl md:left-[calc(340px+0.75rem)]">
+        <div role="dialog" aria-label={elegido.nombre} className="glass glass-solid absolute top-3 right-16 left-14 z-[650] rounded-2xl p-3 shadow-xl sm:right-auto sm:w-80 md:left-[calc(340px+3.5rem)] md:w-[min(20rem,calc(100%-340px-14rem))]">
           <div className="flex items-start gap-3">
             <Avatar name={elegido.nombre} color={elegido.avatarColor} src={elegido.avatarUrl} size={44} />
             <div className="min-w-0 flex-1">

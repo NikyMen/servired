@@ -246,7 +246,7 @@ test("las distancias entre localidades dan lo que dan en el mapa", () => {
   assert.ok(aResistencia > 14 && aResistencia < 17, String(aResistencia));
   assert.ok(haversineKm(capital, goya) > 150);
   assert.equal(haversineKm(capital, capital), 0);
-  assert.equal(RADIO_KM, 20);
+  assert.equal(RADIO_KM, 10);
 });
 
 test("la distancia se muestra corta y en castellano", () => {
@@ -289,15 +289,18 @@ test("a igual relevancia va primero el más cerca", () => {
   assert.deepEqual(orden, ["cerca", "lejos"]);
 });
 
-test("cada placa tiene un tipo con una proporción fija", () => {
+test("todas las placas son cuadradas de 800 × 800", () => {
   assert.equal(tipoDeSlot("left-1"), "lateral");
   assert.equal(tipoDeSlot("mobile-3"), "superior");
+  assert.equal(tipoDeSlot("mobile-6"), "superior");
   assert.equal(tipoDeSlot("bottom-4"), "pie");
   assert.equal(tipoDeSlot("ayuda"), null);
   assert.equal(esSlotDePlaca("cualquiera"), false);
-  assert.equal(TIPOS_PLACA.lateral.alto / TIPOS_PLACA.lateral.ancho, 2);
-  assert.equal(TIPOS_PLACA.superior.ancho / TIPOS_PLACA.superior.alto, 2);
-  assert.equal(TIPOS_PLACA.pie.ancho, TIPOS_PLACA.pie.alto);
+  for (const tipo of Object.values(TIPOS_PLACA)) {
+    assert.equal(tipo.ancho, 800);
+    assert.equal(tipo.alto, 800);
+  }
+  assert.equal(TIPOS_PLACA.superior.slots.length, 6);
 });
 
 test("una placa con el encuadre viejo queda marcada para re-encuadrar", () => {

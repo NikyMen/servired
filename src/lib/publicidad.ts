@@ -1,16 +1,20 @@
 /**
- * Placas de publicidad de la portada. Cada tipo tiene UNA proporción, la misma
- * en el celular y en la compu: así lo que administración encuadra es lo que se
- * ve en cualquier pantalla. Sin base de datos: lo usan la portada, el panel y
- * el recorte, que es de cliente.
+ * Placas de publicidad de la portada. Todas son cuadradas y de la misma medida
+ * (800 × 800), en el celular y en la compu: una sola imagen sirve para
+ * cualquier lugar, y lo que administración encuadra es lo que se ve en
+ * cualquier pantalla. Sin base de datos: lo usan la portada, el panel y el
+ * recorte, que es de cliente.
  */
 
 export type TipoPlaca = "lateral" | "superior" | "pie";
 
+/** Medida única de todas las placas, en px. */
+export const LADO_PLACA = 800;
+
 export const TIPOS_PLACA: Record<TipoPlaca, { nombre: string; donde: string; ancho: number; alto: number; slots: string[] }> = {
-  lateral: { nombre: "Costados", donde: "Compu ancha, a los lados; acompañan el scroll", ancho: 600, alto: 1200, slots: ["left-1", "left-2", "right-1", "right-2"] },
-  superior: { nombre: "Arriba", donde: "Celular y tablet, debajo del título", ancho: 1200, alto: 600, slots: ["mobile-1", "mobile-2", "mobile-3", "mobile-4"] },
-  pie: { nombre: "Pie", donde: "Todas las pantallas, al final de la portada", ancho: 800, alto: 800, slots: ["bottom-1", "bottom-2", "bottom-3", "bottom-4"] },
+  lateral: { nombre: "Costados", donde: "Compu ancha, a los lados; acompañan el scroll", ancho: LADO_PLACA, alto: LADO_PLACA, slots: ["left-1", "left-2", "right-1", "right-2"] },
+  superior: { nombre: "Arriba", donde: "Celular y tablet, debajo del título: 2 filas de 3", ancho: LADO_PLACA, alto: LADO_PLACA, slots: ["mobile-1", "mobile-2", "mobile-3", "mobile-4", "mobile-5", "mobile-6"] },
+  pie: { nombre: "Pie", donde: "Todas las pantallas, al final de la portada", ancho: LADO_PLACA, alto: LADO_PLACA, slots: ["bottom-1", "bottom-2", "bottom-3", "bottom-4"] },
 };
 
 export const CONSEJOS_PLACA = [
@@ -18,6 +22,7 @@ export const CONSEJOS_PLACA = [
   "Letra grande y pocas palabras: se lee de pasada.",
   "Buen contraste entre el texto y el fondo.",
   "Mejor una foto clara que muchos elementos chicos.",
+  "Si el logo queda cortado, alejalo y elegí un color de fondo igual al de la imagen.",
 ];
 
 export function tipoDeSlot(slot: string): TipoPlaca | null {

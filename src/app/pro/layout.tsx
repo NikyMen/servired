@@ -3,7 +3,6 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { AsistenteIA } from "@/components/AsistenteIA";
-import { MensajesFlotante } from "@/components/MensajesFlotante";
 import { NoLeidosProvider } from "@/components/NoLeidos";
 import { getSessionUser, pendienteDeAlta } from "@/lib/auth";
 import { CompletarAlta } from "@/components/CompletarAlta";
@@ -37,8 +36,6 @@ export default async function ProLayout({
         {/* Antes que los paneles flotantes: sus fondos lo tapan al abrirse. */}
         {soporte && <AyudaFlotante href={soporte.href} />}
         <AsistenteIA mode="pro" />
-        {/* Sólo con sesión: sin cuenta no hay bandeja a la que ir. */}
-        {user && <MensajesFlotante mode="pro" />}
       </NoLeidosProvider>
       {alta && <CompletarAlta {...alta} tono="pro" />}
     </div>

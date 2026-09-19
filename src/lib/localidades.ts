@@ -7,7 +7,7 @@ type Resultado<T> = { error: string } | { data: T };
 
 /**
  * Lista con la que arranca la tabla. Los puntos son el centro aproximado de
- * cada ciudad (pueden errar uno o dos km, que para un radio de 20 km no
+ * cada ciudad (pueden errar uno o dos km, que para un radio de 10 km no
  * cambia nada); administración los corrige desde su panel si hace falta.
  */
 export const LOCALIDADES_BASE: Punto[] = [

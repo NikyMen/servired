@@ -1,12 +1,12 @@
 /**
  * Geografía sin base de datos: la usan el servidor (distancias, filtro de
- * 20 km) y el navegador (cookie de ubicación, agrupar pines).
+ * 10 km) y el navegador (cookie de ubicación, agrupar pines).
  */
 
 export type Punto = { lat: number; lng: number };
 
 /** Radio fijo de la búsqueda y del mapa del cliente. */
-export const RADIO_KM = 20;
+export const RADIO_KM = 10;
 
 /** Cookie donde el navegador deja la ubicación en tiempo real, redondeada. */
 export const COOKIE_UBICACION = "servired_ubic";
@@ -32,7 +32,7 @@ export function dentroDeArgentina(p: Punto) {
 }
 
 /**
- * Tres decimales son unos 100 m: alcanza para un radio de 20 km y no deja la
+ * Tres decimales son unos 100 m: alcanza para un radio de 10 km y no deja la
  * dirección exacta de nadie viajando en cada pedido. La coma no puede ir en
  * el valor de una cookie, por eso el separador es "|".
  */

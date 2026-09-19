@@ -6,7 +6,7 @@ import { CAPITAL, LOCALIDADES_BASE } from "@/lib/localidades";
 export type Ubicacion = { punto: Punto; origen: "gps" | "localidad"; localidad: string };
 
 /**
- * Desde dónde se calculan los 20 km de un usuario con sesión: la ubicación en
+ * Desde dónde se calculan los 10 km de un usuario con sesión: la ubicación en
  * tiempo real que dejó el navegador; si no dio permiso, su localidad; si ni
  * eso (cuenta vieja), Corrientes Capital. La ubicación exacta no se guarda en
  * la base: vive solo en la cookie, redondeada.

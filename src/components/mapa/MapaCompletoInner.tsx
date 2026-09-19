@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { divIcon, type Map as LeafletMap } from "leaflet";
+import { divIcon, latLng, type Map as LeafletMap } from "leaflet";
 import { Circle, MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import { agruparPuntos, RADIO_KM, type Punto } from "@/lib/geo";
 import { BotonUbicarme, Yo } from "@/components/mapa/Yo";
@@ -33,6 +33,11 @@ export default function MapaCompletoInner({ items, centro, seleccionado, onSelec
   // Los grupos se rearman con cada zoom: de lejos se juntan, de cerca se abren.
   const grupos = useMemo(() => agruparPuntos(items, zoom), [items, zoom]);
 
+  // El zoom real sale del encuadre del círculo, que depende del tamaño del mapa.
+  useEffect(() => {
+    if (map) setZoom(map.getZoom());
+  }, [map]);
+
   // Elegido desde la lista: el mapa va hasta él.
   useEffect(() => {
     const item = items.find((i) => i.id === seleccionado);
@@ -40,8 +45,8 @@ export default function MapaCompletoInner({ items, centro, seleccionado, onSelec
   }, [seleccionado, items, map]);
 
   return (
-    <div className={`relative ${className}`}>
-      <MapContainer ref={setMap} center={[centro.lat, centro.lng]} zoom={11} scrollWheelZoom className="z-0 h-full w-full">
+    <div className={`relative isolate ${className}`}>
+      <MapContainer ref={setMap} bounds={latLng(centro.lat, centro.lng).toBounds(RADIO_KM * 2000)} boundsOptions={{ padding: [8, 8] }} scrollWheelZoom className="z-0 h-full w-full">
         <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <Zoom onZoom={setZoom} />
         <Circle center={[centro.lat, centro.lng]} radius={RADIO_KM * 1000} pathOptions={{ color: "#2563eb", weight: 1, fillOpacity: 0.04 }} />

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Chat, type ChatConversation } from "@/components/Chat";
 import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
@@ -9,12 +11,13 @@ import { guardarSonido, sonarNotificacion, sonidoActivo } from "@/lib/sonido";
 import type { Mode } from "@/lib/types";
 
 /**
- * Botón flotante de mensajes + popup con el chat completo adentro.
- * Es el hermano del de ServiRed IA: misma píldora (el ancho compartido vive
- * en la clase w-40 de los dos), apilado arriba suyo, y abre un panel en la
- * misma esquina en vez de navegar a la bandeja.
+ * Botón de mensajes del encabezado (al lado de la campanita, en el celular y
+ * en la compu) + popup con el chat completo adentro. Antes era flotante y se
+ * encimaba con el de ServiRed IA; ahora abajo a la derecha queda solo la IA.
+ * El panel va por portal al <body>: el encabezado tiene backdrop-filter y eso
+ * haría que el `fixed` se posicione respecto de él y no de la pantalla.
  */
-export function MensajesFlotante({ mode }: { mode: Mode }) {
+export function MensajesBoton({ mode }: { mode: Mode }) {
   const pathname = usePathname();
   const isPro = mode === "pro";
 
@@ -29,7 +32,6 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
   useEffect(() => setConSonido(sonidoActivo()), []);
 
   const accent = isPro ? "bg-pro" : "bg-cliente";
-  const accentHover = isPro ? "hover:bg-pro-dark" : "hover:bg-cliente-dark";
 
   // Cerrar con Escape, como cualquier panel.
   useEffect(() => {
@@ -71,28 +73,30 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
     };
   }, [open, isPro, cantidadHilos]);
 
-  // En la bandeja misma no aporta nada: ya está el chat a pantalla completa.
-  if (pathname.startsWith(isPro ? "/pro/mensajes" : "/mensajes")) return null;
+  const bandeja = isPro ? "/pro/mensajes" : "/mensajes";
+  const enBandeja = pathname.startsWith(bandeja);
+  const etiqueta = total > 0 ? `Mensajes, ${total} sin leer` : "Mensajes";
+  // Mismo molde que la campanita, para que la fila del encabezado no crezca.
+  const boton = `relative flex size-9 items-center justify-center rounded-full transition-colors hover:bg-white/70 hover:text-slate-800 ${enBandeja ? "bg-white/70 text-slate-800" : "text-slate-500"}`;
+  const icono = (
+    <>
+      <ChatIcon width={20} height={20} />
+      <NoLeidosBadge n={total} className="absolute -top-0.5 -right-0.5" />
+    </>
+  );
+
+  // En la bandeja misma el popup no aporta nada: el botón solo marca dónde estás.
+  if (enBandeja) {
+    return <Link href={bandeja} aria-label={etiqueta} aria-current="page" title="Mensajes" className={boton}>{icono}</Link>;
+  }
 
   return (
     <>
-      {!open && (
-        <button
-          onClick={() => setOpen(true)}
-          aria-label={total > 0 ? `Abrir mensajes, ${total} sin leer` : "Abrir mensajes"}
-          title="Mensajes"
-          className={`fixed right-4 bottom-[calc(7.5rem+env(safe-area-inset-bottom))] z-40 flex size-13 items-center justify-center rounded-full text-white shadow-lg transition-all hover:shadow-xl active:scale-95 md:bottom-22 ${accent} ${accentHover}`}
-        >
-          <span className="relative">
-            <ChatIcon width={20} height={20} />
-            {/* Colgado del ícono y fuera de la píldora: el ancho es fijo (w-40,
-                compartido con el botón de ServiRed IA) y no puede crecer. */}
-            <NoLeidosBadge n={total} className="absolute -top-2.5 -right-3 ring-white/40" />
-          </span>
-        </button>
-      )}
+      <button type="button" onClick={() => setOpen(true)} aria-label={etiqueta} aria-expanded={open} title="Mensajes" className={boton}>
+        {icono}
+      </button>
 
-      {open && (
+      {open && createPortal(
         <>
           {/* Telón: en móvil el panel es casi pantalla completa. */}
           <div
@@ -162,7 +166,8 @@ export function MensajesFlotante({ mode }: { mode: Mode }) {
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </>
   );

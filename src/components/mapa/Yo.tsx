@@ -27,7 +27,11 @@ export function Yo() {
   );
 }
 
-/** Va afuera del MapContainer (encima) para que el clic no le llegue al mapa. */
+/**
+ * Va afuera del MapContainer (encima) para que el clic no le llegue al mapa.
+ * En el celular es solo el ícono: con el texto se encimaba con la tarjeta del
+ * profesional elegido.
+ */
 export function BotonUbicarme({ map, className = "" }: { map: LeafletMap | null; className?: string }) {
   const { ubicarmeAhora, posicion } = useUbicacion();
   const [buscando, setBuscando] = useState(false);
@@ -42,9 +46,11 @@ export function BotonUbicarme({ map, className = "" }: { map: LeafletMap | null;
         setBuscando(false);
         if (punto && map) map.setView([punto.lat, punto.lng], Math.max(map.getZoom(), 14));
       }}
-      className={`glass glass-solid absolute z-[500] flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-cliente-dark shadow-lg disabled:opacity-60 ${className}`}
+      title="Ubicarme ahora"
+      className={`glass glass-solid absolute z-[500] flex size-10 items-center justify-center gap-1.5 rounded-full text-sm font-semibold text-cliente-dark shadow-lg disabled:opacity-60 sm:size-auto sm:px-3 sm:py-2 ${className}`}
     >
-      <span aria-hidden>📍</span>{buscando ? "Buscando…" : "Ubicarme ahora"}
+      <span aria-hidden className={buscando ? "animate-pulse" : ""}>📍</span>
+      <span className="hidden sm:inline">{buscando ? "Buscando…" : "Ubicarme ahora"}</span>
     </button>
   );
 }

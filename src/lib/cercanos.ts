@@ -19,7 +19,7 @@ export function filtroProfesionales({ categoria, tipo }: Filtros): Prisma.Profes
 
 /**
  * Profesionales para la portada y el mapa. Con `centro` (usuario con sesión)
- * se quedan los que están a 20 km o menos, cada uno con su distancia, y a
+ * se quedan los que están a 10 km o menos, cada uno con su distancia, y a
  * igual relevancia va primero el más cerca. Sin centro (invitado), todos.
  */
 export async function buscarProfesionales(filtros: Filtros, centro: Punto | null) {

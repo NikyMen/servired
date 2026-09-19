@@ -5,6 +5,7 @@ import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { HeroFondo } from "@/components/HeroFondo";
 import { MapView } from "@/components/MapView";
 import { AdPlate } from "@/components/AdPlate";
+import { CategoriasChips } from "@/components/CategoriasChips";
 import { TIPOS_PLACA } from "@/lib/publicidad";
 import { getSessionUser } from "@/lib/auth";
 import { buscarProfesionales } from "@/lib/cercanos";
@@ -19,7 +20,7 @@ type Search = { q?: string; categoria?: string; tipo?: "profesional" | "oficio" 
 
 async function getData({ q, categoria, tipo }: Search) {
   const user = await getSessionUser();
-  // Con sesión todo se limita a 20 km de su ubicación; el invitado ve todo,
+  // Con sesión todo se limita a 10 km de su ubicación; el invitado ve todo,
   // pero sin ninguna coordenada (ni mapa ni punto de las solicitudes).
   const ubicacion = user ? await resolverUbicacion(user) : null;
   const centro = ubicacion?.punto ?? null;
@@ -82,16 +83,17 @@ export default async function HomePage({
 
   return (
     <div className="relative space-y-6">
-      {/* Laterales: rieles del alto de toda la portada con las placas en
-          sticky, así acompañan el scroll. Solo desde xl, donde hay lugar a los
-          costados sin tapar el contenido. */}
-      <div className="absolute inset-y-0 right-full mr-4 hidden w-28 xl:block 2xl:w-44">
+      {/* Laterales: rieles del alto de toda la portada con las placas
+          (cuadradas) en sticky, así acompañan el scroll. Solo desde xl, donde
+          hay lugar a los costados sin tapar el contenido; el ancho es el lugar
+          que queda al costado de los 62rem del contenido, hasta 14rem. */}
+      <div className="absolute inset-y-0 right-full mr-4 hidden w-[min(14rem,calc((100vw-62rem)/2-2rem))] xl:block">
         <div className="sticky top-24 grid gap-4">
           <AdPlate tipo="lateral" ad={adMap.get("left-1") || null} label="Publicidad lateral izquierda 1" />
           <AdPlate tipo="lateral" ad={adMap.get("left-2") || null} label="Publicidad lateral izquierda 2" />
         </div>
       </div>
-      <div className="absolute inset-y-0 left-full ml-4 hidden w-28 xl:block 2xl:w-44">
+      <div className="absolute inset-y-0 left-full ml-4 hidden w-[min(14rem,calc((100vw-62rem)/2-2rem))] xl:block">
         <div className="sticky top-24 grid gap-4">
           <AdPlate tipo="lateral" ad={adMap.get("right-1") || null} label="Publicidad lateral derecha 1" />
           <AdPlate tipo="lateral" ad={adMap.get("right-2") || null} label="Publicidad lateral derecha 2" />
@@ -129,34 +131,20 @@ export default async function HomePage({
         </section>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 xl:hidden">
-        {[1, 2, 3, 4].map((position) => (
-          <AdPlate key={position} tipo="superior" ad={adMap.get(`mobile-${position}`) || null} label={`Publicidad ${position}`} className="rounded-2xl" />
+      {/* Celular y tablet: 2 filas de 3 placas cuadradas. */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 xl:hidden">
+        {TIPOS_PLACA.superior.slots.map((slot, i) => (
+          <AdPlate key={slot} tipo="superior" ad={adMap.get(slot) || null} label={`Publicidad ${i + 1}`} className="rounded-2xl" />
         ))}
       </div>
 
-      {/* Categorías: carrusel horizontal en móvil, wrap en desktop */}
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
-        <Link
-          href={chipHref(params, "")}
-          className={`glass-chip shrink-0 px-3.5 py-2 text-sm font-medium whitespace-nowrap ${
-            !params.categoria ? "glass-chip-on" : "text-slate-600"
-          }`}
-        >
-          Todos
-        </Link>
-        {categories.map((c) => (
-          <Link
-            key={c.slug}
-            href={chipHref(params, c.slug)}
-            className={`glass-chip shrink-0 px-3.5 py-2 text-sm font-medium whitespace-nowrap ${
-              params.categoria === c.slug ? "glass-chip-on" : "text-slate-600"
-            }`}
-          >
-            {c.parent ? "↳ " : ""}{c.icon} {c.name}
-          </Link>
-        ))}
-      </div>
+      {/* Categorías: hasta 4 filas y "Ver más" despliega el resto (celu y compu). */}
+      <CategoriasChips
+        items={[
+          { key: "", href: chipHref(params, ""), label: "Todos", active: !params.categoria },
+          ...categories.map((c) => ({ key: c.slug, href: chipHref(params, c.slug), label: `${c.parent ? "↳ " : ""}${c.icon} ${c.name}`, active: params.categoria === c.slug })),
+        ]}
+      />
 
       <div id="resultados" className="scroll-mt-28" />
       <ClientResultSwitch

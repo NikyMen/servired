@@ -1,8 +1,9 @@
 import { WhatsAppIcon } from "@/components/icons";
 
 /**
- * "Necesito ayuda": abre el WhatsApp de soporte. Va a la izquierda porque la
- * derecha ya la ocupan ServiRed IA y Mensajes, y a la misma altura que la IA
+ * "Necesito ayuda": abre el WhatsApp de soporte (el número sale de
+ * SOPORTE_WHATSAPP en el .env; ver src/lib/soporte.ts). Va a la izquierda
+ * porque la derecha la ocupa ServiRed IA, y a la misma altura que la IA
  * para quedar encima de la barra inferior y de la de "Contratar" en el celu.
  * Blanco y no azul ni verde: esos dos colores dicen de qué lado estás, y la
  * ayuda es para los dos. z-30, debajo de los fondos de los paneles (z-40),

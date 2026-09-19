@@ -53,10 +53,10 @@ La 8 se puede hacer en paralelo con la 7.
 - [ ] Tarea programada del servidor activa para los avisos por correo. (Grupo 5)
 - [ ] Sitio servido por HTTPS: el navegador no da la ubicación en tiempo real
       sin HTTPS. (Grupo 7)
-- [ ] Número de WhatsApp de soporte cargado en administración. (Grupo 2)
+- [ ] Número de WhatsApp de soporte en el `.env` del servidor (`SOPORTE_WHATSAPP`). (Grupo 2)
 - [ ] Lista de localidades confirmada por el cliente. (Grupo 3)
 - [ ] Texto de términos revisado y publicado como versión vigente. (Grupo 4)
-- [ ] Imágenes de publicidad re-subidas con el recorte nuevo. (Grupo 8)
+- [ ] Imágenes de publicidad re-subidas con el recorte nuevo, ya cuadradas de 800 × 800. (Grupo 8)
 
 ## Estado al cierre de la tanda (2026-09-18)
 
@@ -75,3 +75,27 @@ con `[~]` o como pendiente fuera del entorno:
   `pnpm exec tsx prisma/asignar-localidad-pros.ts` → build → `pm2 restart`.
 - **Aviso al cliente:** al desplegar, todas las cuentas existentes ven la
   pantalla "Completá tu alta" (términos y localidad) en su próxima visita.
+
+## Ajustes pedidos por el cliente (2026-09-19)
+
+Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
+
+- **Publicidad (Grupo 8):** todas las placas son cuadradas de 800 × 800
+  (costados, arriba y pie). Arriba, en el celular y la tablet, pasan a 2 filas
+  de 3 (se suman `mobile-5` y `mobile-6`). Los costados crecen con el lugar
+  libre, hasta 14rem. El recorte deja alejar la imagen más allá del marco y
+  pintar el resto con un color de fondo: selector, código para copiar/pegar,
+  cuentagotas sobre la imagen y "color del borde" automático. Las imágenes que
+  no son cuadradas se marcan para re-encuadrar.
+- **Mensajes:** ya no es flotante (se encimaba con ServiRed IA); es un ícono en
+  el encabezado, al lado de la campanita, en el celular y en la compu, que abre
+  el mismo panel. Sale de la navegación de texto de la compu.
+- **Mapa (Grupo 7):** radio de 10 km (antes 20). El mapa arranca encuadrando el
+  círculo entero; los botones y la tarjeta ya no pasan por encima del
+  encabezado al scrollear ni se enciman entre sí en el celular. Se saca el
+  texto "Mostrando lo que está a N km de tu ubicación".
+- **Categorías:** hasta 4 filas en el celular y en la compu; el último lugar es
+  "Ver más", que despliega el resto.
+- **Soporte (Grupo 2):** el número del botón "¿Necesitás ayuda?" sale de
+  `SOPORTE_WHATSAPP` (y `SOPORTE_WHATSAPP_MENSAJE`) en el `.env`; si está,
+  manda sobre lo cargado en `/admin`.

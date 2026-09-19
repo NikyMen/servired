@@ -6,8 +6,8 @@ import { Logo } from "@/components/Logo";
 import { ModeSwitch } from "@/components/ModeSwitch";
 import { UserMenu } from "@/components/UserMenu";
 import { Campanita } from "@/components/Campanita";
+import { MensajesBoton } from "@/components/MensajesBoton";
 import { SearchBox } from "@/components/SearchBox";
-import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
 import type { SessionUser } from "@/lib/auth";
 import type { Mode } from "@/lib/types";
 import type { SVGProps } from "react";
@@ -16,28 +16,23 @@ type NavItem = {
   href: string;
   label: string;
   icon?: (props: SVGProps<SVGSVGElement>) => React.JSX.Element;
-  /** Lleva el globito de mensajes sin leer. */
-  noLeidos?: boolean;
 };
 
 const clientNav: NavItem[] = [
   { href: "/mapa", label: "Mapa" },
   { href: "/solicitudes", label: "Solicitudes" },
   { href: "/contrataciones", label: "Propuestas" },
-  { href: "/mensajes", label: "Mensajes", noLeidos: true },
 ];
 
 const proNav: NavItem[] = [
   { href: "/pro", label: "Panel" },
   { href: "/pro/solicitudes", label: "Ver solicitudes" },
-  { href: "/pro/mensajes", label: "Mensajes", noLeidos: true },
 ];
 
 export function Header({ mode, user }: { mode: Mode; user: SessionUser | null }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const nav = mode === "pro" ? proNav : clientNav;
-  const { total } = useNoLeidos();
   const rawType = searchParams.get("tipo");
   const searchType = rawType === "profesional" || rawType === "oficio" ? rawType : undefined;
   const searchCategory = searchParams.get("categoria") || undefined;
@@ -95,7 +90,6 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
               >
                 {Icon && <Icon width={16} height={16} />}
                 {item.label}
-                {item.noLeidos && <NoLeidosBadge n={total} className="-mr-1" />}
               </Link>
             );
           })}
@@ -106,7 +100,9 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
               juntos, porque .mode-switch estaba fuera de @layer y le ganaba al
               `hidden` de Tailwind. Ahora achica con clases responsive. */}
           <ModeSwitch mode={mode} />
-          {/* Sin sesión no hay avisos que mostrar. */}
+          {/* Sin sesión no hay avisos ni bandeja. Mensajes va acá, y no en la
+              navegación de texto, para verse igual en el celular y en la compu. */}
+          {user && <MensajesBoton mode={mode} />}
           {user && <Campanita />}
           <UserMenu user={user} mode={mode} />
         </div>

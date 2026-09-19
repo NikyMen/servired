@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { divIcon, type Map as LeafletMap } from "leaflet";
+import { divIcon, latLng, type Map as LeafletMap } from "leaflet";
 import { Circle, MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import type { MapPoint } from "@/components/MapView";
 import { BotonUbicarme, Yo } from "@/components/mapa/Yo";
@@ -37,9 +37,15 @@ export default function MapInner({ points, className, centro, radioKm, enVivo = 
       ? [points.reduce((n, p) => n + p.latitude, 0) / points.length, points.reduce((n, p) => n + p.longitude, 0) / points.length]
       : [-27.4692, -58.8306];
 
+  // Con radio, el mapa arranca encuadrando el círculo entero, sea cual sea el
+  // ancho de la pantalla (con un zoom fijo, en el celular quedaba cortado).
+  const encuadre = centro && radioKm ? { bounds: latLng(centro.lat, centro.lng).toBounds(radioKm * 2000), boundsOptions: { padding: [8, 8] as [number, number] } } : { center, zoom: 12 };
+
   return (
-    <div className="relative">
-      <MapContainer ref={setMap} center={center} zoom={radioKm ? 11 : 12} scrollWheelZoom className={`z-0 w-full rounded-2xl ${className}`}>
+    // isolate: los paneles de Leaflet (z 400+) y el botón de ubicarme (z 500)
+    // quedan adentro del mapa y no pasan por encima del encabezado al scrollear.
+    <div className="relative isolate">
+      <MapContainer ref={setMap} {...encuadre} scrollWheelZoom className={`z-0 w-full rounded-2xl ${className}`}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

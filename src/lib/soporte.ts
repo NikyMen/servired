@@ -10,8 +10,21 @@ import { AYUDA_DEFAULT, validSupportPhone, waLink } from "@/lib/whatsapp";
  */
 export const SOPORTE_SLOT = "ayuda";
 
+/**
+ * Número del .env (`SOPORTE_WHATSAPP`, 10 dígitos: característica sin 0 y
+ * número sin 15) y mensaje opcional (`SOPORTE_WHATSAPP_MENSAJE`). Si está,
+ * manda sobre lo cargado en el panel.
+ */
+export function soporteDelEnv() {
+  const phone = validSupportPhone(process.env.SOPORTE_WHATSAPP ?? "");
+  if (!phone) return null;
+  return { phone, message: process.env.SOPORTE_WHATSAPP_MENSAJE?.trim() || AYUDA_DEFAULT };
+}
+
 /** Para el botón flotante: null si no hay número cargado o está apagado. */
 export const getSoporte = cache(async () => {
+  const env = soporteDelEnv();
+  if (env) return { href: waLink(env.phone, env.message) };
   const row = await prisma.ad.findUnique({ where: { slot: SOPORTE_SLOT }, select: { whatsappPhone: true, whatsappMessage: true, enabled: true } });
   if (!row?.enabled || !row.whatsappPhone) return null;
   return { href: waLink(row.whatsappPhone, row.whatsappMessage || AYUDA_DEFAULT) };
