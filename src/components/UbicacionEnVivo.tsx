@@ -73,8 +73,15 @@ export function UbicacionEnVivo({ activo, children }: { activo: boolean; childre
     if (!activo) return;
     if (!("geolocation" in navigator)) { setEstado("no-disponible"); return; }
     let id: number | null = null;
+    let permiso: PermissionStatus | null = null;
+    let cancelado = false;
+    // El seguimiento arranca solo si el permiso YA está dado. Pedirlo al
+    // cargar la página abre un cartel que nadie pidió y el navegador lo marca
+    // como violación en consola; sin permiso esperamos al botón "Ubicarme ahora".
+    let permitido = false;
+
     const empezar = () => {
-      if (id != null || document.visibilityState !== "visible") return;
+      if (!permitido || id != null || document.visibilityState !== "visible") return;
       setEstado((actual) => (actual === "activo" ? actual : "buscando"));
       id = navigator.geolocation.watchPosition((p) => aplicar(p.coords), fallo, { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 });
     };
@@ -83,9 +90,35 @@ export function UbicacionEnVivo({ activo, children }: { activo: boolean; childre
       id = null;
     };
     const alCambiar = () => (document.visibilityState === "visible" ? empezar() : parar());
-    empezar();
     document.addEventListener("visibilitychange", alCambiar);
-    return () => { parar(); document.removeEventListener("visibilitychange", alCambiar); };
+
+    const segunPermiso = (estadoPermiso: PermissionState) => {
+      if (cancelado) return;
+      permitido = estadoPermiso === "granted";
+      if (permitido) { empezar(); return; }
+      parar();
+      setEstado(estadoPermiso === "denied" ? "denegado" : "inactivo");
+    };
+
+    // Sin Permissions API (Safari viejo) no hay forma de saberlo de antemano.
+    if (navigator.permissions?.query) {
+      navigator.permissions.query({ name: "geolocation" }).then((p) => {
+        if (cancelado) return;
+        permiso = p;
+        p.onchange = () => segunPermiso(p.state);
+        segunPermiso(p.state);
+      }).catch(() => { permitido = true; empezar(); });
+    } else {
+      permitido = true;
+      empezar();
+    }
+
+    return () => {
+      cancelado = true;
+      parar();
+      if (permiso) permiso.onchange = null;
+      document.removeEventListener("visibilitychange", alCambiar);
+    };
   }, [activo, aplicar, fallo]);
 
   const ubicarmeAhora = useCallback(() => new Promise<Punto | null>((resolve) => {

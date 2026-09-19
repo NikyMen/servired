@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CameraIcon, ImageIcon } from "@/components/icons";
+import { ImageIcon, PencilIcon } from "@/components/icons";
 import { initials } from "@/lib/format";
 
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
@@ -96,18 +96,20 @@ export function EncabezadoPerfil({
           onClick={() => avatarInput.current?.click()}
           disabled={subiendo != null}
           aria-label="Cambiar foto de perfil"
-          className="group relative -mt-10 size-20 shrink-0 overflow-hidden rounded-full ring-4 ring-white/90 transition-transform hover:scale-[1.03] disabled:opacity-60 sm:size-24"
-          style={{ backgroundColor: avatarColor }}
+          className="group relative -mt-10 size-20 shrink-0 rounded-full transition-transform hover:scale-[1.03] disabled:opacity-60 sm:size-24"
         >
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="" className="size-full object-cover" />
-          ) : (
-            <span className="flex size-full items-center justify-center text-2xl font-semibold">
-              {initials(name)}
-            </span>
-          )}
-          <span className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-slate-900/55 py-1 backdrop-blur-sm">
-            <CameraIcon width={15} height={15} />
+          <span
+            className="flex size-full items-center justify-center overflow-hidden rounded-full ring-4 ring-white/90"
+            style={{ backgroundColor: avatarColor }}
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="size-full object-cover" />
+            ) : (
+              <span className="text-2xl font-semibold">{initials(name)}</span>
+            )}
+          </span>
+          <span className="absolute -top-0.5 -right-0.5 flex size-7 items-center justify-center rounded-full bg-slate-900 text-white ring-2 ring-white/90 transition-colors group-hover:bg-slate-800">
+            <PencilIcon width={14} height={14} />
           </span>
         </button>
 

@@ -183,6 +183,13 @@ export const CameraIcon = (p: IconProps) => (
   </svg>
 );
 
+export const PencilIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M4 20h4L19.2 8.8a2.4 2.4 0 0 0 0-3.4l-.6-.6a2.4 2.4 0 0 0-3.4 0L4 16.2Z" />
+    <path d="m14.6 6.4 3 3" />
+  </svg>
+);
+
 export const ImageIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <rect x="3" y="4.5" width="18" height="15" rx="3" />
