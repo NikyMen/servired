@@ -31,7 +31,7 @@ export default async function ProLayout({
         <main className="animate-page-in mx-auto w-full max-w-5xl flex-1 px-4 py-6">
           {children}
         </main>
-        <Footer mode="pro" />
+        <Footer mode="pro" soporte={soporte} />
         <BottomNav mode="pro" />
         {/* Antes que los paneles flotantes: sus fondos lo tapan al abrirse. */}
         {soporte && <AyudaFlotante href={soporte.href} />}

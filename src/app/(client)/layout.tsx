@@ -32,7 +32,7 @@ export default async function ClientLayout({
           <main className="animate-page-in mx-auto w-full max-w-5xl flex-1 px-4 py-6">
             {children}
           </main>
-          <Footer mode="cliente" />
+          <Footer mode="cliente" soporte={soporte} />
           <BottomNav mode="cliente" />
           {/* Antes que los paneles flotantes: sus fondos lo tapan al abrirse. */}
           {soporte && <AyudaFlotante href={soporte.href} />}

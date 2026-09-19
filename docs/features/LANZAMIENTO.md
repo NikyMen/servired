@@ -53,7 +53,7 @@ La 8 se puede hacer en paralelo con la 7.
 - [ ] Tarea programada del servidor activa para los avisos por correo. (Grupo 5)
 - [ ] Sitio servido por HTTPS: el navegador no da la ubicación en tiempo real
       sin HTTPS. (Grupo 7)
-- [ ] Número de WhatsApp de soporte en el `.env` del servidor (`SOPORTE_WHATSAPP`). (Grupo 2)
+- [x] Número de WhatsApp de soporte en el `.env` del servidor (`SOPORTE_WHATSAPP`): +54 9 3794 40-4086, cargado el 19/09/2026. (Grupo 2)
 - [ ] Lista de localidades confirmada por el cliente. (Grupo 3)
 - [ ] Texto de términos revisado y publicado como versión vigente. (Grupo 4)
 - [ ] Imágenes de publicidad re-subidas con el recorte nuevo, ya cuadradas de 800 × 800. (Grupo 8)
@@ -116,3 +116,7 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
   libre: antes podía cortar la última fila y tapar "Ver menos".
 - **Recorte de placas:** el archivo se arma en el momento de guardar; antes se
   preparaba con una demora y un "Guardar" rápido no subía la imagen nueva.
+
+- **Soporte (19/09):** el número del cliente (+54 9 3794 40-4086) quedó en
+  `SOPORTE_WHATSAPP` del `.env` del VPS. Aparece en el botón flotante y en el
+  footer, con el mismo enlace de WhatsApp.

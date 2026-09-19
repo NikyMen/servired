@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { AYUDA_DEFAULT, validSupportPhone, waLink } from "@/lib/whatsapp";
+import { AYUDA_DEFAULT, telefonoLegible, validSupportPhone, waLink } from "@/lib/whatsapp";
 
 /**
  * El WhatsApp de soporte vive en la tabla de placas con una clave reservada:
@@ -21,13 +21,13 @@ export function soporteDelEnv() {
   return { phone, message: process.env.SOPORTE_WHATSAPP_MENSAJE?.trim() || AYUDA_DEFAULT };
 }
 
-/** Para el botón flotante: null si no hay número cargado o está apagado. */
+/** Para el botón flotante y el footer: null si no hay número cargado o está apagado. */
 export const getSoporte = cache(async () => {
   const env = soporteDelEnv();
-  if (env) return { href: waLink(env.phone, env.message) };
+  if (env) return { href: waLink(env.phone, env.message), telefono: telefonoLegible(env.phone) };
   const row = await prisma.ad.findUnique({ where: { slot: SOPORTE_SLOT }, select: { whatsappPhone: true, whatsappMessage: true, enabled: true } });
   if (!row?.enabled || !row.whatsappPhone) return null;
-  return { href: waLink(row.whatsappPhone, row.whatsappMessage || AYUDA_DEFAULT) };
+  return { href: waLink(row.whatsappPhone, row.whatsappMessage || AYUDA_DEFAULT), telefono: telefonoLegible(row.whatsappPhone) };
 });
 
 /** Lo que muestra el formulario de administración. */

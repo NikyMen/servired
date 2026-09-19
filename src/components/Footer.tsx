@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { FacebookIcon, InstagramIcon, TikTokIcon } from "@/components/icons";
+import { FacebookIcon, InstagramIcon, TikTokIcon, WhatsAppIcon } from "@/components/icons";
 import { FACEBOOK_URL, INSTAGRAM_URL, TIKTOK_URL } from "@/lib/links";
 import type { Mode } from "@/lib/types";
 
@@ -17,7 +17,7 @@ const proLinks = [
   { href: "/pro/mensajes", label: "Mensajes" },
 ];
 
-export function Footer({ mode }: { mode: Mode }) {
+export function Footer({ mode, soporte }: { mode: Mode; soporte?: { href: string; telefono: string } | null }) {
   const isPro = mode === "pro";
   const links = isPro ? proLinks : clientLinks;
 
@@ -81,6 +81,22 @@ export function Footer({ mode }: { mode: Mode }) {
           <p className="text-xs text-slate-400">
             Novedades, zonas nuevas y profesionales destacados.
           </p>
+          {/* El mismo WhatsApp que el botón flotante (SOPORTE_WHATSAPP en el .env). */}
+          {soporte && (
+            <div className="space-y-2 pt-3">
+              <p className="text-xs font-bold tracking-wide text-slate-400 uppercase">¿Necesitás ayuda?</p>
+              <a
+                href={soporte.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Soporte por WhatsApp al ${soporte.telefono} (se abre en una pestaña nueva)`}
+                className="glass-chip px-3.5 py-2.5 text-sm font-medium whitespace-nowrap text-slate-700"
+              >
+                <WhatsAppIcon width={20} height={20} className="text-[#25D366]" />
+                {soporte.telefono}
+              </a>
+            </div>
+          )}
         </div>
       </div>
 

@@ -335,3 +335,8 @@ test("la IP sale de Traefik y no de lo que manda el cliente", () => {
   assert.equal(ipCliente(h({ "x-forwarded-for": "9.9.9.9, 2.2.2.2" })), "2.2.2.2");
   assert.equal(ipCliente(h({})), "local");
 });
+
+test("el teléfono de soporte se muestra como se escribe en Argentina", async () => {
+  const { telefonoLegible } = await import("../src/lib/whatsapp");
+  assert.equal(telefonoLegible("3794404086"), "+54 9 3794 40-4086");
+});

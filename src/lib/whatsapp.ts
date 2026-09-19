@@ -21,6 +21,11 @@ export function waLink(phone: string, message?: string | null) {
   return `https://wa.me/${digits}${message ? `?text=${encodeURIComponent(message)}` : ""}`;
 }
 
+/** "3794404086" → "+54 9 3794 40-4086", como se escribe en Argentina. */
+export function telefonoLegible(digitos: string) {
+  return `+54 9 ${digitos.slice(0, 4)} ${digitos.slice(4, -4)}-${digitos.slice(-4)}`;
+}
+
 /**
  * Número de soporte: característica sin 0 + número sin 15, diez dígitos en
  * total (ej. 3794123456). Devuelve los dígitos o null si no sirve.
