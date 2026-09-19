@@ -36,24 +36,22 @@ export function AdminReports({ rows }: { rows: Report[] }) {
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[.2em] text-cliente">Moderación</p>
-          <h2 className="mt-1 text-2xl font-black text-slate-950">Denuncias</h2>
-          <p className="mt-1 text-sm text-slate-500">{pendientes.length} sin resolver de {rows.length} en total.</p>
-        </div>
-        <label className="text-xs font-semibold text-slate-600">
-          <input type="checkbox" checked={verResueltas} onChange={(event) => setVerResueltas(event.target.checked)} className="mr-1.5" />
+      <div className="adm-card adm-card-pad flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-600">
+          <strong className="text-slate-900">{pendientes.length} sin resolver</strong> de {rows.length} en total.
+        </p>
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-600">
+          <input type="checkbox" checked={verResueltas} onChange={(event) => setVerResueltas(event.target.checked)} className="size-4 accent-indigo-600" />
           Ver también las resueltas
         </label>
       </div>
 
       {visibles.length === 0 ? (
-        <p className="glass glass-solid rounded-2xl p-6 text-center text-sm text-slate-500">No hay denuncias {verResueltas ? "" : "pendientes"}.</p>
+        <p className="adm-card p-6 text-center text-sm text-slate-500">No hay denuncias {verResueltas ? "" : "pendientes"}.</p>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
           {visibles.map((row) => (
-            <article key={row.id} className="glass glass-solid space-y-3 rounded-2xl p-4">
+            <article key={row.id} className="adm-card space-y-3 p-4">
               <div className="flex gap-3">
                 {/* La URL quedó congelada en la denuncia: si la imagen ya se
                     borró, el recuadro queda vacío y eso también informa. */}
@@ -78,11 +76,11 @@ export function AdminReports({ rows }: { rows: Report[] }) {
               {row.status === "pending" ? (
                 <form className="space-y-2">
                   <input type="hidden" name="id" value={row.id} />
-                  <textarea name="resolution" rows={2} placeholder="Nota interna de la decisión (opcional)" className="glass-field w-full resize-none px-3 py-2 text-sm" />
+                  <textarea name="resolution" rows={2} placeholder="Nota interna de la decisión (opcional)" className="adm-field w-full resize-none px-3 py-2 text-sm" />
                   <div className="flex flex-wrap gap-2">
-                    <button formAction={resolveReportAction.bind(null, "dismiss")} className="glass-btn glass-btn-ghost px-3 py-2 text-xs">{row.targetType === "conversation" ? "Descartar" : "Dejarla publicada"}</button>
-                    {row.targetType !== "conversation" && <button formAction={resolveReportAction.bind(null, "remove")} className="glass-btn px-3 py-2 text-xs">Bajar la imagen</button>}
-                    <button formAction={resolveReportAction.bind(null, "ban")} className="rounded-xl bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700">{row.targetType === "conversation" ? "Suspender la cuenta" : "Bajar y suspender la cuenta"}</button>
+                    <button formAction={resolveReportAction.bind(null, "dismiss")} className="adm-btn adm-btn-ghost adm-btn-sm">{row.targetType === "conversation" ? "Descartar" : "Dejarla publicada"}</button>
+                    {row.targetType !== "conversation" && <button formAction={resolveReportAction.bind(null, "remove")} className="adm-btn adm-btn-sm">Bajar la imagen</button>}
+                    <button formAction={resolveReportAction.bind(null, "ban")} className="adm-btn adm-btn-sm bg-red-600 hover:bg-red-700">{row.targetType === "conversation" ? "Suspender la cuenta" : "Bajar y suspender la cuenta"}</button>
                   </div>
                 </form>
               ) : (

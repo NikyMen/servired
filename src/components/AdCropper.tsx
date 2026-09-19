@@ -1,17 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CONSEJOS_PLACA, TIPOS_PLACA, type TipoPlaca } from "@/lib/publicidad";
+import { CONSEJOS_PLACA, LADO_PLACA } from "@/lib/publicidad";
 
 /** Lado del marco en el panel: la forma es la de la placa, el tamaño es solo para trabajar cómodo. */
 const MARCO = 240;
 
-/** Cómo se ve en cada pantalla: anchos reales aproximados de la placa en la portada. */
-const VISTAS: Record<TipoPlaca, { etiqueta: string; ancho: number }[]> = {
-  lateral: [{ etiqueta: "Compu", ancho: 112 }, { etiqueta: "Compu grande", ancho: 224 }],
-  superior: [{ etiqueta: "Celular", ancho: 102 }, { etiqueta: "Tablet", ancho: 232 }],
-  pie: [{ etiqueta: "Celular", ancho: 158 }, { etiqueta: "Compu", ancho: 240 }],
-};
+/** La misma placa se ve más chica o más grande según el lugar: estos son los
+    dos extremos, y sirven para cualquier ubicación. */
+const VISTAS = [{ etiqueta: "Chica", ancho: 104 }, { etiqueta: "Grande", ancho: 232 }];
 
 const TIPOS_OK = ["image/jpeg", "image/png", "image/webp"];
 /** Relativos a "cubrir el marco": por debajo de 1 la imagen se aleja y aparece el fondo. */
@@ -56,8 +53,9 @@ function colorDelBorde(img: HTMLImageElement) {
  * imagen con el cuentagotas o copiar/pegar como código. Al guardar, el recorte
  * se arma a 800 × 800 y va en el input `name`, que es lo que sube el form.
  */
-export function AdCropper({ name, tipo, currentUrl }: { name: string; tipo: TipoPlaca; currentUrl: string | null }) {
-  const { ancho, alto } = TIPOS_PLACA[tipo];
+export function AdCropper({ name, currentUrl }: { name: string; currentUrl: string | null }) {
+  const ancho = LADO_PLACA;
+  const alto = LADO_PLACA;
   const inputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const arrastre = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
@@ -142,7 +140,7 @@ export function AdCropper({ name, tipo, currentUrl }: { name: string; tipo: Tipo
     const binario = atob(canvas.toDataURL("image/jpeg", 0.88).split(",")[1]);
     const bytes = new Uint8Array(binario.length);
     for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
-    return new File([bytes], `placa-${tipo}.jpg`, { type: "image/jpeg" });
+    return new File([bytes], "placa.jpg", { type: "image/jpeg" });
   }
   const armar = useRef(archivoDelRecorte);
   armar.current = archivoDelRecorte;
@@ -297,9 +295,9 @@ export function AdCropper({ name, tipo, currentUrl }: { name: string; tipo: Tipo
         </div>
 
         <div className="flex flex-wrap items-end gap-3" aria-label="Vista previa">
-          {VISTAS[tipo].map((vista) => (
+          {VISTAS.map((vista) => (
             <figure key={vista.etiqueta} className="space-y-1">
-              <div data-vista={vista.etiqueta} className="overflow-hidden rounded-xl border border-slate-200 bg-white/70" style={{ width: vista.ancho, aspectRatio: `${ancho} / ${alto}` }}>
+              <div data-vista={vista.etiqueta} className="aspect-square overflow-hidden rounded-xl border border-slate-200 bg-white/70" style={{ width: vista.ancho }}>
                 {(vistaPrevia ?? currentUrl) && <img src={vistaPrevia ?? currentUrl!} alt="" className="size-full object-cover" />}
               </div>
               <figcaption className="text-center text-[11px] text-slate-500">{vista.etiqueta}</figcaption>

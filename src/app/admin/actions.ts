@@ -187,6 +187,43 @@ export async function saveAdAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
+/** Lo que hace a una placa: todo menos el slot, que es el lugar donde vive. */
+const PLACA_VACIA = { title: "", imageUrl: null as string | null, whatsappPhone: null as string | null, whatsappMessage: null as string | null, enabled: true, ...ENCUADRE_NEUTRO };
+type ContenidoPlaca = typeof PLACA_VACIA;
+
+function contenidoDePlaca(ad: { title: string; imageUrl: string | null; whatsappPhone: string | null; whatsappMessage: string | null; enabled: boolean; imageScale: number; imageX: number; imageY: number; imageStretchX: number; imageStretchY: number } | null): ContenidoPlaca {
+  if (!ad) return { ...PLACA_VACIA };
+  return { title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, enabled: ad.enabled, imageScale: ad.imageScale, imageX: ad.imageX, imageY: ad.imageY, imageStretchX: ad.imageStretchX, imageStretchY: ad.imageStretchY };
+}
+
+/**
+ * Cambia de lugar una placa: la de `from` pasa a `to` y la que estaba en `to`
+ * vuelve a `from`. Lo que se intercambia es el contenido, no el campo `slot`:
+ * `slot` es único, y moverlo obligaría a un paso intermedio que puede chocar.
+ * Así el cambio entra en una sola transacción y da igual si alguno de los dos
+ * lugares está vacío: el que recibe se crea y el que queda libre se vacía.
+ * Los dos slots vienen bindeados al botón porque un `<button name value>` no
+ * llega en el build de producción con React 19.
+ */
+export async function swapAdsAction(from: string, to: string) {
+  await requireAdmin();
+  if (from === to || !esSlotDePlaca(from) || !esSlotDePlaca(to)) return;
+  const [a, b] = await Promise.all([
+    prisma.ad.findUnique({ where: { slot: from } }),
+    prisma.ad.findUnique({ where: { slot: to } }),
+  ]);
+  // Dos lugares vacíos: no hay nada que mover.
+  if (!a && !b) return;
+  const paraFrom = contenidoDePlaca(b);
+  const paraTo = contenidoDePlaca(a);
+  await prisma.$transaction([
+    prisma.ad.upsert({ where: { slot: from }, create: { slot: from, ...paraFrom }, update: paraFrom }),
+    prisma.ad.upsert({ where: { slot: to }, create: { slot: to, ...paraTo }, update: paraTo }),
+  ]);
+  revalidatePath("/");
+  revalidatePath("/admin");
+}
+
 export type SoporteState = { error?: string; ok?: boolean; values: { phone: string; message: string; enabled: boolean } } | undefined;
 
 /**

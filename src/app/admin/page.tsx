@@ -1,35 +1,37 @@
-import { logoutAdminAction, createCategoryAction, deleteCategoryAction, saveAdAction, saveSiteTextAction, unbanUserAction, updateCategoryAction } from "@/app/admin/actions";
+import Link from "next/link";
+import type { Metadata } from "next";
+import { createCategoryAction, deleteCategoryAction, saveSiteTextAction, unbanUserAction, updateCategoryAction } from "@/app/admin/actions";
+import { AdminShell, type AdminSeccion } from "@/components/AdminShell";
 import { AdminPreinscriptions } from "@/components/AdminPreinscriptions";
+import { AdminPublicidad } from "@/components/AdminPublicidad";
 import { AdminKyc } from "@/components/AdminKyc";
 import { AdminReports } from "@/components/AdminReports";
+import { AdminSoporte } from "@/components/AdminSoporte";
+import { AdminLocalidades } from "@/components/AdminLocalidades";
+import { AdminMatriculas } from "@/components/AdminMatriculas";
 import { requireAdmin } from "@/lib/admin";
 import { listPreinscriptions } from "@/lib/preinscripciones";
 import { prisma } from "@/lib/prisma";
 import { decryptKyc } from "@/lib/kyc";
 import { formatARS, formatDate, formatDateTime } from "@/lib/format";
-import type { Metadata } from "next";
 import { StatusPill } from "@/components/ui";
-import { AdCropper } from "@/components/AdCropper";
-import { AdPlate } from "@/components/AdPlate";
-import { TIPOS_PLACA, necesitaReencuadre, type TipoPlaca } from "@/lib/publicidad";
+import { necesitaReencuadre } from "@/lib/publicidad";
 import { TERMS_DEFAULT, TERMS_SLUG, getSiteText } from "@/lib/site-text";
-import { AdminSoporte } from "@/components/AdminSoporte";
 import { getSoporteConfig, soporteDelEnv } from "@/lib/soporte";
-import { AdminLocalidades } from "@/components/AdminLocalidades";
-import { AdminMatriculas } from "@/components/AdminMatriculas";
 import { listarLocalidadesAdmin } from "@/lib/localidades";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Administración" };
 
-const TABS = ["todo", "kyc", "matriculas", "denuncias", "usuarios", "trabajos", "catalogo", "publicidad", "soporte", "localidades", "legales", "preinscripciones"] as const;
+const TABS = ["resumen", "kyc", "matriculas", "denuncias", "usuarios", "trabajos", "catalogo", "publicidad", "soporte", "localidades", "legales", "preinscripciones"] as const;
 type Tab = (typeof TABS)[number];
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   await requireAdmin();
   const { tab: rawTab } = await searchParams;
-  const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "todo";
-  const showAll = tab === "todo";
+  // "todo" era la pestaña vieja que mostraba todo junto: ahora cae al resumen.
+  const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "resumen";
+
   const [preinscriptions, kycCases, users, bookings, categories, ads, terminos, reports, userCount, verifiedProviderCount, activeJobCount, soporte, localidades, credenciales] = await Promise.all([
     listPreinscriptions(),
     prisma.kycCase.findMany({ orderBy: { updatedAt: "desc" }, include: { documents: true, user: { include: { oauthAccounts: true, professional: true } } } }),
@@ -46,65 +48,270 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     listarLocalidadesAdmin(),
     prisma.credential.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }], take: 100, include: { professional: { select: { name: true } }, category: { select: { name: true } } } }),
   ]);
+
   const soporteEnv = soporteDelEnv();
+  const pendingKyc = kycCases.filter((kyc) => kyc.status === "pending").length;
+  const pendingReports = reports.filter((report) => report.status === "pending").length;
   const pendingCredentials = credenciales.filter((c) => c.status === "pending").length;
+
   const serializedPreinscriptions = preinscriptions.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }));
+  const serializedReports = reports.map((report) => ({ ...report, createdAt: report.createdAt.toISOString(), resolvedAt: report.resolvedAt?.toISOString() ?? null }));
   const serializedKyc = kycCases.map((kyc) => {
     const professional = kyc.user.professional;
     return { id: kyc.id, status: kyc.status, legalName: kyc.legalName, email: kyc.user.email, phone: kyc.phone, cuil: decryptKyc(kyc.cuilEncrypted), dni: decryptKyc(kyc.dniEncrypted), birthDate: kyc.birthDate.toISOString(), address: kyc.address, country: kyc.country, province: kyc.province, locality: kyc.locality, provider: kyc.user.oauthAccounts[0]?.provider || "email", providerType: professional?.providerType || "oficio", headline: professional?.headline || null, bio: professional?.bio || null, paymentHandle: professional?.paymentHandle || null, paymentHandleKind: professional?.paymentHandleKind || null, submittedAt: kyc.submittedAt?.toISOString() || null, reviewReason: kyc.reviewReason, reviewedBy: kyc.reviewedBy, reviewedAt: kyc.reviewedAt?.toISOString() || null, videoChallenge: kyc.videoChallenge, documents: kyc.documents.map((document) => ({ id: document.id, kind: document.kind })) };
   });
-  const pendingKyc = kycCases.filter((kyc) => kyc.status === "pending").length;
-  const pendingReports = reports.filter((report) => report.status === "pending").length;
-  const serializedReports = reports.map((report) => ({ ...report, createdAt: report.createdAt.toISOString(), resolvedAt: report.resolvedAt?.toISOString() ?? null }));
+  const serializedAds = ads.map((ad) => ({ slot: ad.slot, title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, enabled: ad.enabled, reencuadrar: necesitaReencuadre(ad) }));
 
-  return <main className="min-h-screen bg-slate-100 px-3 py-4 sm:px-6 sm:py-7"><div className="mx-auto max-w-7xl space-y-8">
-    <header className="glass glass-solid rounded-3xl p-5 sm:p-6"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><p className="text-xs font-black uppercase tracking-[.2em] text-cliente">ServiRed Admin</p><h1 className="mt-1 text-3xl font-black text-slate-950">Centro de operaciones</h1><p className="mt-1 text-sm text-slate-500">Identidad, usuarios, trabajos, catálogo y captación en un solo lugar.</p></div><form action={logoutAdminAction}><button className="glass-btn glass-btn-ghost px-4 py-2.5 text-sm">Cerrar sesión</button></form></div>
-      <nav className="no-scrollbar mt-5 flex gap-2 overflow-x-auto border-t border-white/70 pt-4 text-sm font-semibold">
-        <TabLink tab="todo" active={tab === "todo"}>TODO</TabLink>
-        <TabLink tab="kyc" active={tab === "kyc"}>KYC {pendingKyc ? `(${pendingKyc})` : ""}</TabLink>
-        <TabLink tab="matriculas" active={tab === "matriculas"}>Matrículas {pendingCredentials ? `(${pendingCredentials})` : ""}</TabLink>
-        <TabLink tab="denuncias" active={tab === "denuncias"}>Denuncias {pendingReports ? `(${pendingReports})` : ""}</TabLink>
-        <TabLink tab="usuarios" active={tab === "usuarios"}>Usuarios</TabLink>
-        <TabLink tab="trabajos" active={tab === "trabajos"}>Trabajos</TabLink>
-        <TabLink tab="catalogo" active={tab === "catalogo"}>Rubros</TabLink>
-        <TabLink tab="publicidad" active={tab === "publicidad"}>Publicidad</TabLink>
-        <TabLink tab="soporte" active={tab === "soporte"}>Soporte</TabLink>
-        <TabLink tab="localidades" active={tab === "localidades"}>Localidades</TabLink>
-        <TabLink tab="legales" active={tab === "legales"}>Legales</TabLink>
-        <TabLink tab="preinscripciones" active={tab === "preinscripciones"}>Preinscripciones</TabLink>
-      </nav>
-    </header>
+  const secciones: AdminSeccion[] = [
+    { tab: "resumen", nombre: "Resumen", titulo: "Resumen", descripcion: "Cómo viene la plataforma y qué está esperando una decisión.", icono: "◧", grupo: "Panel" },
+    { tab: "kyc", nombre: "Identidad", titulo: "Verificación de identidad", descripcion: "Documentos y datos de quienes quieren ofrecer servicios.", icono: "🪪", grupo: "Revisión", pendientes: pendingKyc },
+    { tab: "matriculas", nombre: "Matrículas", titulo: "Matrículas y certificados", descripcion: "Aprobada, el perfil muestra la insignia “Matriculado”. Rechazar pide motivo.", icono: "🎓", grupo: "Revisión", pendientes: pendingCredentials },
+    { tab: "denuncias", nombre: "Denuncias", titulo: "Denuncias", descripcion: "Imágenes y conversaciones reportadas por la comunidad.", icono: "🚩", grupo: "Revisión", pendientes: pendingReports },
+    { tab: "usuarios", nombre: "Usuarios", titulo: "Usuarios y oferentes", descripcion: "Las últimas 50 altas, con su estado de cuenta.", icono: "👥", grupo: "Comunidad" },
+    { tab: "trabajos", nombre: "Trabajos", titulo: "Trabajos y propuestas", descripcion: "Actividad reciente del marketplace y estados comerciales.", icono: "🧰", grupo: "Comunidad" },
+    { tab: "preinscripciones", nombre: "Preinscripciones", titulo: "Preinscripciones", descripcion: `${preinscriptions.length} contactos únicos captados antes del lanzamiento.`, icono: "📇", grupo: "Comunidad" },
+    { tab: "publicidad", nombre: "Publicidad", titulo: "Publicidad de la portada", descripcion: "Todas las placas son iguales: cambia dónde aparecen, y eso se mueve con un botón.", icono: "🖼️", grupo: "Portada" },
+    { tab: "catalogo", nombre: "Rubros", titulo: "Rubros y categorías", descripcion: "La clasificación que se ve en la portada, separada entre Profesional y Oficio.", icono: "🏷️", grupo: "Portada" },
+    { tab: "soporte", nombre: "Soporte", titulo: "Botón “Necesito ayuda”", descripcion: "El WhatsApp al que escribe quien pide ayuda desde cualquier pantalla.", icono: "💬", grupo: "Sitio" },
+    { tab: "localidades", nombre: "Localidades", titulo: "Localidades", descripcion: "Las que se pueden elegir al darse de alta, y el punto de cada una en el mapa.", icono: "📍", grupo: "Sitio" },
+    { tab: "legales", nombre: "Legales", titulo: "Términos y condiciones", descripcion: "El texto que acepta toda cuenta al entrar.", icono: "📜", grupo: "Sitio" },
+  ];
 
-    {showAll && <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Metric label="Usuarios" value={userCount} note="Cuentas registradas" /><Metric label="Oferentes verificados" value={verifiedProviderCount} note="Perfiles publicados" /><Metric label="KYC pendientes" value={pendingKyc} note="Requieren revisión" danger={pendingKyc > 0} /><Metric label="Trabajos activos" value={activeJobCount} note="Máximo 3 por oferente" /><Metric label="Denuncias pendientes" value={pendingReports} note="Imágenes y chats a revisar" danger={pendingReports > 0} /></section>}
+  return (
+    <AdminShell secciones={secciones} activa={tab}>
+      {tab === "resumen" && (
+        <Resumen
+          usuarios={userCount}
+          verificados={verifiedProviderCount}
+          trabajos={activeJobCount}
+          pendientes={[
+            { tab: "kyc", nombre: "Identidades por verificar", cantidad: pendingKyc },
+            { tab: "matriculas", nombre: "Matrículas por revisar", cantidad: pendingCredentials },
+            { tab: "denuncias", nombre: "Denuncias sin resolver", cantidad: pendingReports },
+          ]}
+          placasActivas={serializedAds.filter((ad) => ad.imageUrl && ad.enabled).length}
+          localidadesActivas={localidades.filter((l) => l.active).length}
+          preinscriptos={preinscriptions.length}
+        />
+      )}
 
-    {(showAll || tab === "kyc") && <AdminKyc rows={serializedKyc} />}
+      {tab === "kyc" && <AdminKyc rows={serializedKyc} />}
 
-    {(showAll || tab === "matriculas") && <section className="space-y-3"><SectionTitle eyebrow="Oferentes" title="Matrículas y certificados" subtitle="Aprobada, el perfil muestra la insignia “Matriculado”. Rechazar pide motivo." /><AdminMatriculas rows={credenciales.map((c) => ({ id: c.id, kind: c.kind, number: c.number, issuer: c.issuer, status: c.status, reviewReason: c.reviewReason, mimeType: c.mimeType, createdAt: c.createdAt.toISOString(), professional: c.professional, category: c.category }))} /></section>}
+      {tab === "matriculas" && <AdminMatriculas rows={credenciales.map((c) => ({ id: c.id, kind: c.kind, number: c.number, issuer: c.issuer, status: c.status, reviewReason: c.reviewReason, mimeType: c.mimeType, createdAt: c.createdAt.toISOString(), professional: c.professional, category: c.category }))} />}
 
-    {(showAll || tab === "denuncias") && <AdminReports rows={serializedReports} />}
+      {tab === "denuncias" && <AdminReports rows={serializedReports} />}
 
-    {(showAll || tab === "usuarios") && <section className="space-y-3"><SectionTitle eyebrow="Cuentas" title="Usuarios y oferentes" subtitle="Últimas 50 altas" /><div className="glass glass-solid overflow-x-auto rounded-2xl"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-white/55 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Usuario</th><th className="px-4 py-3">Acceso</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Perfil oferente</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Alta</th></tr></thead><tbody className="divide-y divide-white/70">{users.map((user) => <tr key={user.id}><td className="px-4 py-3 font-semibold text-slate-900">{user.name}</td><td className="px-4 py-3 text-slate-600">{user.oauthAccounts[0]?.provider || "email"}</td><td className="px-4 py-3"><span className={user.emailVerifiedAt ? "text-emerald-700" : "text-amber-700"}>{user.email}</span></td><td className="px-4 py-3 text-slate-600">{user.professional ? `${user.professional.providerType} · ${user.professional.profileStatus}` : "Solo Busco"}</td><td className="px-4 py-3">{user.accountStatus === "suspended" ? <form action={unbanUserAction} className="flex items-center gap-2"><input type="hidden" name="id" value={user.id} /><span className="font-semibold text-red-600">Suspendida</span><button className="text-xs font-semibold text-cliente hover:underline">Reactivar</button></form> : <span className="text-slate-500">{user.accountStatus === "approved" ? "Activa" : "Email pendiente"}</span>}</td><td className="px-4 py-3 text-slate-500">{formatDate(user.createdAt)}</td></tr>)}</tbody></table></div></section>}
+      {tab === "usuarios" && (
+        <div className="adm-card overflow-x-auto">
+          <table className="adm-table min-w-[760px]">
+            <thead>
+              <tr><th>Usuario</th><th>Acceso</th><th>Email</th><th>Perfil oferente</th><th>Estado</th><th>Alta</th></tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id}>
+                  <td className="font-semibold text-slate-900">{user.name}</td>
+                  <td>{user.oauthAccounts[0]?.provider || "email"}</td>
+                  <td><span className={user.emailVerifiedAt ? "text-emerald-700" : "text-amber-700"}>{user.email}</span></td>
+                  <td>{user.professional ? `${user.professional.providerType} · ${user.professional.profileStatus}` : "Solo Busco"}</td>
+                  <td>
+                    {user.accountStatus === "suspended" ? (
+                      <form action={unbanUserAction} className="flex items-center gap-2">
+                        <input type="hidden" name="id" value={user.id} />
+                        <span className="adm-badge adm-badge-bad">Suspendida</span>
+                        <button className="adm-btn adm-btn-ghost adm-btn-sm">Reactivar</button>
+                      </form>
+                    ) : (
+                      <span className={`adm-badge ${user.accountStatus === "approved" ? "adm-badge-ok" : "adm-badge-warn"}`}>
+                        {user.accountStatus === "approved" ? "Activa" : "Email pendiente"}
+                      </span>
+                    )}
+                  </td>
+                  <td className="text-slate-500">{formatDate(user.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-    {(showAll || tab === "trabajos") && <section className="space-y-3"><SectionTitle eyebrow="Marketplace" title="Trabajos y propuestas" subtitle="Actividad reciente y estados comerciales" /><div className="glass glass-solid overflow-x-auto rounded-2xl"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-white/55 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Cliente</th><th className="px-4 py-3">Oferente</th><th className="px-4 py-3">Estado</th><th className="px-4 py-3">Última propuesta</th><th className="px-4 py-3">Actualizado</th></tr></thead><tbody className="divide-y divide-white/70">{bookings.map((booking) => <tr key={booking.id}><td className="px-4 py-3 font-semibold text-slate-900">{booking.user.name}</td><td className="px-4 py-3">{booking.professional.name}</td><td className="px-4 py-3"><StatusPill status={booking.status} /></td><td className="px-4 py-3">{booking.proposals[0] ? `${formatARS(booking.proposals[0].amount)} · ${proposalStatus(booking.proposals[0].status)}` : "—"}</td><td className="px-4 py-3 text-slate-500">{formatDateTime(booking.updatedAt)}</td></tr>)}</tbody></table></div></section>}
+      {tab === "trabajos" && (
+        <div className="adm-card overflow-x-auto">
+          <table className="adm-table min-w-[760px]">
+            <thead>
+              <tr><th>Cliente</th><th>Oferente</th><th>Estado</th><th>Última propuesta</th><th>Actualizado</th></tr>
+            </thead>
+            <tbody>
+              {bookings.map((booking) => (
+                <tr key={booking.id}>
+                  <td className="font-semibold text-slate-900">{booking.user.name}</td>
+                  <td>{booking.professional.name}</td>
+                  <td><StatusPill status={booking.status} /></td>
+                  <td>{booking.proposals[0] ? `${formatARS(booking.proposals[0].amount)} · ${proposalStatus(booking.proposals[0].status)}` : "—"}</td>
+                  <td className="text-slate-500">{formatDateTime(booking.updatedAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-    {(showAll || tab === "catalogo") && <section className="space-y-4"><SectionTitle eyebrow="Clasificación" title="Rubros y categorías" subtitle="Separados entre Profesional y Oficio" /><form action={createCategoryAction} className="glass glass-solid grid gap-3 rounded-2xl p-4 sm:grid-cols-[80px_1fr_1fr_160px_auto]"><input name="icon" placeholder="🛠️" className="glass-field px-3 py-2 text-sm" /><input name="name" required placeholder="Nombre del rubro" className="glass-field px-3 py-2 text-sm" /><input name="slug" placeholder="slug-opcional" className="glass-field px-3 py-2 text-sm" /><select name="kind" className="glass-field px-3 py-2 text-sm"><option value="oficio">Oficio</option><option value="profesional">Profesional</option></select><button className="glass-btn px-4 py-2 text-sm">Agregar</button></form><div className="grid gap-3 md:grid-cols-2">{(["profesional", "oficio"] as const).map((kind) => <div key={kind} className="glass glass-solid rounded-2xl p-4"><h3 className="mb-3 text-lg font-bold capitalize text-slate-900">{kind}</h3><div className="space-y-2">{categories.filter((category) => category.kind === kind).map((category) => <details key={category.id} className="rounded-xl bg-white/60 p-3"><summary className="flex cursor-pointer list-none items-center gap-3"><span className="text-xl">{category.icon}</span><div className="min-w-0 flex-1"><p className="truncate font-semibold">{category.name}</p><p className="text-xs text-slate-400">{category._count.professionals} perfiles · {category._count.requests} solicitudes</p></div><span className="text-xs font-semibold text-cliente">Editar</span></summary><form action={updateCategoryAction} className="mt-3 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-[70px_1fr_1fr_130px_auto]"><input type="hidden" name="id" value={category.id} /><input name="icon" defaultValue={category.icon} className="glass-field px-2 py-1.5 text-sm" /><input name="name" required defaultValue={category.name} className="glass-field px-2 py-1.5 text-sm" /><input name="slug" defaultValue={category.slug} className="glass-field px-2 py-1.5 text-sm" /><select name="kind" defaultValue={category.kind} className="glass-field px-2 py-1.5 text-sm"><option value="oficio">Oficio</option><option value="profesional">Profesional</option></select><button className="glass-btn px-3 py-1.5 text-xs">Guardar</button></form><form action={deleteCategoryAction} className="mt-2 text-right"><input type="hidden" name="id" value={category.id} /><button className="text-xs font-semibold text-red-600">Eliminar si no está en uso</button></form></details>)}</div></div>)}</div></section>}
+      {tab === "catalogo" && (
+        <div className="space-y-4">
+          <form action={createCategoryAction} className="adm-card adm-card-pad grid gap-3 sm:grid-cols-[80px_1fr_1fr_150px_auto] sm:items-end">
+            <div><label className="adm-label" htmlFor="rubro-icono">Ícono</label><input id="rubro-icono" name="icon" placeholder="🛠️" className="adm-field" /></div>
+            <div><label className="adm-label" htmlFor="rubro-nombre">Nombre</label><input id="rubro-nombre" name="name" required placeholder="Nombre del rubro" className="adm-field" /></div>
+            <div><label className="adm-label" htmlFor="rubro-slug">Slug</label><input id="rubro-slug" name="slug" placeholder="se arma solo" className="adm-field" /></div>
+            <div><label className="adm-label" htmlFor="rubro-tipo">Tipo</label><select id="rubro-tipo" name="kind" className="adm-field"><option value="oficio">Oficio</option><option value="profesional">Profesional</option></select></div>
+            <button className="adm-btn">Agregar</button>
+          </form>
 
-    {(showAll || tab === "publicidad") && <section className="space-y-5"><SectionTitle eyebrow="Portada" title="Publicidades" subtitle="Todas las placas son cuadradas de 800 × 800 px, en el celular y en la compu. Subí una imagen, encuadrala (se puede alejar y elegir el color de fondo) y mirá cómo queda." />{(Object.entries(TIPOS_PLACA) as [TipoPlaca, (typeof TIPOS_PLACA)[TipoPlaca]][]).map(([tipo, datos]) => <div key={tipo} className="space-y-3"><div><h3 className="text-lg font-bold text-slate-900">{datos.nombre}</h3><p className="text-sm text-slate-500">{datos.donde} · {datos.ancho} × {datos.alto} px</p></div><div className="grid gap-3 lg:grid-cols-2">{datos.slots.map((slot) => { const ad = ads.find((item) => item.slot === slot); const estado = !ad?.imageUrl ? "Sin imagen" : ad.enabled ? "Activa" : "Inactiva"; return <form key={slot} action={saveAdAction} className="glass glass-solid space-y-3 rounded-2xl p-4"><input type="hidden" name="slot" value={slot} /><div className="flex items-start gap-3"><div className="w-20 shrink-0"><AdPlate tipo={tipo} ad={ad ? { ...ad, enabled: true } : null} label={`Miniatura ${slot}`} className="rounded-xl" /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h4 className="font-bold text-slate-900">{slot}</h4><span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${estado === "Activa" ? "bg-emerald-50 text-emerald-700" : estado === "Inactiva" ? "bg-slate-100 text-slate-600" : "bg-amber-50 text-amber-700"}`}>{estado}</span>{ad && necesitaReencuadre(ad) && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Conviene volver a encuadrar</span>}</div><label className="mt-1 inline-flex items-center text-xs font-semibold text-slate-600"><input type="checkbox" name="enabled" defaultChecked={ad?.enabled ?? true} className="mr-1" />Activa</label></div></div><input name="title" defaultValue={ad?.title ?? ""} placeholder="Título (opcional)" className="glass-field w-full px-3 py-2 text-sm" /><AdCropper name="image" tipo={tipo} currentUrl={ad?.imageUrl || null} /><div><label className="text-xs font-semibold text-slate-600">WhatsApp de destino</label><div className="mt-1 flex items-center gap-1.5"><span className="glass-field flex items-center px-2 py-2 text-sm text-slate-500">+549</span><input name="whatsappAreaCode" defaultValue={ad?.whatsappPhone?.slice(0, 4) || ""} placeholder="3783" inputMode="numeric" maxLength={4} pattern="[0-9]{4}" className="glass-field w-16 px-2 py-2 text-sm" /><input name="whatsappNumber" defaultValue={ad?.whatsappPhone?.slice(4, 10) || ""} placeholder="123456" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" className="glass-field w-24 px-2 py-2 text-sm" /></div></div><textarea name="whatsappMessage" defaultValue={ad?.whatsappMessage || ""} placeholder="Mensaje predeterminado de WhatsApp" rows={2} className="glass-field w-full resize-none px-3 py-2 text-sm" /><button className="glass-btn px-4 py-2 text-sm">Guardar placa</button></form>; })}</div></div>)}</section>}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {(["profesional", "oficio"] as const).map((kind) => {
+              const delTipo = categories.filter((category) => category.kind === kind);
+              return (
+                <div key={kind} className="adm-card">
+                  <div className="adm-card-head">
+                    <h2 className="font-bold capitalize text-slate-900">{kind}</h2>
+                    <span className="adm-badge">{delTipo.length} rubros</span>
+                  </div>
+                  <div className="divide-y divide-slate-100">
+                    {delTipo.map((category) => (
+                      <details key={category.id} className="group px-4 py-2.5">
+                        <summary className="flex cursor-pointer list-none items-center gap-3">
+                          <span className="text-xl">{category.icon}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold text-slate-900">{category.name}</span>
+                            <span className="block text-xs text-slate-500">{category._count.professionals} perfiles · {category._count.requests} solicitudes</span>
+                          </span>
+                          <span className="adm-btn adm-btn-ghost adm-btn-sm">Editar</span>
+                        </summary>
+                        <form action={updateCategoryAction} className="mt-3 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-[70px_1fr_1fr_130px_auto] sm:items-center">
+                          <input type="hidden" name="id" value={category.id} />
+                          <input name="icon" defaultValue={category.icon} aria-label="Ícono" className="adm-field" />
+                          <input name="name" required defaultValue={category.name} aria-label="Nombre" className="adm-field" />
+                          <input name="slug" defaultValue={category.slug} aria-label="Slug" className="adm-field" />
+                          <select name="kind" defaultValue={category.kind} aria-label="Tipo" className="adm-field"><option value="oficio">Oficio</option><option value="profesional">Profesional</option></select>
+                          <button className="adm-btn adm-btn-sm">Guardar</button>
+                        </form>
+                        <form action={deleteCategoryAction} className="mt-2 text-right">
+                          <input type="hidden" name="id" value={category.id} />
+                          <button className="adm-btn adm-btn-danger adm-btn-sm">Eliminar si no está en uso</button>
+                        </form>
+                      </details>
+                    ))}
+                    {!delTipo.length && <p className="px-4 py-6 text-center text-sm text-slate-500">Todavía no hay rubros de este tipo.</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-    {(showAll || tab === "soporte") && <section className="space-y-3"><SectionTitle eyebrow="Sitio" title="Botón “Necesito ayuda”" subtitle={soporteEnv ? `Abre WhatsApp al +549 ${soporteEnv.phone} (configurado en el .env del servidor: SOPORTE_WHATSAPP)` : soporte.phone ? `Abre WhatsApp al +549 ${soporte.phone}` : "Sin número cargado: el botón no se muestra"} />{soporteEnv ? <p className="glass glass-solid max-w-xl rounded-2xl p-4 text-sm text-slate-600">El número sale de <code>SOPORTE_WHATSAPP</code> en el <code>.env</code> y manda sobre este formulario. Para cambiarlo, editá el <code>.env</code> y reiniciá el sitio.</p> : <AdminSoporte initial={soporte} />}</section>}
+      {tab === "publicidad" && <AdminPublicidad ads={serializedAds} />}
 
-    {(showAll || tab === "localidades") && <section className="space-y-3"><SectionTitle eyebrow="Sitio" title="Localidades" subtitle={`${localidades.filter((l) => l.active).length} activas de ${localidades.length}. Se eligen al darse de alta; una desactivada deja de ofrecerse, pero quien la tiene la conserva.`} /><AdminLocalidades rows={localidades.map((l) => ({ id: l.id, name: l.name, province: l.province, latitude: l.latitude, longitude: l.longitude, active: l.active, users: l._count.users }))} /></section>}
+      {tab === "soporte" && (
+        <div className="space-y-3">
+          <p className="adm-card adm-card-pad max-w-xl text-sm text-slate-600">
+            {soporteEnv
+              ? <>El número sale de <code className="rounded bg-slate-100 px-1">SOPORTE_WHATSAPP</code> en el <code className="rounded bg-slate-100 px-1">.env</code> del servidor y manda sobre este formulario: abre WhatsApp al <strong>+549 {soporteEnv.phone}</strong>. Para cambiarlo, editá el <code className="rounded bg-slate-100 px-1">.env</code> y reiniciá el sitio.</>
+              : soporte.phone ? <>El botón abre WhatsApp al <strong>+549 {soporte.phone}</strong>.</> : "Sin número cargado: el botón no se muestra en el sitio."}
+          </p>
+          {!soporteEnv && <AdminSoporte initial={soporte} />}
+        </div>
+      )}
 
-    {(showAll || tab === "legales") && <section className="space-y-3"><SectionTitle eyebrow="Sitio" title="Términos y condiciones" subtitle={`Versión vigente: ${terminos.version}. ${terminos.updatedAt ? `Última modificación: ${formatDate(terminos.updatedAt)}` : "Todavía se muestra el texto inicial"}`} /><form action={saveSiteTextAction} className="glass glass-solid space-y-3 rounded-2xl p-4"><input type="hidden" name="slug" value={TERMS_SLUG} /><input name="title" required defaultValue={terminos.title} placeholder="Título de la página" className="glass-field w-full px-3 py-2 text-sm" /><textarea name="body" required rows={22} defaultValue={terminos.body} className="glass-field w-full resize-y px-3 py-2 font-mono text-xs leading-5" /><label className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><input type="checkbox" name="nuevaVersion" className="mt-0.5" /><span><strong>Publicar como versión nueva.</strong> Todas las cuentas van a tener que volver a aceptar los términos al entrar. Dejalo sin tildar si solo corregís un error de tipeo.</span></label><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">Empezá una línea con <code className="font-mono">## </code> para un subtítulo y con <code className="font-mono">- </code> para un ítem. Un renglón en blanco corta párrafo.</p><div className="flex gap-2"><a href="/terminos" target="_blank" rel="noopener noreferrer" className="glass-btn glass-btn-ghost px-4 py-2 text-sm">Ver la página</a><button className="glass-btn px-4 py-2 text-sm">Guardar texto</button></div></div></form></section>}
+      {tab === "localidades" && (
+        <div className="space-y-3">
+          <p className="adm-card adm-card-pad text-sm text-slate-600">
+            <strong className="text-slate-900">{localidades.filter((l) => l.active).length} activas</strong> de {localidades.length}. Se eligen al darse de alta; una desactivada deja de ofrecerse, pero quien la tiene la conserva.
+          </p>
+          <AdminLocalidades rows={localidades.map((l) => ({ id: l.id, name: l.name, province: l.province, latitude: l.latitude, longitude: l.longitude, active: l.active, users: l._count.users }))} />
+        </div>
+      )}
 
-    {(showAll || tab === "preinscripciones") && <section><SectionTitle eyebrow="Captación" title="Preinscripciones" subtitle={`${preinscriptions.length} contactos únicos`} /><AdminPreinscriptions initialRows={serializedPreinscriptions} /></section>}
-  </div></main>;
+      {tab === "legales" && (
+        <form action={saveSiteTextAction} className="adm-card adm-card-pad space-y-3">
+          <input type="hidden" name="slug" value={TERMS_SLUG} />
+          <p className="text-sm text-slate-600">
+            Versión vigente: <strong className="text-slate-900">{terminos.version}</strong>. {terminos.updatedAt ? `Última modificación: ${formatDate(terminos.updatedAt)}` : "Todavía se muestra el texto inicial."}
+          </p>
+          <div><label className="adm-label" htmlFor="legal-titulo">Título de la página</label><input id="legal-titulo" name="title" required defaultValue={terminos.title} className="adm-field" /></div>
+          <div><label className="adm-label" htmlFor="legal-texto">Texto</label><textarea id="legal-texto" name="body" required rows={22} defaultValue={terminos.body} className="adm-field resize-y font-mono text-xs leading-5" /></div>
+          <label className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <input type="checkbox" name="nuevaVersion" className="mt-0.5 size-4 accent-amber-600" />
+            <span><strong>Publicar como versión nueva.</strong> Todas las cuentas van a tener que volver a aceptar los términos al entrar. Dejalo sin tildar si solo corregís un error de tipeo.</span>
+          </label>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">Empezá una línea con <code className="rounded bg-slate-100 px-1 font-mono">## </code> para un subtítulo y con <code className="rounded bg-slate-100 px-1 font-mono">- </code> para un ítem. Un renglón en blanco corta párrafo.</p>
+            <div className="flex gap-2">
+              <a href="/terminos" target="_blank" rel="noopener noreferrer" className="adm-btn adm-btn-ghost">Ver la página</a>
+              <button className="adm-btn">Guardar texto</button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {tab === "preinscripciones" && <AdminPreinscriptions initialRows={serializedPreinscriptions} />}
+    </AdminShell>
+  );
 }
 
-function TabLink({ tab, active, children }: { tab: Tab; active: boolean; children: React.ReactNode }) {
-  const href = tab === "todo" ? "/admin" : `/admin?tab=${tab}`;
-  return <a href={href} className={`glass-chip px-3 py-2 ${active ? "bg-slate-900 text-white" : ""}`}>{children}</a>;
+/** Portada del panel: los números de la plataforma y los atajos a lo que espera. */
+function Resumen({ usuarios, verificados, trabajos, pendientes, placasActivas, localidadesActivas, preinscriptos }: {
+  usuarios: number; verificados: number; trabajos: number;
+  pendientes: { tab: string; nombre: string; cantidad: number }[];
+  placasActivas: number; localidadesActivas: number; preinscriptos: number;
+}) {
+  const total = pendientes.reduce((suma, p) => suma + p.cantidad, 0);
+  return (
+    <div className="space-y-5">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Metric label="Usuarios" value={usuarios} note="Cuentas registradas" />
+        <Metric label="Oferentes verificados" value={verificados} note="Perfiles publicados" />
+        <Metric label="Trabajos activos" value={trabajos} note="Máximo 3 por oferente" />
+        <Metric label="Preinscriptos" value={preinscriptos} note="Contactos únicos" />
+      </section>
+
+      <section className="adm-card">
+        <div className="adm-card-head">
+          <h2 className="font-bold text-slate-900">Esperando una decisión</h2>
+          <span className={`adm-badge ${total ? "adm-badge-warn" : "adm-badge-ok"}`}>{total ? `${total} en total` : "Todo al día"}</span>
+        </div>
+        <ul className="divide-y divide-slate-100">
+          {pendientes.map((p) => (
+            <li key={p.tab}>
+              <Link href={`/admin?tab=${p.tab}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
+                <span className="text-sm font-medium text-slate-700">{p.nombre}</span>
+                <span className="flex items-center gap-2">
+                  <span className={`adm-badge ${p.cantidad ? "adm-badge-warn" : "adm-badge-ok"}`}>{p.cantidad || "0"}</span>
+                  <span aria-hidden className="text-slate-400">›</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2">
+        <Metric label="Placas en la portada" value={placasActivas} note="Con imagen y visibles" />
+        <Metric label="Localidades activas" value={localidadesActivas} note="Se ofrecen al darse de alta" />
+      </section>
+    </div>
+  );
 }
-function Metric({ label, value, note, danger = false }: { label: string; value: number; note: string; danger?: boolean }) { return <article className={`glass glass-solid rounded-2xl border-t-4 p-4 ${danger ? "border-t-amber-500" : "border-t-cliente"}`}><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p><strong className="mt-1 block text-3xl text-slate-950">{value}</strong><p className="text-xs text-slate-400">{note}</p></article>; }
-function SectionTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) { return <div><p className="text-xs font-bold uppercase tracking-[.16em] text-cliente">{eyebrow}</p><h2 className="text-2xl font-bold text-slate-900">{title}</h2><p className="text-sm text-slate-500">{subtitle}</p></div>; }
-function proposalStatus(status: string) { return ({ pending: "pendiente", accepted: "aceptada", rejected: "rechazada", expired: "vencida" } as Record<string, string>)[status] || status; }
+
+function Metric({ label, value, note }: { label: string; value: number; note: string }) {
+  return (
+    <article className="adm-card adm-card-pad">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <strong className="mt-0.5 block text-3xl font-bold text-slate-900">{value}</strong>
+      <p className="text-xs text-slate-400">{note}</p>
+    </article>
+  );
+}
+
+function proposalStatus(status: string) {
+  return ({ pending: "pendiente", accepted: "aceptada", rejected: "rechazada", expired: "vencida" } as Record<string, string>)[status] || status;
+}

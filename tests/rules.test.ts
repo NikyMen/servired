@@ -15,7 +15,7 @@ import { formatoPorContenido } from "../src/lib/kyc";
 import { RADIO_KM, agruparPuntos, formatoDistancia, haversineKm, leerPuntoCookie, puntoDePro, valorCookieUbicacion } from "../src/lib/geo";
 import { rankProfessionals } from "../src/lib/search";
 import { crearFreno, ipCliente } from "../src/lib/intentos";
-import { ENCUADRE_NEUTRO, TIPOS_PLACA, esSlotDePlaca, necesitaReencuadre, tipoDeSlot } from "../src/lib/publicidad";
+import { ENCUADRE_NEUTRO, LADO_PLACA, PLACAS, SLOTS, esSlotDePlaca, necesitaReencuadre, nombreDeSlot, placaDeSlot } from "../src/lib/publicidad";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -290,20 +290,22 @@ test("a igual relevancia va primero el más cerca", () => {
   assert.deepEqual(orden, ["cerca", "lejos"]);
 });
 
-test("todas las placas son cuadradas de 800 × 800", () => {
-  assert.equal(tipoDeSlot("left-1"), "lateral");
-  assert.equal(tipoDeSlot("mobile-3"), "superior");
-  assert.equal(tipoDeSlot("mobile-6"), "superior");
-  assert.equal(tipoDeSlot("bottom-4"), "pie");
-  assert.equal(tipoDeSlot("ayuda"), null);
+test("las placas son todas iguales y lo único que cambia es el lugar", () => {
+  assert.equal(LADO_PLACA, 800);
+  assert.equal(placaDeSlot("left-1")?.ubicacion, "izquierda");
+  assert.equal(placaDeSlot("right-3")?.ubicacion, "derecha");
+  assert.equal(placaDeSlot("mobile-6")?.ubicacion, "arriba");
+  assert.equal(placaDeSlot("bottom-4")?.ubicacion, "pie");
+  assert.equal(placaDeSlot("ayuda"), null);
   assert.equal(esSlotDePlaca("cualquiera"), false);
-  for (const tipo of Object.values(TIPOS_PLACA)) {
-    assert.equal(tipo.ancho, 800);
-    assert.equal(tipo.alto, 800);
-  }
-  assert.equal(TIPOS_PLACA.superior.slots.length, 6);
-  assert.equal(TIPOS_PLACA.lateral.slots.length, 6);
-  assert.equal(tipoDeSlot("right-3"), "lateral");
+  assert.equal(nombreDeSlot("left-1"), "Costado izquierdo 1");
+  assert.equal(nombreDeSlot("ayuda"), "ayuda");
+  // La lista plana es exactamente la unión de los lugares, sin repetidos.
+  const todos = Object.values(SLOTS).flat();
+  assert.equal(PLACAS.length, todos.length);
+  assert.equal(new Set(PLACAS.map((p) => p.slot)).size, PLACAS.length);
+  assert.equal(SLOTS.arriba.length, 6);
+  assert.equal(SLOTS.izquierda.length + SLOTS.derecha.length, 6);
 });
 
 test("una placa con el encuadre viejo queda marcada para re-encuadrar", () => {

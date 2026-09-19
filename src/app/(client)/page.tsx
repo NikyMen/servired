@@ -6,7 +6,7 @@ import { HeroFondo } from "@/components/HeroFondo";
 import { MapView } from "@/components/MapView";
 import { AdPlate } from "@/components/AdPlate";
 import { CategoriasChips } from "@/components/CategoriasChips";
-import { TIPOS_PLACA } from "@/lib/publicidad";
+import { SLOTS, nombreDeSlot } from "@/lib/publicidad";
 import { getSessionUser } from "@/lib/auth";
 import { buscarProfesionales } from "@/lib/cercanos";
 import { RADIO_KM, formatoDistancia, haversineKm } from "@/lib/geo";
@@ -79,7 +79,7 @@ export default async function HomePage({
   const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
 
   // Las del pie vacías o apagadas no dejan hueco al final de la portada.
-  const placasPie = TIPOS_PLACA.pie.slots.map((slot) => adMap.get(slot)).filter((ad) => ad?.enabled && ad.imageUrl);
+  const placasPie = SLOTS.pie.map((slot) => adMap.get(slot)).filter((ad) => ad?.enabled && ad.imageUrl);
 
   return (
     <div className="relative space-y-6">
@@ -92,7 +92,7 @@ export default async function HomePage({
         <div key={lado} className={`absolute inset-y-0 hidden w-[min(14rem,calc((100vw-62rem)/2-2rem),calc((100dvh-9rem)/3))] xl:block ${lado === "left" ? "right-full mr-4" : "left-full ml-4"}`}>
           <div className="sticky top-24 grid gap-4">
             {[1, 2, 3].map((n) => (
-              <AdPlate key={n} tipo="lateral" ad={adMap.get(`${lado}-${n}`) || null} label={`Publicidad lateral ${lado === "left" ? "izquierda" : "derecha"} ${n}`} />
+              <AdPlate key={n} ad={adMap.get(`${lado}-${n}`) || null} label={`Publicidad lateral ${lado === "left" ? "izquierda" : "derecha"} ${n}`} />
             ))}
           </div>
         </div>
@@ -131,8 +131,8 @@ export default async function HomePage({
 
       {/* Celular y tablet: 2 filas de 3 placas cuadradas. */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3 xl:hidden">
-        {TIPOS_PLACA.superior.slots.map((slot, i) => (
-          <AdPlate key={slot} tipo="superior" ad={adMap.get(slot) || null} label={`Publicidad ${i + 1}`} className="rounded-2xl" />
+        {SLOTS.arriba.map((slot, i) => (
+          <AdPlate key={slot} ad={adMap.get(slot) || null} label={`Publicidad ${i + 1}`} className="rounded-2xl" />
         ))}
       </div>
 
@@ -250,7 +250,7 @@ export default async function HomePage({
       {placasPie.length > 0 && (
         <section aria-label="Publicidad" className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {placasPie.map((ad) => (
-            <AdPlate key={ad!.slot} tipo="pie" ad={ad!} label={`Publicidad ${ad!.slot}`} lazy />
+            <AdPlate key={ad!.slot} ad={ad!} label={`Publicidad ${nombreDeSlot(ad!.slot)}`} lazy />
           ))}
         </section>
       )}
