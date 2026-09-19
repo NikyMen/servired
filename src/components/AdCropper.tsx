@@ -53,8 +53,8 @@ function colorDelBorde(img: HTMLImageElement) {
  * Sube y encuadra la imagen de una placa (cuadrada, 800 × 800). La imagen se
  * arrastra, se acerca y también se aleja más allá de "cubrir": lo que queda
  * libre se pinta con el color de fondo, que se puede elegir, tomar de la
- * imagen con el cuentagotas o copiar/pegar como código. Al soltar, el recorte
- * se exporta a 800 × 800 y queda en el input `name`, que es lo que sube el form.
+ * imagen con el cuentagotas o copiar/pegar como código. Al guardar, el recorte
+ * se arma a 800 × 800 y va en el input `name`, que es lo que sube el form.
  */
 export function AdCropper({ name, tipo, currentUrl }: { name: string; tipo: TipoPlaca; currentUrl: string | null }) {
   const { ancho, alto } = TIPOS_PLACA[tipo];
@@ -135,38 +135,50 @@ export function AdCropper({ name, tipo, currentUrl }: { name: string; tipo: Tipo
     setVistaPrevia(canvas ? canvas.toDataURL("image/jpeg", 0.8) : null);
   }, [dibujar, ancho, alto]);
 
-  const exportar = useCallback(() => {
+  /** El recorte final, 800 × 800 en JPG, armado en el momento (sin esperar a toBlob). */
+  function archivoDelRecorte() {
     const canvas = dibujar(ancho, alto);
-    if (!canvas || !inputRef.current) return;
-    canvas.toBlob((blob) => {
-      if (!blob || !inputRef.current) return;
-      try {
-        const dt = new DataTransfer();
-        dt.items.add(new File([blob], `placa-${tipo}.jpg`, { type: "image/jpeg" }));
-        inputRef.current.files = dt.files;
-      } catch {
-        // Navegador sin DataTransfer: sube la original y la placa la recorta con object-cover.
-      }
-    }, "image/jpeg", 0.88);
-  }, [dibujar, ancho, alto, tipo]);
+    if (!canvas) return null;
+    const binario = atob(canvas.toDataURL("image/jpeg", 0.88).split(",")[1]);
+    const bytes = new Uint8Array(binario.length);
+    for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+    return new File([bytes], `placa-${tipo}.jpg`, { type: "image/jpeg" });
+  }
+  const armar = useRef(archivoDelRecorte);
+  armar.current = archivoDelRecorte;
 
-  // Con cada encuadre o fondo nuevo, el archivo que se va a subir es ese recorte.
+  // El archivo se arma al guardar, no antes: antes se exportaba con una demora
+  // y un "Guardar" rápido subía el formulario sin la imagen nueva. El listener
+  // va en captura sobre window para correr antes que React arme el FormData
+  // del server action. Además saca el aviso de "cambios sin guardar".
   useEffect(() => {
     if (!src || !cambios) return;
-    const id = setTimeout(exportar, 200);
-    return () => clearTimeout(id);
-  }, [src, cambios, exportar]);
-
-  // Salir con un recorte sin guardar pide confirmación.
-  useEffect(() => {
-    if (!cambios) return;
-    const avisar = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", avisar);
     const form = inputRef.current?.form;
-    const alGuardar = () => window.removeEventListener("beforeunload", avisar);
-    form?.addEventListener("submit", alGuardar);
-    return () => { window.removeEventListener("beforeunload", avisar); form?.removeEventListener("submit", alGuardar); };
-  }, [cambios]);
+    const avisar = (e: BeforeUnloadEvent) => e.preventDefault();
+    const alGuardar = (e: Event) => {
+      if (e.target !== form || !inputRef.current) return;
+      const archivo = armar.current();
+      if (archivo) {
+        try {
+          const dt = new DataTransfer();
+          dt.items.add(archivo);
+          inputRef.current.files = dt.files;
+        } catch {
+          setError("Este navegador no deja adjuntar el recorte: probá con Chrome, Edge o Firefox actualizados.");
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return;
+        }
+      }
+      window.removeEventListener("beforeunload", avisar);
+    };
+    window.addEventListener("beforeunload", avisar);
+    window.addEventListener("submit", alGuardar, true);
+    return () => {
+      window.removeEventListener("beforeunload", avisar);
+      window.removeEventListener("submit", alGuardar, true);
+    };
+  }, [src, cambios]);
 
   function elegir(file: File | undefined) {
     setError(null);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ipCliente } from "@/lib/intentos";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -78,10 +79,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    req.headers.get("x-real-ip") ??
-    "local";
+  const ip = ipCliente(req.headers);
   if (rateLimited(ip)) {
     return NextResponse.json(
       { error: "Estás yendo muy rápido. Probá de nuevo en un rato." },

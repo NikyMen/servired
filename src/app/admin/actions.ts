@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { FRENO_ADMIN_IP, frenoLogin, ipCliente, mensajeFrenado } from "@/lib/intentos";
 import {
   createAdminSession,
   destroyAdminSession,
@@ -33,9 +35,16 @@ export async function loginAdminAction(
   const password = String(formData.get("password") ?? "");
   const configuredEmail = process.env.ADMIN_EMAIL!.trim().toLowerCase();
 
+  // /admin ve DNI y CUIL: 5 fallos por IP cada 15 minutos y a esperar.
+  const clave = `admin:ip:${ipCliente(await headers())}`;
+  const espera = frenoLogin.frenado(clave, FRENO_ADMIN_IP);
+  if (espera) return { error: mensajeFrenado(espera) };
+
   if (email !== configuredEmail || password !== process.env.ADMIN_PASSWORD) {
+    frenoLogin.fallo(clave, FRENO_ADMIN_IP);
     return { error: "Email o contraseña incorrectos." };
   }
+  frenoLogin.limpiar(clave);
 
   await createAdminSession();
   redirect("/admin");

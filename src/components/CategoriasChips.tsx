@@ -10,11 +10,13 @@ const FILAS = 4;
 /** Alto aproximado de 4 filas (chip de 38 px, 8 de separación y el py-1): hasta medir, que no salte. */
 const ALTO_INICIAL = 4 * 38 + 3 * 8 + 8;
 
+// grow + justify-center: cada fila se estira hasta llenar el ancho, así el
+// bloque queda parejo en vez de terminar cada fila en un lugar distinto.
 const claseChip = (active: boolean) =>
-  `glass-chip shrink-0 px-3.5 py-2 text-sm font-medium whitespace-nowrap ${active ? "glass-chip-on" : "text-slate-600"}`;
+  `glass-chip inline-flex grow shrink-0 justify-center px-3.5 py-2 text-sm font-medium whitespace-nowrap ${active ? "glass-chip-on" : "text-slate-600"}`;
 const MAS = "Ver más ▾";
 const MENOS = "Ver menos ▴";
-const claseMas = "glass-chip shrink-0 px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-cliente-dark";
+const claseMas = "glass-chip inline-flex grow shrink-0 justify-center px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-cliente-dark";
 
 /**
  * Los chips de categorías, igual en el celular y en la compu: se ven hasta 4
@@ -22,13 +24,21 @@ const claseMas = "glass-chip shrink-0 px-3.5 py-2 text-sm font-semibold whitespa
  * con una transición de alto.
  *
  * Cuántos entran depende del ancho, así que se mide: una copia invisible con
- * todos los chips dice en qué fila cae cada uno y dónde cabe el botón.
+ * todos los chips dice en qué fila cae cada uno y dónde cabe el botón. Se
+ * vuelve a medir cuando cambia el tamaño de la copia (ancho de pantalla, pero
+ * también la tipografía que termina de cargar y cambia el ancho de cada chip),
+ * y una vez desplegado el alto queda libre, así nunca corta la última fila.
  */
 export function CategoriasChips({ items }: { items: Chip[] }) {
   const copia = useRef<HTMLDivElement>(null);
   // null hasta medir; corte null = entran todos en 4 filas y no hace falta el botón.
   const [medida, setMedida] = useState<{ corte: number | null; cerrado: number; abierto: number } | null>(null);
   const [abierto, setAbierto] = useState(false);
+  // Desplegado y terminada la transición: alto automático.
+  const [libre, setLibre] = useState(false);
+  // Para plegar desde "automático" hay que partir de un alto en px.
+  const [altoFijo, setAltoFijo] = useState<number | null>(null);
+  const lista = useRef<HTMLDivElement>(null);
 
   const medir = useCallback(() => {
     const caja = copia.current;
@@ -68,19 +78,37 @@ export function CategoriasChips({ items }: { items: Chip[] }) {
 
   useLayoutEffect(medir, [medir, items]);
 
-  // Se vuelve a medir solo cuando cambia el ancho (girar el celu, achicar la ventana).
+  // Cualquier cambio de tamaño de la copia es otra distribución: medir de nuevo.
+  // medir() deja la copia igual que la encontró, así que no entra en bucle.
   useEffect(() => {
     const caja = copia.current;
-    if (!caja || typeof ResizeObserver === "undefined") return;
-    let ancho = caja.clientWidth;
-    const observador = new ResizeObserver(() => {
-      if (caja.clientWidth === ancho) return;
-      ancho = caja.clientWidth;
-      medir();
-    });
+    if (!caja) return;
+    document.fonts?.ready.then(medir).catch(() => {});
+    if (typeof ResizeObserver === "undefined") return;
+    const observador = new ResizeObserver(() => medir());
     observador.observe(caja);
     return () => observador.disconnect();
   }, [medir]);
+
+  useEffect(() => {
+    if (!abierto) return setLibre(false);
+    const t = setTimeout(() => setLibre(true), 350);
+    return () => clearTimeout(t);
+  }, [abierto]);
+
+  function alternar() {
+    if (!abierto) {
+      setAbierto(true);
+      return;
+    }
+    // Plegar: fijar el alto actual en px y, ya aplicado, pasar al plegado.
+    setAltoFijo(lista.current?.scrollHeight ?? null);
+    setTimeout(() => {
+      void lista.current?.offsetHeight;
+      setAltoFijo(null);
+      setAbierto(false);
+    }, 20);
+  }
 
   const corte = medida?.corte ?? null;
   // Si la categoría elegida quedó en la parte escondida, arranca desplegado.
@@ -92,7 +120,8 @@ export function CategoriasChips({ items }: { items: Chip[] }) {
   const cortado = corte != null && !abierto;
   const visibles = cortado ? items.slice(0, corte) : items;
   const ocultos = cortado ? items.slice(corte) : [];
-  const alto = medida ? (abierto ? medida.abierto : medida.cerrado) : ALTO_INICIAL;
+  // Sin corte (entran en 4 filas) o desplegado y quieto: alto libre.
+  const alto = altoFijo ?? (!medida ? ALTO_INICIAL : corte == null ? undefined : !abierto ? medida.cerrado : libre ? undefined : medida.abierto);
 
   return (
     <div className="relative">
@@ -103,16 +132,19 @@ export function CategoriasChips({ items }: { items: Chip[] }) {
         <span data-menos className={claseMas}>{MENOS}</span>
       </div>
 
+      {/* El ::after crece de más y se queda con el sobrante de la ÚLTIMA fila:
+          esa queda con sus chips de ancho natural en vez de dos chips gigantes. */}
       <div
+        ref={lista}
         id="categorias"
-        className="flex flex-wrap content-start gap-2 overflow-hidden py-1 transition-[height] duration-300 ease-out motion-reduce:transition-none"
+        className="flex flex-wrap content-start gap-2 overflow-hidden py-1 transition-[height] duration-300 ease-out after:grow-[999] after:content-[''] motion-reduce:transition-none"
         style={{ height: alto }}
       >
         {visibles.map((item) => (
           <Link key={item.key} href={item.href} aria-current={item.active ? "true" : undefined} className={claseChip(item.active)}>{item.label}</Link>
         ))}
         {corte != null && (
-          <button type="button" onClick={() => setAbierto((v) => !v)} aria-expanded={abierto} aria-controls="categorias" className={claseMas}>
+          <button type="button" onClick={alternar} aria-expanded={abierto} aria-controls="categorias" className={claseMas}>
             {abierto ? MENOS : MAS}
           </button>
         )}

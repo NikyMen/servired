@@ -12,7 +12,7 @@ export type TipoPlaca = "lateral" | "superior" | "pie";
 export const LADO_PLACA = 800;
 
 export const TIPOS_PLACA: Record<TipoPlaca, { nombre: string; donde: string; ancho: number; alto: number; slots: string[] }> = {
-  lateral: { nombre: "Costados", donde: "Compu ancha, a los lados; acompañan el scroll", ancho: LADO_PLACA, alto: LADO_PLACA, slots: ["left-1", "left-2", "right-1", "right-2"] },
+  lateral: { nombre: "Costados", donde: "Compu ancha, 3 a cada lado; acompañan el scroll", ancho: LADO_PLACA, alto: LADO_PLACA, slots: ["left-1", "left-2", "left-3", "right-1", "right-2", "right-3"] },
   superior: { nombre: "Arriba", donde: "Celular y tablet, debajo del título: 2 filas de 3", ancho: LADO_PLACA, alto: LADO_PLACA, slots: ["mobile-1", "mobile-2", "mobile-3", "mobile-4", "mobile-5", "mobile-6"] },
   pie: { nombre: "Pie", donde: "Todas las pantallas, al final de la portada", ancho: LADO_PLACA, alto: LADO_PLACA, slots: ["bottom-1", "bottom-2", "bottom-3", "bottom-4"] },
 };

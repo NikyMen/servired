@@ -14,6 +14,7 @@ import { validarCredencial } from "../src/lib/matriculas";
 import { formatoPorContenido } from "../src/lib/kyc";
 import { RADIO_KM, agruparPuntos, formatoDistancia, haversineKm, leerPuntoCookie, puntoDePro, valorCookieUbicacion } from "../src/lib/geo";
 import { rankProfessionals } from "../src/lib/search";
+import { crearFreno, ipCliente } from "../src/lib/intentos";
 import { ENCUADRE_NEUTRO, TIPOS_PLACA, esSlotDePlaca, necesitaReencuadre, tipoDeSlot } from "../src/lib/publicidad";
 
 test("valida CUIL por formato y dígito verificador", () => {
@@ -301,6 +302,8 @@ test("todas las placas son cuadradas de 800 × 800", () => {
     assert.equal(tipo.alto, 800);
   }
   assert.equal(TIPOS_PLACA.superior.slots.length, 6);
+  assert.equal(TIPOS_PLACA.lateral.slots.length, 6);
+  assert.equal(tipoDeSlot("right-3"), "lateral");
 });
 
 test("una placa con el encuadre viejo queda marcada para re-encuadrar", () => {
@@ -309,4 +312,26 @@ test("una placa con el encuadre viejo queda marcada para re-encuadrar", () => {
   assert.equal(necesitaReencuadre({ ...base, imageScale: 1.4 }), true);
   assert.equal(necesitaReencuadre({ ...base, imageStretchX: 2 }), true);
   assert.equal(necesitaReencuadre({ ...base, imageUrl: null, imageScale: 3 }), false);
+});
+
+test("el login se frena después de 5 fallos y se destraba solo", () => {
+  const freno = crearFreno();
+  const regla = { max: 5, ventanaMs: 15 * 60 * 1000 };
+  const t0 = 1_000_000;
+  for (let i = 0; i < 4; i++) freno.fallo("a", regla, t0);
+  assert.equal(freno.frenado("a", regla, t0), null);
+  freno.fallo("a", regla, t0);
+  assert.equal(freno.frenado("a", regla, t0), 15);
+  assert.equal(freno.frenado("otra", regla, t0), null);
+  assert.equal(freno.frenado("a", regla, t0 + regla.ventanaMs + 1), null);
+  freno.fallo("b", regla, t0);
+  freno.limpiar("b");
+  assert.equal(freno.frenado("b", regla, t0), null);
+});
+
+test("la IP sale de Traefik y no de lo que manda el cliente", () => {
+  const h = (o: Record<string, string>) => ({ get: (k: string) => o[k] ?? null });
+  assert.equal(ipCliente(h({ "x-real-ip": "1.1.1.1", "x-forwarded-for": "9.9.9.9, 1.1.1.1" })), "1.1.1.1");
+  assert.equal(ipCliente(h({ "x-forwarded-for": "9.9.9.9, 2.2.2.2" })), "2.2.2.2");
+  assert.equal(ipCliente(h({})), "local");
 });

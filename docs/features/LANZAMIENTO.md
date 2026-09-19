@@ -99,3 +99,20 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
 - **Soporte (Grupo 2):** el número del botón "¿Necesitás ayuda?" sale de
   `SOPORTE_WHATSAPP` (y `SOPORTE_WHATSAPP_MENSAJE`) en el `.env`; si está,
   manda sobre lo cargado en `/admin`.
+
+### Segunda tanda (2026-09-19)
+
+- **Login con freno de intentos:** 5 fallos por cuenta y 20 por IP cada 15
+  minutos; `/admin`, 5 por IP. En memoria (`src/lib/intentos.ts`), alcanza con
+  un solo proceso. La IP sale de `X-Real-Ip` que pone Traefik (antes la IA
+  tomaba la primera de `X-Forwarded-For`, que la inventa cualquiera).
+- **Monitoreo:** `check-endpoints.sh` del VPS ahora vigila el 3655,
+  servired.consultoriadigital.io y servired.ar (aviso por Telegram). La entrada
+  vieja "servired-3060" es otra app (`/var/www/services`).
+- **Costados:** 3 placas por lado (`left-3`, `right-3`); el lado se achica
+  también con el alto de la pantalla para que las 3 entren.
+- **Categorías:** cada fila se estira hasta llenar el ancho (la última queda
+  natural). Se re-mide cuando carga la tipografía y, desplegado, el alto queda
+  libre: antes podía cortar la última fila y tapar "Ver menos".
+- **Recorte de placas:** el archivo se arma en el momento de guardar; antes se
+  preparaba con una demora y un "Guardar" rápido no subía la imagen nueva.

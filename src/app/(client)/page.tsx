@@ -83,22 +83,20 @@ export default async function HomePage({
 
   return (
     <div className="relative space-y-6">
-      {/* Laterales: rieles del alto de toda la portada con las placas
-          (cuadradas) en sticky, así acompañan el scroll. Solo desde xl, donde
-          hay lugar a los costados sin tapar el contenido; el ancho es el lugar
-          que queda al costado de los 62rem del contenido, hasta 14rem. */}
-      <div className="absolute inset-y-0 right-full mr-4 hidden w-[min(14rem,calc((100vw-62rem)/2-2rem))] xl:block">
-        <div className="sticky top-24 grid gap-4">
-          <AdPlate tipo="lateral" ad={adMap.get("left-1") || null} label="Publicidad lateral izquierda 1" />
-          <AdPlate tipo="lateral" ad={adMap.get("left-2") || null} label="Publicidad lateral izquierda 2" />
+      {/* Laterales: 3 placas cuadradas por lado, en rieles del alto de toda la
+          portada y en sticky, así acompañan el scroll. Solo desde xl, donde
+          hay lugar a los costados sin tapar el contenido. El lado es el menor
+          de: 14rem, el lugar libre al costado de los 62rem del contenido, y
+          un tercio del alto de la pantalla (así las 3 entran sin cortarse). */}
+      {(["left", "right"] as const).map((lado) => (
+        <div key={lado} className={`absolute inset-y-0 hidden w-[min(14rem,calc((100vw-62rem)/2-2rem),calc((100dvh-9rem)/3))] xl:block ${lado === "left" ? "right-full mr-4" : "left-full ml-4"}`}>
+          <div className="sticky top-24 grid gap-4">
+            {[1, 2, 3].map((n) => (
+              <AdPlate key={n} tipo="lateral" ad={adMap.get(`${lado}-${n}`) || null} label={`Publicidad lateral ${lado === "left" ? "izquierda" : "derecha"} ${n}`} />
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="absolute inset-y-0 left-full ml-4 hidden w-[min(14rem,calc((100vw-62rem)/2-2rem))] xl:block">
-        <div className="sticky top-24 grid gap-4">
-          <AdPlate tipo="lateral" ad={adMap.get("right-1") || null} label="Publicidad lateral derecha 1" />
-          <AdPlate tipo="lateral" ad={adMap.get("right-2") || null} label="Publicidad lateral derecha 2" />
-        </div>
-      </div>
+      ))}
 
       {/* Hero: banner con la foto de portada (public/servired-panel-entrada2.jpeg;
           si no está, <HeroFondo> cae en la escena dibujada en canvas) y los dos

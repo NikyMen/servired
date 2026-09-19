@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createSession, destroySession, getSessionUser, hashPassword, verifyPassword } from "@/lib/auth";
@@ -10,6 +10,7 @@ import { resolverLocalidad } from "@/lib/localidades";
 import { issueEmailVerification } from "@/lib/email-verification";
 import { setPendingVerification } from "@/lib/pending-verification";
 import { consumePasswordReset, issuePasswordReset } from "@/lib/password-reset";
+import { FRENO_LOGIN_EMAIL, FRENO_LOGIN_IP, frenoLogin, ipCliente, mensajeFrenado } from "@/lib/intentos";
 
 /** `values` repone lo escrito después de un error (React 19 vacía el form). Nunca lleva la contraseña. */
 export type AuthState = { error?: string; field?: string; values?: Record<string, string> } | undefined;
@@ -34,13 +35,23 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
     return { error: "Completá email y contraseña." };
   }
 
+  // Freno de fuerza bruta: 5 fallos por cuenta y 20 por IP cada 15 minutos.
+  // Se chequea antes de mirar la contraseña, así frenado no se puede adivinar.
+  const claveEmail = `login:email:${email}`;
+  const claveIp = `login:ip:${ipCliente(await headers())}`;
+  const espera = frenoLogin.frenado(claveEmail, FRENO_LOGIN_EMAIL) ?? frenoLogin.frenado(claveIp, FRENO_LOGIN_IP);
+  if (espera) return { error: mensajeFrenado(espera), values: { email } };
+
   const user = await prisma.user.findUnique({ where: { email } });
 
   // Mismo mensaje exista o no la cuenta: si dijéramos "ese email no existe"
   // estaríamos regalando qué direcciones están registradas.
   if (!user?.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
+    frenoLogin.fallo(claveEmail, FRENO_LOGIN_EMAIL);
+    frenoLogin.fallo(claveIp, FRENO_LOGIN_IP);
     return { error: "Email o contraseña incorrectos." };
   }
+  frenoLogin.limpiar(claveEmail);
 
   // Cuenta sin verificar: no se entra. Se reanuda el alta a medio hacer (código
   // por email) y la persona sigue como invitado hasta que confirma el código.
