@@ -63,6 +63,45 @@ localidad en la pantalla "Completá tu alta".
 Copiá `.env.example` como referencia. **La API key va en `.env.local`**: `.env`
 está trackeado por git y terminaría publicada.
 
+### Correo
+
+Dos servicios distintos, a propósito:
+
+| | Casilla | Servicio | Para qué |
+| --- | --- | --- | --- |
+| Manda | `no-reply@servired.ar` | Brevo (300/día gratis) | Código de verificación, restablecer contraseña, avisos |
+| Recibe | `consultas@servired.ar` | Zoho Mail (plan Forever Free) | Las consultas de la gente |
+
+El plan gratis de Zoho **no da SMTP**, así que no sirve para que la app mande;
+y mandar las tandas desde la casilla de consultas le bajaría la reputación con
+cada rebote. Por eso van separados: `EMAIL_FROM` sale por Brevo y
+`EMAIL_REPLY_TO` lleva las respuestas a Zoho.
+
+**DNS (en Hostinger, que es donde están los nameservers de `servired.ar`):**
+
+1. **Zoho primero** — verificar el dominio con el TXT que pida y cargar sus
+   registros MX. Sin MX la casilla no recibe nada.
+2. **Brevo después** — verificar el dominio y cargar su DKIM.
+3. **Un solo SPF con los dos.** Este es el paso donde se rompe todo: si quedan
+   dos registros TXT de SPF separados, el dominio es inválido y **todo** cae en
+   spam, incluidos los códigos de verificación. Tiene que ser una sola línea:
+
+   ```
+   v=spf1 include:zoho.com include:spf.brevo.com ~all
+   ```
+
+   Los DKIM sí van por separado: cada uno usa un nombre distinto y no se pisan.
+
+**`APP_URL` se queda en `servired.consultoriadigital.io`**, no en
+`servired.ar`: los correos llevan enlaces (`/verificar-email`, `/nueva-clave`,
+`/avisos-correo`) y `src/middleware.ts` hace que `servired.ar` sirva solo la
+landing de preinscripción y redirija el resto. Con `APP_URL` mal, nadie puede
+verificar la cuenta ni cambiar la contraseña. El `From` sí puede ser
+`@servired.ar`: el remitente no tiene que vivir donde vive la app.
+
+Después de tocar el `.env.local` del VPS: `pm2 restart servired --update-env`
+— sin `--update-env` pm2 se queda con las variables viejas.
+
 ## Cuentas
 
 El panel administrativo está en `/admin` y permite gestionar KYC, denuncias, usuarios, trabajos, anuncios, categorías, términos y condiciones y preinscripciones. Requiere `ADMIN_EMAIL`, `ADMIN_PASSWORD`

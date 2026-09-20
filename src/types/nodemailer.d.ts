@@ -3,6 +3,8 @@ declare module "nodemailer" {
   type Message = {
     from?: string;
     to: string;
+    /** Casilla que recibe las respuestas; el `from` es un no-reply. */
+    replyTo?: string;
     subject: string;
     text?: string;
     html?: string;
