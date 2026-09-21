@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { saveAdAction, swapAdsAction } from "@/app/admin/actions";
 import { AdCropper } from "@/components/AdCropper";
-import { LADO_PLACA, PLACAS, UBICACIONES } from "@/lib/publicidad";
+import { LADO_PLACA, PLACAS, SLOTS, UBICACIONES, type Ubicacion } from "@/lib/publicidad";
 
 export type AdminAd = {
   slot: string;
@@ -32,26 +32,33 @@ function estadoDe(ad: AdminAd | undefined) {
 }
 
 /**
- * Las placas de la portada, todas en una sola lista. Son todas iguales
- * (cuadradas, 800 × 800): lo único que las diferencia es dónde aparecen, así
- * que cambiar una de lugar es intercambiarla con otra, y eso es un botón.
- * No hay placas separadas para el celular y para la compu: las 9 de portada se
- * cargan una sola vez y se ven igual en las dos pantallas.
+ * Las 12 placas, agrupadas por costado. Son todas iguales (cuadradas,
+ * 800 × 800) y se cargan una sola vez para el celular y para la compu: lo único
+ * que las diferencia es dónde aparecen, así que cambiar una de lugar es
+ * intercambiarla con otra, y eso es un botón. Los 12 lugares son todos los que
+ * hay: no se agregan ni se quitan desde acá.
  */
 export function AdminPublicidad({ ads }: { ads: AdminAd[] }) {
   const porSlot = new Map(ads.map((ad) => [ad.slot, ad]));
   const [moviendo, setMoviendo] = useState<string | null>(null);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="adm-card adm-card-pad flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-600">
-        <p><strong className="text-slate-900">{PLACAS.length} lugares</strong> en la portada</p>
+        <p><strong className="text-slate-900">{PLACAS.length} lugares</strong>, y son todos</p>
         <p><strong className="text-slate-900">{ads.filter((a) => a.imageUrl && a.enabled).length}</strong> activas</p>
-        <p className="text-xs text-slate-500">Todas las placas son cuadradas de {LADO_PLACA} × {LADO_PLACA} px y se ven igual en el celular y en la compu: se carga una sola imagen por lugar. Para moverla, usá <strong>Mover</strong> y elegí con cuál se intercambia. Un lugar de <strong>Portada</strong> sin imagen muestra «Tu publicidad acá» con el WhatsApp de soporte; uno del <strong>Pie</strong> directamente no se muestra.</p>
+        <p className="text-xs text-slate-500">Todas las placas son cuadradas de {LADO_PLACA} × {LADO_PLACA} px: se sube una sola imagen por lugar y se ve igual en el celular y en la compu. En la compu, 3 van al costado izquierdo y 3 al derecho —acompañan el scroll por todo el sitio— y 6 quedan debajo de la portada; en el celular se ven las 12 juntas, de 4 en 4. Para cambiar una de lugar, usá <strong>Mover</strong> y elegí con cuál se intercambia. Un lugar sin imagen muestra «Tu publicidad acá» con el WhatsApp de soporte.</p>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        {PLACAS.map((placa, i) => {
+      {(Object.keys(UBICACIONES) as Ubicacion[]).map((ubicacion) => (
+        <section key={ubicacion} className="space-y-3">
+          <div>
+            <h3 className="font-bold text-slate-900">{UBICACIONES[ubicacion].nombre} · {SLOTS[ubicacion].length} placas</h3>
+            <p className="text-xs text-slate-500">{UBICACIONES[ubicacion].donde}</p>
+          </div>
+          <div className="grid gap-4 xl:grid-cols-2">
+        {PLACAS.filter((placa) => placa.ubicacion === ubicacion).map((placa) => {
+          const i = PLACAS.findIndex((otra) => otra.slot === placa.slot);
           const ad = porSlot.get(placa.slot);
           const estado = estadoDe(ad);
           const anterior = PLACAS[i - 1];
@@ -65,11 +72,11 @@ export function AdminPublicidad({ ads }: { ads: AdminAd[] }) {
                   <Miniatura ad={ad} />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-bold text-slate-900">{placa.nombre}</h3>
+                      <h4 className="font-bold text-slate-900">{placa.nombre}</h4>
                       <span className={`adm-badge ${estado.clase}`}>{estado.texto}</span>
                       {ad?.reencuadrar && <span className="adm-badge adm-badge-warn">Conviene reencuadrar</span>}
                     </div>
-                    <p className="truncate text-xs text-slate-500">{UBICACIONES[placa.ubicacion].donde}</p>
+                    <p className="truncate text-xs text-slate-500">Lugar {i + 1} de {PLACAS.length}</p>
                   </div>
                 </div>
 
@@ -109,7 +116,7 @@ export function AdminPublicidad({ ads }: { ads: AdminAd[] }) {
                   </div>
                   <label className="inline-flex items-center gap-2 pb-2 text-sm font-semibold text-slate-700">
                     <input type="checkbox" name="enabled" defaultChecked={ad?.enabled ?? true} className="size-4 accent-indigo-600" />
-                    Mostrar en la portada
+                    Mostrar en el sitio
                   </label>
                 </div>
 
@@ -137,7 +144,9 @@ export function AdminPublicidad({ ads }: { ads: AdminAd[] }) {
             </section>
           );
         })}
-      </div>
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

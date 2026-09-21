@@ -292,29 +292,32 @@ test("a igual relevancia va primero el más cerca", () => {
 
 test("las placas son todas iguales y lo único que cambia es el lugar", () => {
   assert.equal(LADO_PLACA, 800);
-  assert.equal(placaDeSlot("portada-1")?.ubicacion, "portada");
-  assert.equal(placaDeSlot("portada-9")?.ubicacion, "portada");
-  assert.equal(placaDeSlot("bottom-4")?.ubicacion, "pie");
-  // Los lugares viejos ya no existen: la portada es un solo grupo.
+  assert.equal(placaDeSlot("portada-1")?.ubicacion, "izquierda");
+  assert.equal(placaDeSlot("portada-6")?.ubicacion, "derecha");
+  assert.equal(placaDeSlot("bottom-1")?.ubicacion, "debajo");
+  // Los lugares de las vueltas anteriores ya no existen.
   assert.equal(placaDeSlot("left-1"), null);
   assert.equal(placaDeSlot("mobile-6"), null);
+  assert.equal(placaDeSlot("bottom-4"), null);
   assert.equal(placaDeSlot("ayuda"), null);
   assert.equal(esSlotDePlaca("cualquiera"), false);
-  assert.equal(nombreDeSlot("portada-1"), "Portada 1");
-  assert.equal(nombreDeSlot("bottom-2"), "Pie 2");
+  assert.equal(nombreDeSlot("portada-1"), "Izquierda 1");
+  assert.equal(nombreDeSlot("portada-5"), "Derecha 2");
+  assert.equal(nombreDeSlot("bottom-2"), "Debajo de la portada 5");
   assert.equal(nombreDeSlot("ayuda"), "ayuda");
   // La lista plana es exactamente la unión de los lugares, sin repetidos.
   const todos = Object.values(SLOTS).flat();
   assert.equal(PLACAS.length, todos.length);
   assert.equal(new Set(PLACAS.map((p) => p.slot)).size, PLACAS.length);
-  assert.equal(SLOTS.portada.length, 9);
-  assert.equal(SLOTS.pie.length, 4);
-  assert.equal(PLACAS.length, 13);
-  // Las 9 de portada son las mismas en el celular y en la compu: un solo grupo.
-  assert.equal(new Set(PLACAS.map((p) => p.ubicacion)).size, 2);
+  // 12 lugares y son todos: 3 + 3 a los costados y 6 debajo de la portada.
+  assert.equal(SLOTS.izquierda.length, 3);
+  assert.equal(SLOTS.derecha.length, 3);
+  assert.equal(SLOTS.debajo.length, 6);
+  assert.equal(PLACAS.length, 12);
+  assert.equal(new Set(PLACAS.map((p) => p.ubicacion)).size, 3);
   // Lo que rescata el script de mudanza no pisa ninguno de los lugares nuevos.
   assert.equal(SLOTS_VIEJOS.some((slot) => esSlotDePlaca(slot)), false);
-  assert.equal(SLOTS_VIEJOS.length, 12);
+  assert.equal(SLOTS_VIEJOS.length, 13);
 });
 
 test("una placa con el encuadre viejo queda marcada para re-encuadrar", () => {

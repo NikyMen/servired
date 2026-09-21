@@ -70,7 +70,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     { tab: "usuarios", nombre: "Usuarios", titulo: "Usuarios y oferentes", descripcion: "Las últimas 50 altas, con su estado de cuenta.", icono: "👥", grupo: "Comunidad" },
     { tab: "trabajos", nombre: "Trabajos", titulo: "Trabajos y propuestas", descripcion: "Actividad reciente del marketplace y estados comerciales.", icono: "🧰", grupo: "Comunidad" },
     { tab: "preinscripciones", nombre: "Preinscripciones", titulo: "Preinscripciones", descripcion: `${preinscriptions.length} contactos únicos captados antes del lanzamiento.`, icono: "📇", grupo: "Comunidad" },
-    { tab: "publicidad", nombre: "Publicidad", titulo: "Publicidad de la portada", descripcion: "Todas las placas son iguales: cambia dónde aparecen, y eso se mueve con un botón.", icono: "🖼️", grupo: "Portada" },
+    { tab: "publicidad", nombre: "Publicidad", titulo: "Publicidad del sitio", descripcion: "12 lugares y son todos: 3 al costado izquierdo, 3 al derecho y 6 debajo de la portada. Todas las placas son iguales; cambiar una de lugar es un botón.", icono: "🖼️", grupo: "Portada" },
     { tab: "catalogo", nombre: "Rubros", titulo: "Rubros y categorías", descripcion: "La clasificación que se ve en la portada, separada entre Profesional y Oficio.", icono: "🏷️", grupo: "Portada" },
     { tab: "soporte", nombre: "Soporte", titulo: "Botón “Necesito ayuda”", descripcion: "El WhatsApp al que escribe quien pide ayuda desde cualquier pantalla.", icono: "💬", grupo: "Sitio" },
     { tab: "localidades", nombre: "Localidades", titulo: "Localidades", descripcion: "Las que se pueden elegir al darse de alta, y el punto de cada una en el mapa.", icono: "📍", grupo: "Sitio" },
@@ -295,7 +295,7 @@ function Resumen({ usuarios, verificados, trabajos, pendientes, placasActivas, l
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2">
-        <Metric label="Placas en la portada" value={placasActivas} note="Con imagen y visibles" />
+        <Metric label="Placas de publicidad" value={placasActivas} note="Con imagen y visibles" />
         <Metric label="Localidades activas" value={localidadesActivas} note="Se ofrecen al darse de alta" />
       </section>
     </div>

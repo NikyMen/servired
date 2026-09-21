@@ -1,38 +1,49 @@
 /**
- * Placas de publicidad de la portada. Todas son la misma placa: cuadrada de
- * 800 × 800, en el celular y en la compu. Lo único que cambia de una a otra es
- * dónde aparece, así que acá no hay "tipos" ni medidas distintas: hay una
- * lista de lugares. Sin base de datos: lo usan la portada, el panel y el
- * recorte, que es de cliente.
+ * Placas de publicidad. Todas son la misma placa: cuadrada de 800 × 800, en el
+ * celular y en la compu. Lo único que cambia de una a otra es dónde aparece,
+ * así que acá no hay "tipos" ni medidas distintas: hay una lista de lugares.
+ *
+ * Son 12, ni una más: 3 en el costado izquierdo y 3 en el derecho, que
+ * acompañan el scroll en todas las pantallas del sitio, y 6 debajo de la
+ * portada. En el celular no hay costados: las 12 se ven juntas, de 4 en 4,
+ * debajo de la portada. Sin base de datos: lo usan la portada, el layout del
+ * cliente, el panel y el recorte, que es de cliente.
  */
 
 /** Medida única de todas las placas, en px. */
 export const LADO_PLACA = 800;
 
-export type Ubicacion = "portada" | "pie";
+export type Ubicacion = "izquierda" | "derecha" | "debajo";
 
 export const UBICACIONES: Record<Ubicacion, { nombre: string; donde: string }> = {
-  portada: { nombre: "Portada", donde: "Debajo de la portada, igual en celular y en compu" },
-  pie: { nombre: "Pie", donde: "Al final de la portada; si está vacía no ocupa lugar" },
+  izquierda: { nombre: "Izquierda", donde: "Franja del costado izquierdo: se ve en todo el sitio y acompaña el scroll (solo en la compu)" },
+  derecha: { nombre: "Derecha", donde: "Franja del costado derecho: se ve en todo el sitio y acompaña el scroll (solo en la compu)" },
+  debajo: { nombre: "Debajo de la portada", donde: "Debajo de la portada, en la pantalla de inicio" },
 };
 
 /**
- * Los slots de cada lugar, en el orden en que se ven en la portada. Los del pie
- * conservan el nombre viejo ("bottom-N") porque esas filas ya existen en la
- * base: cambiarles el slot sería mover el contenido sin ninguna necesidad.
+ * Los 12 lugares, en el orden en que se ven en el celular (las 12 juntas, de 4
+ * en 4). Los slots conservan los nombres viejos —`portada-N` y `bottom-N`—
+ * porque esas filas ya existen en la base con las imágenes que cargó el
+ * cliente: renombrarlas sería perder el contenido sin ninguna necesidad.
+ * `bottom-4` quedó afuera (eran 13 lugares y ahora son 12); lo que tenga
+ * cargado lo rescata `prisma/reubicar-placas.ts`.
  */
 export const SLOTS: Record<Ubicacion, string[]> = {
-  portada: Array.from({ length: 9 }, (_, i) => `portada-${i + 1}`),
-  pie: ["bottom-1", "bottom-2", "bottom-3", "bottom-4"],
+  izquierda: ["portada-1", "portada-2", "portada-3"],
+  derecha: ["portada-4", "portada-5", "portada-6"],
+  debajo: ["portada-7", "portada-8", "portada-9", "bottom-1", "bottom-2", "bottom-3"],
 };
 
 /**
- * Los lugares de antes, cuando la portada tenía tres grupos distintos: 6 solo
- * para el celular, 6 en los costados de la compu y 4 al pie. Quedan acá para
+ * Lugares que ya no se muestran, de las dos vueltas anteriores: los 6 de solo
+ * celular y los costados de antes (`mobile-*`, `left-*`, `right-*`) y el cuarto
+ * del pie, que sobraba al pasar de 13 lugares a 12. Quedan acá para
  * `prisma/reubicar-placas.ts`, que rescata lo que se había cargado en ellos.
- * El orden es el de la mudanza: primero lo que veía todo el mundo.
+ * El orden es el de la mudanza: primero lo que se veía hasta ayer.
  */
 export const SLOTS_VIEJOS = [
+  "bottom-4",
   "mobile-1", "mobile-2", "mobile-3", "mobile-4", "mobile-5", "mobile-6",
   "left-1", "left-2", "left-3",
   "right-1", "right-2", "right-3",
@@ -57,7 +68,7 @@ export function esSlotDePlaca(slot: string) {
   return POR_SLOT.has(slot);
 }
 
-/** Nombre para mostrar: "Costado izquierdo 1". Cae al slot crudo si no lo conoce. */
+/** Nombre para mostrar: "Izquierda 1". Cae al slot crudo si no lo conoce. */
 export function nombreDeSlot(slot: string) {
   return POR_SLOT.get(slot)?.nombre ?? slot;
 }

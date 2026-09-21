@@ -97,6 +97,19 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
   Al deployar se corre **una vez** `pnpm placas:reubicar`, que muda a los
   lugares nuevos las imágenes ya cargadas (sin borrar nada y sin repetir si se
   corre de nuevo).
+- **Publicidad (Grupo 8), 2026-09-21:** los lugares son **12 y son todos**. En
+  la compu, **3 en el costado izquierdo y 3 en el derecho**, fijas: acompañan el
+  scroll en **todas las pantallas del sitio**, no solo en la portada (viven en
+  el layout del cliente, `<AdsCostados>`), y **6 debajo de la portada** en una
+  fila. En el celular no hay costados: se ven las **12 juntas, de 4 en 4**,
+  debajo de la portada. Todas del mismo tamaño (cuadradas de 800 × 800). Se va
+  el grupo del **pie**: `bottom-1`…`bottom-3` pasan a ser 3 de los 6 de debajo
+  de la portada y `bottom-4` deja de mostrarse. Los slots no se renombran para
+  no perder lo cargado: `portada-1`…`portada-3` son la franja izquierda,
+  `portada-4`…`portada-6` la derecha y `portada-7`…`portada-9` +
+  `bottom-1`…`bottom-3` las de debajo. En el panel quedan agrupadas por costado.
+  Al deployar se corre **una vez** `pnpm placas:reubicar`, que ahora rescata
+  también lo que hubiera en `bottom-4`.
 - **Mensajes:** ya no es flotante (se encimaba con ServiRed IA); es un ícono en
   el encabezado, al lado de la campanita, en el celular y en la compu, que abre
   el mismo panel. Sale de la navegación de texto de la compu.

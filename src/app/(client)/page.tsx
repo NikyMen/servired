@@ -6,7 +6,7 @@ import { HeroFondo } from "@/components/HeroFondo";
 import { MapView } from "@/components/MapView";
 import { AdPlate } from "@/components/AdPlate";
 import { CategoriasChips } from "@/components/CategoriasChips";
-import { SLOTS, nombreDeSlot } from "@/lib/publicidad";
+import { PLACAS, SLOTS, nombreDeSlot } from "@/lib/publicidad";
 import { getPublicitarHref } from "@/lib/soporte";
 import { getSessionUser } from "@/lib/auth";
 import { buscarProfesionales } from "@/lib/cercanos";
@@ -82,9 +82,6 @@ export default async function HomePage({
   ]);
   const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
 
-  // Las del pie vacías o apagadas no dejan hueco al final de la portada.
-  const placasPie = SLOTS.pie.map((slot) => adMap.get(slot)).filter((ad) => ad?.enabled && ad.imageUrl);
-
   return (
     <div className="relative space-y-6">
       {/* Hero: banner con la foto de portada (public/servired-panel-entrada2.jpeg;
@@ -118,16 +115,23 @@ export default async function HomePage({
         </section>
       </div>
 
-      {/* Las 9 placas de la portada: las mismas en el celular y en la compu, y
-          en el mismo lugar. En el celular son 3 filas de 3; desde lg pasan a
-          una sola fila de 9 que se sale del ancho del contenido y ocupa toda
-          la pantalla, que es lo único que les da tamaño suficiente para que un
-          logo se lea (en 990 px, 3 por fila darían cuadrados de 320 px y más de
-          900 px de publicidad antes de las categorías). */}
-      <section aria-label="Publicidad" className="grid grid-cols-3 gap-2 sm:gap-3 lg:mx-[calc(50%-50vw)] lg:w-screen lg:grid-cols-9 lg:gap-3 lg:px-4">
-        {SLOTS.portada.map((slot, i) => (
-          <AdPlate key={slot} ad={adMap.get(slot) || null} label={`Publicidad ${i + 1}`} className="rounded-2xl" invitarHref={publicitarHref} />
-        ))}
+      {/* Las 12 placas, todas del mismo tamaño. Hasta xl no hay lugar para las
+          franjas de los costados, así que acá se ven las 12 juntas, de 4 en 4
+          (3 filas). Desde xl, 6 se van a las franjas fijas de los costados
+          (<AdsCostados>, en el layout) y acá queda una sola fila con las otras
+          6, que en 1024 px de contenido da cuadrados de ~155 px: casi la misma
+          medida que las de los costados. */}
+      <section aria-label="Publicidad">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3 xl:hidden">
+          {PLACAS.map((placa) => (
+            <AdPlate key={placa.slot} ad={adMap.get(placa.slot) || null} label={`Publicidad ${placa.nombre}`} className="rounded-2xl" invitarHref={publicitarHref} />
+          ))}
+        </div>
+        <div className="hidden gap-3 xl:grid xl:grid-cols-6">
+          {SLOTS.debajo.map((slot) => (
+            <AdPlate key={slot} ad={adMap.get(slot) || null} label={`Publicidad ${nombreDeSlot(slot)}`} className="rounded-2xl" invitarHref={publicitarHref} />
+          ))}
+        </div>
       </section>
 
       {/* Categorías: hasta 4 filas y "Ver más" despliega el resto (celu y compu). */}
@@ -240,14 +244,6 @@ export default async function HomePage({
           Publicar solicitud
         </Link>
       </section>
-
-      {placasPie.length > 0 && (
-        <section aria-label="Publicidad" className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {placasPie.map((ad) => (
-            <AdPlate key={ad!.slot} ad={ad!} label={`Publicidad ${nombreDeSlot(ad!.slot)}`} lazy />
-          ))}
-        </section>
-      )}
 
     </div>
   );

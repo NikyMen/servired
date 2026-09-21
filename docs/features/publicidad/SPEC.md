@@ -2,6 +2,19 @@
 
 **Estado:** Aprobada <!-- Borrador | En revisión | Aprobada -->
 
+> **Cambio posterior (2026-09-21), pedido directo del cliente.** Manda esta
+> nota sobre las dos de abajo. Los lugares son **12 y son todos**: **3 en el
+> costado izquierdo y 3 en el derecho**, fijas, que acompañan el scroll en
+> **todo el sitio** (no solo en la portada), y **6 debajo de la portada**. En el
+> celular no hay costados: se ven las **12 juntas, de 4 en 4**. Vuelven las
+> laterales que acompañan el scroll (RF-02, CA-02) y **se va el grupo del pie**
+> (RF-01, CA-01): de los 13 lugares anteriores queda afuera `bottom-4`. Todas
+> siguen siendo la misma placa cuadrada de 800 × 800, con una sola imagen,
+> recorte fijo con vista previa, WhatsApp y título por placa; un lugar sin
+> imagen invita a contratarlo por el WhatsApp de soporte. En el panel quedan
+> agrupadas por costado. Ver la nota del 2026-09-21 en
+> [LANZAMIENTO.md](../LANZAMIENTO.md).
+
 > **Cambio posterior (2026-09-20), pedido directo del cliente.** Lo de abajo
 > quedó viejo en un punto: la portada ya **no** tiene tres grupos distintos.
 > Hay **9 placas iguales** (`portada-1`…`portada-9`) debajo de la portada, las
