@@ -9,22 +9,34 @@
 /** Medida única de todas las placas, en px. */
 export const LADO_PLACA = 800;
 
-export type Ubicacion = "izquierda" | "derecha" | "arriba" | "pie";
+export type Ubicacion = "portada" | "pie";
 
 export const UBICACIONES: Record<Ubicacion, { nombre: string; donde: string }> = {
-  izquierda: { nombre: "Costado izquierdo", donde: "Compu ancha: acompaña el scroll a la izquierda" },
-  derecha: { nombre: "Costado derecho", donde: "Compu ancha: acompaña el scroll a la derecha" },
-  arriba: { nombre: "Arriba", donde: "Celular y tablet: dos filas de tres, debajo del título" },
-  pie: { nombre: "Pie", donde: "Todas las pantallas: al final de la portada" },
+  portada: { nombre: "Portada", donde: "Debajo de la portada, igual en celular y en compu" },
+  pie: { nombre: "Pie", donde: "Al final de la portada; si está vacía no ocupa lugar" },
 };
 
-/** Los slots de cada lugar, en el orden en que se ven en la portada. */
+/**
+ * Los slots de cada lugar, en el orden en que se ven en la portada. Los del pie
+ * conservan el nombre viejo ("bottom-N") porque esas filas ya existen en la
+ * base: cambiarles el slot sería mover el contenido sin ninguna necesidad.
+ */
 export const SLOTS: Record<Ubicacion, string[]> = {
-  izquierda: ["left-1", "left-2", "left-3"],
-  derecha: ["right-1", "right-2", "right-3"],
-  arriba: ["mobile-1", "mobile-2", "mobile-3", "mobile-4", "mobile-5", "mobile-6"],
+  portada: Array.from({ length: 9 }, (_, i) => `portada-${i + 1}`),
   pie: ["bottom-1", "bottom-2", "bottom-3", "bottom-4"],
 };
+
+/**
+ * Los lugares de antes, cuando la portada tenía tres grupos distintos: 6 solo
+ * para el celular, 6 en los costados de la compu y 4 al pie. Quedan acá para
+ * `prisma/reubicar-placas.ts`, que rescata lo que se había cargado en ellos.
+ * El orden es el de la mudanza: primero lo que veía todo el mundo.
+ */
+export const SLOTS_VIEJOS = [
+  "mobile-1", "mobile-2", "mobile-3", "mobile-4", "mobile-5", "mobile-6",
+  "left-1", "left-2", "left-3",
+  "right-1", "right-2", "right-3",
+];
 
 export type Placa = { slot: string; ubicacion: Ubicacion; numero: number; nombre: string };
 

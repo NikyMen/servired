@@ -11,6 +11,7 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "migrate:servired": "tsx prisma/migrate-servired.ts",
+    "placas:reubicar": "tsx prisma/reubicar-placas.ts",
     "db:studio": "prisma studio",
     "test": "tsx --test tests/**/*.test.ts",
     "postinstall": "prisma generate"

@@ -15,7 +15,7 @@ import { formatoPorContenido } from "../src/lib/kyc";
 import { RADIO_KM, agruparPuntos, formatoDistancia, haversineKm, leerPuntoCookie, puntoDePro, valorCookieUbicacion } from "../src/lib/geo";
 import { rankProfessionals } from "../src/lib/search";
 import { crearFreno, ipCliente } from "../src/lib/intentos";
-import { ENCUADRE_NEUTRO, LADO_PLACA, PLACAS, SLOTS, esSlotDePlaca, necesitaReencuadre, nombreDeSlot, placaDeSlot } from "../src/lib/publicidad";
+import { ENCUADRE_NEUTRO, LADO_PLACA, PLACAS, SLOTS, SLOTS_VIEJOS, esSlotDePlaca, necesitaReencuadre, nombreDeSlot, placaDeSlot } from "../src/lib/publicidad";
 
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
@@ -292,20 +292,29 @@ test("a igual relevancia va primero el más cerca", () => {
 
 test("las placas son todas iguales y lo único que cambia es el lugar", () => {
   assert.equal(LADO_PLACA, 800);
-  assert.equal(placaDeSlot("left-1")?.ubicacion, "izquierda");
-  assert.equal(placaDeSlot("right-3")?.ubicacion, "derecha");
-  assert.equal(placaDeSlot("mobile-6")?.ubicacion, "arriba");
+  assert.equal(placaDeSlot("portada-1")?.ubicacion, "portada");
+  assert.equal(placaDeSlot("portada-9")?.ubicacion, "portada");
   assert.equal(placaDeSlot("bottom-4")?.ubicacion, "pie");
+  // Los lugares viejos ya no existen: la portada es un solo grupo.
+  assert.equal(placaDeSlot("left-1"), null);
+  assert.equal(placaDeSlot("mobile-6"), null);
   assert.equal(placaDeSlot("ayuda"), null);
   assert.equal(esSlotDePlaca("cualquiera"), false);
-  assert.equal(nombreDeSlot("left-1"), "Costado izquierdo 1");
+  assert.equal(nombreDeSlot("portada-1"), "Portada 1");
+  assert.equal(nombreDeSlot("bottom-2"), "Pie 2");
   assert.equal(nombreDeSlot("ayuda"), "ayuda");
   // La lista plana es exactamente la unión de los lugares, sin repetidos.
   const todos = Object.values(SLOTS).flat();
   assert.equal(PLACAS.length, todos.length);
   assert.equal(new Set(PLACAS.map((p) => p.slot)).size, PLACAS.length);
-  assert.equal(SLOTS.arriba.length, 6);
-  assert.equal(SLOTS.izquierda.length + SLOTS.derecha.length, 6);
+  assert.equal(SLOTS.portada.length, 9);
+  assert.equal(SLOTS.pie.length, 4);
+  assert.equal(PLACAS.length, 13);
+  // Las 9 de portada son las mismas en el celular y en la compu: un solo grupo.
+  assert.equal(new Set(PLACAS.map((p) => p.ubicacion)).size, 2);
+  // Lo que rescata el script de mudanza no pisa ninguno de los lugares nuevos.
+  assert.equal(SLOTS_VIEJOS.some((slot) => esSlotDePlaca(slot)), false);
+  assert.equal(SLOTS_VIEJOS.length, 12);
 });
 
 test("una placa con el encuadre viejo queda marcada para re-encuadrar", () => {

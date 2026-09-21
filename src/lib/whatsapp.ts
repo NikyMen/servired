@@ -10,6 +10,9 @@ export function saludoPerfil(nombre: string) {
 
 export const AYUDA_DEFAULT = "Hola, necesito ayuda con ServiRed.";
 
+/** Con lo que arranca el chat al tocar una placa de publicidad libre. */
+export const PUBLICITAR_DEFAULT = "Hola, quiero publicitar en ServiRed. ¿Me pasan información?";
+
 /**
  * wa.me quiere el número con país y sin signos. Los perfiles guardan el
  * teléfono como lo escribió la persona: si trae el 0 de larga distancia se lo

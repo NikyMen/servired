@@ -2,6 +2,18 @@
 
 **Estado:** Aprobada <!-- Borrador | En revisión | Aprobada -->
 
+> **Cambio posterior (2026-09-20), pedido directo del cliente.** Lo de abajo
+> quedó viejo en un punto: la portada ya **no** tiene tres grupos distintos.
+> Hay **9 placas iguales** (`portada-1`…`portada-9`) debajo de la portada, las
+> mismas en el celular y en la compu (3 filas de 3 en el celular; una fila de 9
+> a todo el ancho desde `lg`), más las **4 del pie**, que siguen igual. Ya no
+> existen las laterales que acompañan el scroll (RF-02, CA-02) ni las de solo
+> celular. Una placa de portada sin imagen **invita a contratarla** por el
+> WhatsApp de soporte en vez de mostrar "ADS". Todo lo demás —placa cuadrada de
+> 800 × 800, una sola imagen, recorte fijo con vista previa, WhatsApp y título
+> por placa— sigue valiendo. Ver la nota del 2026-09-20 en
+> [LANZAMIENTO.md](../LANZAMIENTO.md).
+
 <!-- PARA LA PERSONA
 Copia esta plantilla como SPEC.md en una carpeta de la funcionalidad.
 Pide al agente que la complete contigo usando MOBILE_GUIDELINES.md.

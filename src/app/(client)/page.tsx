@@ -7,6 +7,7 @@ import { MapView } from "@/components/MapView";
 import { AdPlate } from "@/components/AdPlate";
 import { CategoriasChips } from "@/components/CategoriasChips";
 import { SLOTS, nombreDeSlot } from "@/lib/publicidad";
+import { getPublicitarHref } from "@/lib/soporte";
 import { getSessionUser } from "@/lib/auth";
 import { buscarProfesionales } from "@/lib/cercanos";
 import { RADIO_KM, formatoDistancia, haversineKm } from "@/lib/geo";
@@ -75,7 +76,10 @@ export default async function HomePage({
   searchParams: Promise<Search>;
 }) {
   const params = await searchParams;
-  const { user, ubicacion, categories, pros, requests, workPhotos, ads, contactedUserIds } = await getData(params);
+  const [{ user, ubicacion, categories, pros, requests, workPhotos, ads, contactedUserIds }, publicitarHref] = await Promise.all([
+    getData(params),
+    getPublicitarHref(),
+  ]);
   const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
 
   // Las del pie vacías o apagadas no dejan hueco al final de la portada.
@@ -83,21 +87,6 @@ export default async function HomePage({
 
   return (
     <div className="relative space-y-6">
-      {/* Laterales: 3 placas cuadradas por lado, en rieles del alto de toda la
-          portada y en sticky, así acompañan el scroll. Solo desde xl, donde
-          hay lugar a los costados sin tapar el contenido. El lado es el menor
-          de: 14rem, el lugar libre al costado de los 62rem del contenido, y
-          un tercio del alto de la pantalla (así las 3 entran sin cortarse). */}
-      {(["left", "right"] as const).map((lado) => (
-        <div key={lado} className={`absolute inset-y-0 hidden w-[min(14rem,calc((100vw-62rem)/2-2rem),calc((100dvh-9rem)/3))] xl:block ${lado === "left" ? "right-full mr-4" : "left-full ml-4"}`}>
-          <div className="sticky top-24 grid gap-4">
-            {[1, 2, 3].map((n) => (
-              <AdPlate key={n} ad={adMap.get(`${lado}-${n}`) || null} label={`Publicidad lateral ${lado === "left" ? "izquierda" : "derecha"} ${n}`} />
-            ))}
-          </div>
-        </div>
-      ))}
-
       {/* Hero: banner con la foto de portada (public/servired-panel-entrada2.jpeg;
           si no está, <HeroFondo> cae en la escena dibujada en canvas) y los dos
           filtros Profesionales/Oficios apoyados encima. La búsqueda vive en el
@@ -129,12 +118,17 @@ export default async function HomePage({
         </section>
       </div>
 
-      {/* Celular y tablet: 2 filas de 3 placas cuadradas. */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 xl:hidden">
-        {SLOTS.arriba.map((slot, i) => (
-          <AdPlate key={slot} ad={adMap.get(slot) || null} label={`Publicidad ${i + 1}`} className="rounded-2xl" />
+      {/* Las 9 placas de la portada: las mismas en el celular y en la compu, y
+          en el mismo lugar. En el celular son 3 filas de 3; desde lg pasan a
+          una sola fila de 9 que se sale del ancho del contenido y ocupa toda
+          la pantalla, que es lo único que les da tamaño suficiente para que un
+          logo se lea (en 990 px, 3 por fila darían cuadrados de 320 px y más de
+          900 px de publicidad antes de las categorías). */}
+      <section aria-label="Publicidad" className="grid grid-cols-3 gap-2 sm:gap-3 lg:mx-[calc(50%-50vw)] lg:w-screen lg:grid-cols-9 lg:gap-3 lg:px-4">
+        {SLOTS.portada.map((slot, i) => (
+          <AdPlate key={slot} ad={adMap.get(slot) || null} label={`Publicidad ${i + 1}`} className="rounded-2xl" invitarHref={publicitarHref} />
         ))}
-      </div>
+      </section>
 
       {/* Categorías: hasta 4 filas y "Ver más" despliega el resto (celu y compu). */}
       <CategoriasChips

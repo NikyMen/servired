@@ -21,7 +21,7 @@ la aprobación explícita de la anterior. Plantillas: [SPEC_TEMPLATE](../SPEC_TE
 | 5 | [Avisos por correo](avisos-correo/SPEC.md) | Aviso de mensajes sin contestar · aviso solo a los rubros propios · propuestas | M | SMTP de producción | Aprobada | [Aprobado](avisos-correo/PLAN.md) · [Tareas](avisos-correo/TASKS.md) |
 | 6 | [Matrículas](matriculas/SPEC.md) | Matrícula o certificado pendiente de aprobación | M | — | Aprobada | [Aprobado](matriculas/PLAN.md) · [Tareas](matriculas/TASKS.md) |
 | 7 | [Mapa y ubicación](mapa-ubicacion/SPEC.md), parte B | Mapa oculto al invitado · ubicación en tiempo real · sección Mapa en el nav · 20 km a la redonda · ideas de elLaburante | L | 3, 4, 6 | Aprobada | [Aprobado](mapa-ubicacion/PLAN-B-mapa.md) · [Tareas](mapa-ubicacion/TASKS-B-mapa.md) |
-| 8 | [Publicidad](publicidad/SPEC.md) | 4 placas al pie · laterales que siguen el scroll · rediseño de la carga | M | 2 | Aprobada | [Aprobado](publicidad/PLAN.md) · [Tareas](publicidad/TASKS.md) |
+| 8 | [Publicidad](publicidad/SPEC.md) | 9 placas iguales debajo de la portada · 4 al pie · rediseño de la carga | M | 2 | Aprobada | [Aprobado](publicidad/PLAN.md) · [Tareas](publicidad/TASKS.md) |
 
 La 8 se puede hacer en paralelo con la 7.
 
@@ -87,6 +87,16 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
   pintar el resto con un color de fondo: selector, código para copiar/pegar,
   cuentagotas sobre la imagen y "color del borde" automático. Las imágenes que
   no son cuadradas se marcan para re-encuadrar.
+- **Publicidad (Grupo 8), 2026-09-20:** la portada tiene **un solo grupo de 9
+  placas** (`portada-1`…`portada-9`), iguales en el celular y en la compu y en
+  el mismo lugar: debajo de la portada. En el celular son 3 filas de 3; desde
+  `lg` es una sola fila de 9 a todo el ancho de la pantalla. **Se van los
+  costados** (`left-*`, `right-*`) y las de solo celular (`mobile-*`). Un lugar
+  de portada sin imagen muestra «Tu publicidad acá / Contactanos» y abre el
+  WhatsApp de soporte; los 4 del pie siguen ocultándose cuando están vacíos.
+  Al deployar se corre **una vez** `pnpm placas:reubicar`, que muda a los
+  lugares nuevos las imágenes ya cargadas (sin borrar nada y sin repetir si se
+  corre de nuevo).
 - **Mensajes:** ya no es flotante (se encimaba con ServiRed IA); es un ícono en
   el encabezado, al lado de la campanita, en el celular y en la compu, que abre
   el mismo panel. Sale de la navegación de texto de la compu.

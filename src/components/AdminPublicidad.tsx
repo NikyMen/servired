@@ -35,6 +35,8 @@ function estadoDe(ad: AdminAd | undefined) {
  * Las placas de la portada, todas en una sola lista. Son todas iguales
  * (cuadradas, 800 × 800): lo único que las diferencia es dónde aparecen, así
  * que cambiar una de lugar es intercambiarla con otra, y eso es un botón.
+ * No hay placas separadas para el celular y para la compu: las 9 de portada se
+ * cargan una sola vez y se ven igual en las dos pantallas.
  */
 export function AdminPublicidad({ ads }: { ads: AdminAd[] }) {
   const porSlot = new Map(ads.map((ad) => [ad.slot, ad]));
@@ -45,7 +47,7 @@ export function AdminPublicidad({ ads }: { ads: AdminAd[] }) {
       <div className="adm-card adm-card-pad flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-600">
         <p><strong className="text-slate-900">{PLACAS.length} lugares</strong> en la portada</p>
         <p><strong className="text-slate-900">{ads.filter((a) => a.imageUrl && a.enabled).length}</strong> activas</p>
-        <p className="text-xs text-slate-500">Todas las placas son cuadradas de {LADO_PLACA} × {LADO_PLACA} px. La misma imagen sirve para cualquier lugar: para moverla, usá <strong>Mover</strong> y elegí con cuál se intercambia.</p>
+        <p className="text-xs text-slate-500">Todas las placas son cuadradas de {LADO_PLACA} × {LADO_PLACA} px y se ven igual en el celular y en la compu: se carga una sola imagen por lugar. Para moverla, usá <strong>Mover</strong> y elegí con cuál se intercambia. Un lugar de <strong>Portada</strong> sin imagen muestra «Tu publicidad acá» con el WhatsApp de soporte; uno del <strong>Pie</strong> directamente no se muestra.</p>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">

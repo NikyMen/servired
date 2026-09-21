@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { AYUDA_DEFAULT, telefonoLegible, validSupportPhone, waLink } from "@/lib/whatsapp";
+import { AYUDA_DEFAULT, PUBLICITAR_DEFAULT, telefonoLegible, validSupportPhone, waLink } from "@/lib/whatsapp";
 
 /**
  * El WhatsApp de soporte vive en la tabla de placas con una clave reservada:
@@ -21,13 +21,33 @@ export function soporteDelEnv() {
   return { phone, message: process.env.SOPORTE_WHATSAPP_MENSAJE?.trim() || AYUDA_DEFAULT };
 }
 
-/** Para el botón flotante y el footer: null si no hay número cargado o está apagado. */
-export const getSoporte = cache(async () => {
+/**
+ * El número que atiende, venga del .env o del panel, con el texto que tenga
+ * cargado. Null si no hay ninguno o está apagado.
+ */
+const numeroDeSoporte = cache(async () => {
   const env = soporteDelEnv();
-  if (env) return { href: waLink(env.phone, env.message), telefono: telefonoLegible(env.phone) };
+  if (env) return env;
   const row = await prisma.ad.findUnique({ where: { slot: SOPORTE_SLOT }, select: { whatsappPhone: true, whatsappMessage: true, enabled: true } });
   if (!row?.enabled || !row.whatsappPhone) return null;
-  return { href: waLink(row.whatsappPhone, row.whatsappMessage || AYUDA_DEFAULT), telefono: telefonoLegible(row.whatsappPhone) };
+  return { phone: row.whatsappPhone, message: row.whatsappMessage || AYUDA_DEFAULT };
+});
+
+/** Para el botón flotante y el footer: null si no hay número cargado o está apagado. */
+export const getSoporte = cache(async () => {
+  const soporte = await numeroDeSoporte();
+  if (!soporte) return null;
+  return { href: waLink(soporte.phone, soporte.message), telefono: telefonoLegible(soporte.phone) };
+});
+
+/**
+ * El mismo WhatsApp, pero con el texto del que quiere publicitar: es lo que
+ * abren las placas libres de la portada. Null si no hay número: en ese caso la
+ * placa vuelve a mostrar "ADS", sin invitar a nada que no se pueda contestar.
+ */
+export const getPublicitarHref = cache(async () => {
+  const soporte = await numeroDeSoporte();
+  return soporte ? waLink(soporte.phone, PUBLICITAR_DEFAULT) : null;
 });
 
 /** Lo que muestra el formulario de administración. */
