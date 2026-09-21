@@ -104,8 +104,8 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
         <div className="w-full max-w-md">{children}</div>
       </main>
 
-      {/* Acá no hay barra inferior: el botón baja hasta el borde. */}
-      {soporte && <AyudaFlotante href={soporte.href} abajo="bottom-4" />}
+      {/* Acá no hay barra inferior ni ServiRed IA: el botón baja hasta el borde. */}
+      {soporte && <AyudaFlotante href={soporte.href} abajo="bottom-4 md:bottom-6" />}
     </div>
   );
 }

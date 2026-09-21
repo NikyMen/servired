@@ -17,7 +17,8 @@ const proLinks = [
   { href: "/pro/mensajes", label: "Mensajes" },
 ];
 
-export function Footer({ mode, soporte }: { mode: Mode; soporte?: { href: string; telefono: string } | null }) {
+// Del soporte acá solo sale el link: el número no se muestra.
+export function Footer({ mode, soporte }: { mode: Mode; soporte?: { href: string } | null }) {
   const isPro = mode === "pro";
   const links = isPro ? proLinks : clientLinks;
 
@@ -89,11 +90,11 @@ export function Footer({ mode, soporte }: { mode: Mode; soporte?: { href: string
                 href={soporte.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`Soporte por WhatsApp al ${soporte.telefono} (se abre en una pestaña nueva)`}
+                aria-label="Soporte por WhatsApp (se abre en una pestaña nueva)"
                 className="glass-chip px-3.5 py-2.5 text-sm font-medium whitespace-nowrap text-slate-700"
               >
                 <WhatsAppIcon width={20} height={20} className="text-[#25D366]" />
-                {soporte.telefono}
+                Escribinos por WhatsApp
               </a>
             </div>
           )}
