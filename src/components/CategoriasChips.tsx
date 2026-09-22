@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 export type Chip = { key: string; href: string; label: string; active: boolean };
 
@@ -30,6 +30,7 @@ const claseMas = "glass-chip inline-flex grow shrink-0 justify-center px-3.5 py-
  * y una vez desplegado el alto queda libre, así nunca corta la última fila.
  */
 export function CategoriasChips({ items }: { items: Chip[] }) {
+  const listaId = useId();
   const copia = useRef<HTMLDivElement>(null);
   // null hasta medir; corte null = entran todos en 4 filas y no hace falta el botón.
   const [medida, setMedida] = useState<{ corte: number | null; cerrado: number; abierto: number } | null>(null);
@@ -132,19 +133,17 @@ export function CategoriasChips({ items }: { items: Chip[] }) {
         <span data-menos className={claseMas}>{MENOS}</span>
       </div>
 
-      {/* El ::after crece de más y se queda con el sobrante de la ÚLTIMA fila:
-          esa queda con sus chips de ancho natural en vez de dos chips gigantes. */}
       <div
         ref={lista}
-        id="categorias"
-        className="flex flex-wrap content-start gap-2 overflow-hidden py-1 transition-[height] duration-300 ease-out after:grow-[999] after:content-[''] motion-reduce:transition-none"
+        id={listaId}
+        className="flex flex-wrap content-start gap-2 overflow-hidden py-1 transition-[height] duration-300 ease-out motion-reduce:transition-none"
         style={{ height: alto }}
       >
         {visibles.map((item) => (
           <Link key={item.key} href={item.href} aria-current={item.active ? "true" : undefined} className={claseChip(item.active)}>{item.label}</Link>
         ))}
         {corte != null && (
-          <button type="button" onClick={alternar} aria-expanded={abierto} aria-controls="categorias" className={claseMas}>
+          <button type="button" onClick={alternar} aria-expanded={abierto} aria-controls={listaId} className={claseMas}>
             {abierto ? MENOS : MAS}
           </button>
         )}

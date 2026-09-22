@@ -61,13 +61,13 @@ async function getData({ q, categoria, tipo }: Search) {
   };
 }
 
-function chipHref(params: Search, categoria: string) {
+function chipHref(params: Search, categoria: string, destino: "categorias" | "resultados" = "resultados") {
   const sp = new URLSearchParams();
   if (params.q) sp.set("q", params.q);
   if (params.tipo) sp.set("tipo", params.tipo);
   if (categoria) sp.set("categoria", categoria);
   const qs = sp.toString();
-  return qs ? `/?${qs}#resultados` : "/#resultados";
+  return qs ? `/?${qs}#${destino}` : `/#${destino}`;
 }
 
 export default async function HomePage({
@@ -140,11 +140,11 @@ export default async function HomePage({
         </div>
       </section>
 
-      <section aria-label="Categorías de servicios" className="space-y-3">
+      <section id="categorias" aria-label="Categorías de servicios" className="scroll-mt-28 space-y-3">
         <CategoriasChips
           items={[
             { key: "", href: chipHref(params, ""), label: "Todos", active: !params.categoria },
-            ...principales.map((category) => ({ key: category.slug, href: chipHref(params, category.slug), label: `${category.icon} ${category.name}`, active: principalSeleccionada?.id === category.id })),
+            ...principales.map((category) => ({ key: category.slug, href: chipHref(params, category.slug, "categorias"), label: `${category.icon} ${category.name}`, active: principalSeleccionada?.id === category.id })),
           ]}
         />
         {principalSeleccionada && subcategorias.length > 0 && (

@@ -20,7 +20,7 @@ const ANCHO_PLACA = "min(clamp(88px, calc((100vw - 64rem) / 2 - 2.5rem), 170px),
 
 /**
  * Las dos franjas de publicidad de los costados: 3 placas a la izquierda y 3 a
- * la derecha, fijas, que acompañan el scroll en todas las pantallas del sitio
+ * la derecha, fijas y alineadas con el inicio de la portada, que acompañan el scroll en todas las pantallas del sitio
  * (va en el layout del cliente, no en la portada).
  *
  * Solo desde `xl` (1280 px), que es el primer ancho donde sobra lugar a los
@@ -43,7 +43,7 @@ export async function AdsCostados() {
         <aside
           key={lado}
           aria-label={`Publicidad, costado ${lado}`}
-          className={`fixed top-1/2 z-20 hidden -translate-y-1/2 flex-col gap-3 px-3 xl:flex ${lado === "izquierda" ? "left-0" : "right-0"}`}
+          className={`fixed top-28 z-20 hidden flex-col gap-3 px-3 xl:flex ${lado === "izquierda" ? "left-0" : "right-0"}`}
           style={{ width: `calc(${ANCHO_PLACA} + 1.5rem)` }}
         >
           {SLOTS[lado].map((slot) => (
