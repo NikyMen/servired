@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { mandarAvisoMensaje } from "@/lib/avisos-correo";
 
 /**
  * Avisos de la campanita. Son una tabla y no una cuenta calculada porque
@@ -65,5 +67,8 @@ export async function notificarMensaje(db: Db, opciones: { conversationId: strin
     body: opciones.texto.trim().slice(0, 120) || "Te mandó un archivo",
     url: `${opciones.paraRol === "profesional" ? "/pro" : ""}/mensajes?conversacion=${opciones.conversationId}`,
     groupKey: `msg:${opciones.conversationId}`,
+  });
+  after(async () => {
+    await mandarAvisoMensaje({ ...opciones, paraUserId: opciones.paraUserId! });
   });
 }

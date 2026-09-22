@@ -6,7 +6,7 @@ import { type TipoAviso, esTipoAviso } from "@/lib/avisos-correo-tipos";
 export { ETIQUETA_AVISO, TIPOS_AVISO, esTipoAviso, type TipoAviso } from "@/lib/avisos-correo-tipos";
 
 /**
- * Avisos por correo: mensajes sin contestar, solicitudes del rubro y
+ * Avisos por correo: mensajes nuevos o sin contestar, solicitudes del rubro y
  * presupuestos. La campanita sigue igual; esto es lo que llega a quien no
  * está entrando al sitio. Cada tipo se puede apagar por separado.
  */
@@ -90,6 +90,13 @@ function escapar(texto: string) {
 
 type Contenido = { asunto: string; titulo: string; texto: string; url: string; boton: string };
 
+type AvisoMensaje = {
+  conversationId: string;
+  paraUserId: string;
+  paraRol: "cliente" | "profesional";
+  deNombre: string;
+};
+
 /**
  * Manda un aviso si la cuenta puede y quiere recibirlo. Nunca tira: un fallo
  * del correo no puede tirar abajo lo que la persona estaba haciendo (mandar
@@ -121,6 +128,26 @@ export async function mandarAviso(userId: string, tipo: TipoAviso, contenido: Co
     console.error("[avisos-correo]", tipo, userId, error instanceof Error ? error.message : error);
     return false;
   }
+}
+
+/** Avisa un mensaje nuevo y sella el hilo para que el barrido no duplique el correo. */
+export async function mandarAvisoMensaje(opciones: AvisoMensaje) {
+  const salio = await mandarAviso(opciones.paraUserId, "mensajes", {
+    asunto: `${opciones.deNombre} te mandó un mensaje en ServiRed`,
+    titulo: `Tenés un mensaje de ${opciones.deNombre}`,
+    texto: "Ingresá a ServiRed para verlo y responder.",
+    url: `${opciones.paraRol === "profesional" ? "/pro" : ""}/mensajes?conversacion=${opciones.conversationId}`,
+    boton: "Ver mensaje",
+  });
+  if (!salio) return false;
+
+  await prisma.conversation.updateMany({
+    where: { id: opciones.conversationId },
+    data: opciones.paraRol === "cliente"
+      ? { mailAvisoClienteAt: new Date() }
+      : { mailAvisoProAt: new Date() },
+  });
+  return true;
 }
 
 /**

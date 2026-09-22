@@ -3,7 +3,7 @@ export const TIPOS_AVISO = ["mensajes", "solicitudes", "propuestas"] as const;
 export type TipoAviso = (typeof TIPOS_AVISO)[number];
 
 export const ETIQUETA_AVISO: Record<TipoAviso, string> = {
-  mensajes: "Mensajes sin contestar",
+  mensajes: "Mensajes nuevos y sin contestar",
   solicitudes: "Solicitudes nuevas de mis rubros",
   propuestas: "Presupuestos recibidos, aceptados o rechazados",
 };

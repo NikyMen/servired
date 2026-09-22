@@ -37,10 +37,10 @@ pnpm dev            # levanta el servidor en http://localhost:3000
 > los profesionales que se dieron de alta cuando era la única opción. La lista
 > de localidades se carga sola la primera vez que se pide.
 
-> **Avisos por correo:** con SMTP configurado, los presupuestos y las
-> solicitudes del rubro salen en el momento. El recordatorio de "mensajes sin
-> contestar" lo dispara un crontab cada 15 minutos (ver `CRON_SECRET` en
-> `.env.example`); sin esa clave la ruta queda apagada.
+> **Avisos por correo:** con SMTP configurado, cada mensaje, los presupuestos y
+> las solicitudes del rubro salen en el momento. Si el aviso inmediato de un
+> mensaje falla, el crontab lo reintenta como recordatorio después de 12 horas
+> (ver `CRON_SECRET` en `.env.example`).
 
 > `pnpm setup` = `prisma db push` + `prisma db seed`.
 > Si cambiás el esquema (`prisma/schema.prisma`), corré `pnpm db:push` **y
