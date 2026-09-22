@@ -8,7 +8,7 @@ import { BookingActions } from "@/components/BookingActions";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
 import { ChatIcon, CheckCircleIcon, ChevronLeftIcon } from "@/components/icons";
 import { expirePendingProposals } from "@/lib/workflow";
-import { canRevealPaymentDetails } from "@/lib/payments";
+import { mercadoPagoConfigured } from "@/lib/mercadopago";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mis propuestas" };
@@ -28,7 +28,7 @@ export default async function ContratacionesPage({
     ? await prisma.booking.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "desc" },
-        include: { professional: true, service: true, attachments: true, proposals: { orderBy: { createdAt: "desc" } }, payments: { orderBy: { createdAt: "desc" } } },
+        include: { professional: { include: { mercadoPago: { select: { professionalId: true } } } }, service: true, attachments: true, proposals: { orderBy: { createdAt: "desc" } }, payments: { orderBy: { createdAt: "desc" } } },
       })
     : [];
   const conversations = user
@@ -85,7 +85,7 @@ export default async function ContratacionesPage({
                   {b.workSummary && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-pro-dark">{b.workSummary}</p>}
                   {b.payments.map((payment) => <p key={payment.id} className={`rounded-xl px-3 py-2 text-xs font-semibold ${payment.status === "pagado" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>Pago {payment.status}: {formatARS(payment.amount)}</p>)}
                   {b.attachments.length > 0 && <div className="flex flex-wrap gap-2">{b.attachments.map((attachment) => <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer"><img src={attachment.url} alt={attachment.name} className="size-20 rounded-xl object-cover ring-1 ring-slate-200" /></a>)}</div>}
-                  <div className="flex flex-wrap items-center justify-between gap-3">{conversationId ? <Link href={`/mensajes?conversacion=${conversationId}`} className="inline-flex items-center gap-2 rounded-xl bg-cliente px-4 py-2 text-sm font-semibold text-white"><ChatIcon width={17} height={17} />Chatear</Link> : <span />}<BookingActions bookingId={b.id} status={b.status} viewer="cliente" proposal={b.proposals[0] ?? null} finalPrice={b.finalPrice} paymentHandle={canRevealPaymentDetails(b.status) ? b.professional.paymentHandle : null} paymentHandleKind={canRevealPaymentDetails(b.status) ? b.professional.paymentHandleKind : null} paidPaymentId={b.payments.find((payment) => payment.status === "pagado")?.id} /></div>
+                  <div className="flex flex-wrap items-center justify-between gap-3">{conversationId ? <Link href={`/mensajes?conversacion=${conversationId}`} className="inline-flex items-center gap-2 rounded-xl bg-cliente px-4 py-2 text-sm font-semibold text-white"><ChatIcon width={17} height={17} />Chatear</Link> : <span />}<BookingActions bookingId={b.id} status={b.status} viewer="cliente" proposal={b.proposals[0] ?? null} finalPrice={b.finalPrice} paidPaymentId={b.payments.find((payment) => payment.status === "pagado")?.id} mercadoPagoAvailable={mercadoPagoConfigured() && Boolean(b.professional.mercadoPago)} /></div>
                 </div>
               </details>
             </li>;

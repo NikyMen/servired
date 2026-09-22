@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveUpload } from "@/lib/uploads";
-import { cuilMatchesDni, encryptKyc, lookupKyc, normalizeDigits, parsePaymentHandle, removeKycDocument, saveKycDocument, validCuil, validDni, validPhone, videoChallengeExpiry } from "@/lib/kyc";
+import { cuilMatchesDni, encryptKyc, lookupKyc, normalizeDigits, removeKycDocument, saveKycDocument, validCuil, validDni, validPhone, videoChallengeExpiry } from "@/lib/kyc";
 import { ACTIVE_JOB_STATUSES } from "@/lib/workflow";
 import { slugify } from "@/lib/format";
 import { resolverLocalidad, zonaDe } from "@/lib/localidades";
@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
   const headline = value(form, "headline");
   const bio = value(form, "bio");
   const yearsExperience = Math.trunc(Number(value(form, "yearsExperience") || 0));
-  const payment = parsePaymentHandle(value(form, "paymentHandle"));
   const categoryIds = [...new Set(form.getAll("categoryIds").map(String).filter(Boolean))];
   // Rubro propuesto por la persona cuando ninguno de la lista la representa.
   const customCategory = value(form, "customCategory").slice(0, 60);
@@ -46,7 +45,6 @@ export async function POST(req: NextRequest) {
   if (!validDni(dni)) return NextResponse.json({ error: "El DNI no es válido." }, { status: 422 });
   if (!cuilMatchesDni(cuil, dni)) return NextResponse.json({ error: "El CUIL no corresponde al DNI ingresado." }, { status: 422 });
   if (headline.length < 3 || bio.length < 20 || bio.length > 1000) return NextResponse.json({ error: "Completá actividad y descripción." }, { status: 422 });
-  if (!payment) return NextResponse.json({ error: "Revisá tu dato de cobro: un CVU o CBU de 22 dígitos, o un alias." }, { status: 422 });
   if (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 60) return NextResponse.json({ error: "Los años en el oficio tienen que estar entre 0 y 60." }, { status: 422 });
   if (customCategory && (customCategory.length < 3 || !slugify(customCategory))) return NextResponse.json({ error: "El rubro que escribiste es muy corto o no tiene letras." }, { status: 422 });
   if (!categoryIds.length && !customCategory) return NextResponse.json({ error: "Elegí al menos un rubro." }, { status: 422 });
@@ -113,8 +111,8 @@ export async function POST(req: NextRequest) {
       }
       const professional = await tx.professional.upsert({
         where: { userId: session.id },
-        create: { userId: session.id, name: legalName, headline, bio, zone: zonaDe(localidad), address, priceFrom: 0, categoryId: linkedCategoryIds[0], avatarUrl, avatarColor: "#059669", profileStatus: "pending", verified: false, providerType, paymentHandle: payment.handle, paymentHandleKind: payment.kind, phone, yearsExperience },
-        update: { name: legalName, headline, bio, zone: zonaDe(localidad), address, categoryId: linkedCategoryIds[0], avatarUrl, profileStatus: "pending", verified: false, providerType, paymentHandle: payment.handle, paymentHandleKind: payment.kind, phone, yearsExperience },
+        create: { userId: session.id, name: legalName, headline, bio, zone: zonaDe(localidad), address, priceFrom: 0, categoryId: linkedCategoryIds[0], avatarUrl, avatarColor: "#059669", profileStatus: "pending", verified: false, providerType, phone, yearsExperience },
+        update: { name: legalName, headline, bio, zone: zonaDe(localidad), address, categoryId: linkedCategoryIds[0], avatarUrl, profileStatus: "pending", verified: false, providerType, phone, yearsExperience },
       });
       await tx.professionalCategory.deleteMany({ where: { professionalId: professional.id } });
       await tx.professionalCategory.createMany({ data: linkedCategoryIds.map((categoryId, index) => ({ professionalId: professional.id, categoryId, isPrimary: index === 0 })) });

@@ -5,8 +5,8 @@ export interface PaymentProvider {
   enabled: boolean;
 }
 
-export const manualAliasProvider: PaymentProvider = { key: "manual_alias", enabled: true };
-export const mercadoPagoProvider: PaymentProvider = { key: "mercadopago", enabled: false };
+export const manualAliasProvider: PaymentProvider = { key: "manual_alias", enabled: false };
+export const mercadoPagoProvider: PaymentProvider = { key: "mercadopago", enabled: true };
 
 const PAYMENT_DETAILS_STATUSES = new Set(["finished", "payment_reported", "paid_awaiting_review", "completed"]);
 

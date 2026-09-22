@@ -216,7 +216,15 @@ Todo lo que escribe pide sesión, y **el rol sale de la sesión, nunca del body*
 | `POST /api/cuenta/baja`                  | Borra la cuenta de quien la pide                |
 | `POST /api/avisos/leido`                 | Marca leídos los avisos de la campanita         |
 | `POST /api/contrataciones`               | Crea una contratación (y abre la conversación)  |
-| `PATCH /api/contrataciones/[id]`         | Propuesta, trabajo, pago por alias y cierre     |
+| `PATCH /api/contrataciones/[id]`         | Propuesta, trabajo y cierre; confirmación de pagos anteriores |
+
+### Mercado Pago entre clientes y profesionales
+
+El profesional vincula su cuenta desde `/pro` después de que aprueben su perfil. Al terminar un trabajo, el cliente abre Checkout Pro; el dinero se cobra en la cuenta vinculada del profesional. ServiRed no agrega comisión. El pago se confirma sólo con un webhook firmado y una consulta al pago en la API de Mercado Pago. La vinculación es necesaria para cerrar y cobrar trabajos nuevos; los pagos manuales anteriores se conservan como historial.
+
+Para activarlo, creá una aplicación **Marketplace / Checkout Pro** en Mercado Pago y configurá en `.env.local` `MP_CLIENT_ID`, `MP_CLIENT_SECRET`, `MP_WEBHOOK_SECRET`, `APP_URL` público y `KYC_ENCRYPTION_KEY` (32 bytes hexadecimales). Registrá `${APP_URL}/api/mercadopago/callback` como Redirect URL y `${APP_URL}/api/mercadopago/webhook` como webhook de **Payments** desde Tus integraciones. Aplicá el esquema con `pnpm db:push` antes de iniciar la versión nueva. Para cuentas de prueba podés usar `MP_SANDBOX=true`.
+
+Si administración ya guardó términos editados en la base, actualizalos desde `/admin` y publicá una nueva versión antes de habilitar los pagos.
 | `POST /api/onboarding`                    | Envía perfil y KYC de oferente para revisión     |
 | `POST /api/kyc/video-challenge`           | Emite la frase firmada del video guiado          |
 | `POST /api/conversaciones`                | Envía mensajes solo si existe una solicitud asociada |

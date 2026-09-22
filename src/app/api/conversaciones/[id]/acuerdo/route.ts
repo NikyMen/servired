@@ -3,14 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { participantIn } from "@/lib/mensajes-server";
 import { pendienteDeAlta } from "@/lib/auth";
 import { OPEN_BOOKING_STATUSES, PROPOSAL_TTL_MS, expirePendingProposals } from "@/lib/workflow";
-import { canRevealPaymentDetails } from "@/lib/payments";
+import { mercadoPagoConfigured } from "@/lib/mercadopago";
 import { PROPOSAL_TTL_LABEL, validEstimatedDays } from "@/lib/trabajo";
 import { notificar } from "@/lib/notificaciones";
 import { mandarAviso } from "@/lib/avisos-correo";
 
 async function currentBooking(userId: string, professionalId: string) {
   await expirePendingProposals();
-  return prisma.booking.findFirst({ where: { userId, professionalId, status: { in: OPEN_BOOKING_STATUSES } }, orderBy: { updatedAt: "desc" }, include: { proposals: { orderBy: { createdAt: "desc" } }, payments: { orderBy: { createdAt: "desc" }, select: { id: true, status: true } }, professional: { select: { paymentHandle: true, paymentHandleKind: true } } } });
+  return prisma.booking.findFirst({ where: { userId, professionalId, status: { in: OPEN_BOOKING_STATUSES } }, orderBy: { updatedAt: "desc" }, include: { proposals: { orderBy: { createdAt: "desc" } }, payments: { orderBy: { createdAt: "desc" }, select: { id: true, status: true } }, professional: { select: { mercadoPago: { select: { professionalId: true } } } } } });
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -21,8 +21,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const booking = await currentBooking(conversation.userId, conversation.professionalId);
   if (!booking) return NextResponse.json({ booking: null });
   const { professional, ...safeBooking } = booking;
-  const revealPayment = role === "cliente" && canRevealPaymentDetails(booking.status);
-  return NextResponse.json({ booking: { ...safeBooking, paymentHandle: revealPayment ? professional.paymentHandle : null, paymentHandleKind: revealPayment ? professional.paymentHandleKind : null } });
+  return NextResponse.json({ booking: { ...safeBooking, mercadoPagoAvailable: mercadoPagoConfigured() && Boolean(professional.mercadoPago) } });
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

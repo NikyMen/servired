@@ -15,15 +15,16 @@ import { ProfessionalOnboardingForm } from "@/components/ProfessionalOnboardingF
 import { redirect } from "next/navigation";
 import { decryptKyc } from "@/lib/kyc";
 import { getLocalidades } from "@/lib/localidades";
+import { mercadoPagoConfigured } from "@/lib/mercadopago";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Panel del profesional" };
 
-export default async function ProPanelPage({ searchParams }: { searchParams: Promise<{ tipo?: string; editarKyc?: string }> }) {
+export default async function ProPanelPage({ searchParams }: { searchParams: Promise<{ tipo?: string; editarKyc?: string; mp?: string }> }) {
   const user = await getSessionUser();
   if (!user) redirect("/entrar?next=/pro");
   if (!user.emailVerified || !user.canInteract) redirect("/onboarding?next=/pro");
-  const { tipo, editarKyc } = await searchParams;
+  const { tipo, editarKyc, mp } = await searchParams;
   await Promise.all([expirePendingProposals(), expireServiceRequests()]);
   const pro = user?.professionalId
     ? await prisma.professional.findUnique({ where: { id: user.professionalId }, include: { categoryLinks: { where: { category: { approvalStatus: "approved" } } }, user: { select: { kycCase: { select: { status: true, reviewReason: true, legalName: true, phone: true, birthDate: true, cuilEncrypted: true, dniEncrypted: true, address: true } } } } } })
@@ -39,7 +40,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
     const existingKyc = pro?.user?.kycCase;
     return <ProfessionalOnboardingForm categories={categories.map(({ id, name, icon, kind, parent }) => ({ id, name, icon, kind, parent }))} localities={localities.map(({ id, name, province }) => ({ id, name, province }))} initial={{
       name: user.name, email: user.email, avatarUrl: user.avatarUrl, providerType, status: pro?.profileStatus, reason: existingKyc?.reviewReason,
-      categoryIds: pro?.categoryLinks.map((link) => link.categoryId), headline: pro?.headline, bio: pro?.bio ?? "", paymentHandle: pro?.paymentHandle ?? "", yearsExperience: pro?.yearsExperience ?? 0,
+      categoryIds: pro?.categoryLinks.map((link) => link.categoryId), headline: pro?.headline, bio: pro?.bio ?? "", yearsExperience: pro?.yearsExperience ?? 0,
       legalName: existingKyc?.legalName, phone: existingKyc?.phone, birthDate: existingKyc?.birthDate.toISOString().slice(0, 10), cuil: existingKyc ? decryptKyc(existingKyc.cuilEncrypted) : undefined, dni: existingKyc ? decryptKyc(existingKyc.dniEncrypted) : undefined, address: existingKyc?.address, localityId: user.localityId,
     }} />;
   }
@@ -79,6 +80,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
   const conversationByUser = new Map(conversations.map((conversation) => [conversation.userId, conversation.id]));
 
   const pendientes = bookings.filter((b) => b.status === "requested").length;
+  const mpConnected = pro ? Boolean(await prisma.mercadoPagoAccount.findUnique({ where: { professionalId: pro.id }, select: { professionalId: true } })) : false;
 
   return (
     <div className="space-y-8">
@@ -116,6 +118,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
       )}
 
       {/* Propuestas recibidas */}
+      {pro && <section className="glass glass-card rounded-2xl p-4"><h2 className="font-semibold text-slate-900">Cobros con Mercado Pago</h2>{mp === "conectado" && <p role="status" className="mt-2 rounded-lg bg-emerald-50 p-2 text-sm text-emerald-800">Tu cuenta quedó vinculada.</p>}{mp === "error" && <p role="alert" className="mt-2 rounded-lg bg-red-50 p-2 text-sm text-red-700">No pudimos vincular tu cuenta. Volvé a intentarlo.</p>}<p className="mt-1 text-sm text-slate-600">{mpConnected ? "Cuenta vinculada. Recibirás los pagos de tus trabajos directamente en Mercado Pago." : mercadoPagoConfigured() ? "Vinculá tu cuenta para poder cobrar los trabajos terminados." : "La vinculación se habilitará cuando ServiRed active Mercado Pago."}</p>{mercadoPagoConfigured() && <a href="/api/mercadopago/conectar" className="mt-3 inline-flex rounded-xl bg-pro px-4 py-2 text-sm font-semibold text-white">{mpConnected ? "Volver a vincular" : "Vincular mi cuenta"}</a>}</section>}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">Solicitudes recibidas</h2>
@@ -145,9 +148,9 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
                     <div><p className="text-xs font-semibold text-slate-500">Detalle del pedido</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{b.note || "Sin descripción adicional."}</p></div>
                     <p className="text-xs text-slate-400">Recibida el {formatDateTime(b.createdAt)}</p>
                     {b.workSummary && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-pro-dark">{b.workSummary}</p>}
-                    {b.payments.map((payment) => <p key={payment.id} className={`rounded-xl px-3 py-2 text-sm font-semibold ${payment.status === "pagado" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>Pago por alias: {formatARS(payment.amount)} · {payment.status}</p>)}
+                    {b.payments.map((payment) => <p key={payment.id} className={`rounded-xl px-3 py-2 text-sm font-semibold ${payment.status === "pagado" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>Pago {payment.provider === "mercadopago" ? "por Mercado Pago" : "por alias"}: {formatARS(payment.amount)} · {payment.status}</p>)}
                     {b.attachments.length > 0 && <div className="flex flex-wrap gap-2">{b.attachments.map((attachment) => <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer"><img src={attachment.url} alt={attachment.name} className="size-20 rounded-xl object-cover ring-1 ring-slate-200" /></a>)}</div>}
-                    <div className="flex flex-wrap items-center justify-between gap-3">{conversationId ? <Link href={`/pro/mensajes?conversacion=${conversationId}`} className="inline-flex items-center gap-2 rounded-xl bg-pro px-4 py-2 text-sm font-semibold text-white"><ChatIcon width={17} height={17} />Chatear</Link> : <span />}<BookingActions bookingId={b.id} status={b.status} viewer="profesional" proposal={b.proposals[0] ?? null} finalPrice={b.finalPrice} paidPaymentId={b.payments.find((payment) => payment.status === "pagado")?.id} /></div>
+                    <div className="flex flex-wrap items-center justify-between gap-3">{conversationId ? <Link href={`/pro/mensajes?conversacion=${conversationId}`} className="inline-flex items-center gap-2 rounded-xl bg-pro px-4 py-2 text-sm font-semibold text-white"><ChatIcon width={17} height={17} />Chatear</Link> : <span />}<BookingActions bookingId={b.id} status={b.status} viewer="profesional" proposal={b.proposals[0] ?? null} finalPrice={b.finalPrice} paidPaymentId={b.payments.find((payment) => payment.status === "pagado")?.id} mercadoPagoAvailable={mercadoPagoConfigured() && mpConnected} /></div>
                   </div>
                 </details>
               </li>;

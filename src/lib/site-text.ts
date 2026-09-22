@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
  * placas de publicidad (`Ad.slot`).
  */
 export const TERMS_SLUG = "terminos";
+export const TERMS_DEFAULT_VERSION = 2;
 
 /**
  * Texto inicial, para que la página no quede vacía ni tire 404 antes de que
@@ -20,7 +21,7 @@ export const TERMS_DEFAULT = {
 - Verificamos la identidad de quienes ofrecen servicios antes de publicarlos.
 - Damos el lugar para acordar el trabajo, el monto y el plazo, y para dejar una opinión al terminar.
 - No ejecutamos los trabajos ni respondemos por su resultado, sus materiales o sus plazos.
-- No intervenimos en el pago: se acuerda y se hace entre las partes.
+- Los pagos de trabajos terminados se procesan mediante Mercado Pago en la cuenta vinculada de quien ofrece el servicio. ServiRed muestra y registra el estado del pago.
 
 ## Tu cuenta
 - Los datos que cargás tienen que ser verdaderos y actualizados.
@@ -88,16 +89,16 @@ export function parseTexto(body: string): Bloque[] {
 
 export async function getSiteText(slug: string, porDefecto: { title: string; body: string }) {
   const fila = await prisma.siteText.findUnique({ where: { slug } });
-  return { title: fila?.title || porDefecto.title, body: fila?.body || porDefecto.body, updatedAt: fila?.updatedAt ?? null, version: fila?.version ?? 1 };
+  return { title: fila?.title || porDefecto.title, body: fila?.body || porDefecto.body, updatedAt: fila?.updatedAt ?? null, version: fila?.version ?? TERMS_DEFAULT_VERSION };
 }
 
 /**
  * Versión vigente de los términos: la que hay que haber aceptado para estar al
- * día. Sin fila todavía, vale 1 (el texto por defecto). Una consulta por request.
+ * día. Sin fila todavía, vale la versión del texto por defecto. Una consulta por request.
  */
 export const getTermsVersion = cache(async () => {
   const fila = await prisma.siteText.findUnique({ where: { slug: TERMS_SLUG }, select: { version: true } });
-  return fila?.version ?? 1;
+  return fila?.version ?? TERMS_DEFAULT_VERSION;
 });
 
 /**
@@ -107,8 +108,7 @@ export const getTermsVersion = cache(async () => {
 export async function guardarTextoLegal({ slug, title, body, nuevaVersion }: { slug: string; title: string; body: string; nuevaVersion: boolean }) {
   return prisma.siteText.upsert({
     where: { slug },
-    // Si la fila nace con "versión nueva", el texto por defecto era la 1.
-    create: { slug, title, body, version: nuevaVersion ? 2 : 1 },
+    create: { slug, title, body, version: TERMS_DEFAULT_VERSION + (nuevaVersion ? 1 : 0) },
     update: { title, body, ...(nuevaVersion ? { version: { increment: 1 } } : {}) },
   });
 }

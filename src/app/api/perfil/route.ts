@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, pendienteDeAlta } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { UPLOAD_URL } from "@/lib/uploads";
-import { parsePaymentHandle, validPhone } from "@/lib/kyc";
+import { validPhone } from "@/lib/kyc";
 import { zonaDe } from "@/lib/localidades";
 
 export async function PATCH(req: NextRequest) {
@@ -39,8 +39,6 @@ export async function PATCH(req: NextRequest) {
   const headline = String(body.headline ?? "").trim().slice(0, 100);
   const bio = String(body.bio ?? "").trim().slice(0, 1200);
   if (headline.length < 3 || bio.length < 20) return NextResponse.json({ error: "Completá la actividad y una descripción de al menos 20 caracteres." }, { status: 422 });
-  const payment = parsePaymentHandle(String(body.paymentHandle ?? ""));
-  if (!payment) return NextResponse.json({ error: "Revisá tu dato de cobro: un CVU o CBU de 22 dígitos, o un alias." }, { status: 422 });
   const phone = String(body.phone ?? "").trim().slice(0, 40);
   if (!validPhone(phone)) return NextResponse.json({ error: "Ingresá un teléfono de contacto válido." }, { status: 422 });
   const yearsExperience = Math.trunc(Number(body.yearsExperience ?? 0));
@@ -52,7 +50,7 @@ export async function PATCH(req: NextRequest) {
       headline, bio,
       // La zona sale de la localidad de la cuenta; si todavía no tiene, queda la que había.
       address: String(body.address ?? "").trim().slice(0, 180) || "Corrientes, Argentina", ...(localidad ? { zone: zonaDe(localidad) } : {}),
-      paymentHandle: payment.handle, paymentHandleKind: payment.kind, phone, yearsExperience,
+      phone, yearsExperience,
       latitude, longitude, categoryId,
     } });
     await tx.professionalCategory.deleteMany({ where: { professionalId: user.professionalId! } });

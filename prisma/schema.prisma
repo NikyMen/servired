@@ -351,11 +351,11 @@ model Professional {
   workPhotos    WorkPhoto[]
   workSamples   WorkSample[]
   payments      Payment[]
+  mercadoPago   MercadoPagoAccount?
   dismissals    RequestDismissal[]
   credentials   Credential[]
 
-  /// Un solo dato de cobro: CVU/CBU de 22 dígitos o alias. `paymentHandleKind`
-  /// guarda cuál de los dos es para mostrarlo bien a la hora de pagar.
+  /// Datos históricos de cobro manual. Los cobros nuevos usan Mercado Pago.
   paymentHandle     String?
   paymentHandleKind String?
 
@@ -608,7 +608,19 @@ model Review {
   professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 }
 
-/// Pago de demostracion iniciado desde una conversacion.
+/// Cuenta de cobro vinculada por OAuth. Los tokens se guardan cifrados.
+model MercadoPagoAccount {
+  professionalId String @id
+  professional   Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  collectorId    String @unique
+  accessToken    String
+  refreshToken   String
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+/// Pago registrado para un trabajo.
 model Payment {
   id            String    @id @default(cuid())
   amount        Int
@@ -618,6 +630,9 @@ model Payment {
   status        String    @default("pendiente") // pendiente | pagado | cancelado
   provider      String    @default("mercadopago-demo")
   checkoutToken String    @unique @default(cuid())
+  providerPaymentId String? @unique
+  providerPreferenceId String?
+  checkoutUrl String?
   paidAt        DateTime?
   reportedAt    DateTime?
   confirmedAt   DateTime?
