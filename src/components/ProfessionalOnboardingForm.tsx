@@ -52,6 +52,14 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
   const draftKey = `servired-provider-draft:${initial.email}`;
 
   const compatibleCategories = useMemo(() => categories.filter((category) => category.kind === providerType), [categories, providerType]);
+  const groupedCategories = useMemo(() => {
+    const groups = new Map<string, Category[]>();
+    for (const category of compatibleCategories) {
+      const name = category.parent?.name ?? "Otros servicios";
+      groups.set(name, [...(groups.get(name) ?? []), category]);
+    }
+    return [...groups.entries()];
+  }, [compatibleCategories]);
   const update = (key: keyof typeof values, value: string) => setValues((current) => ({ ...current, [key]: value }));
   const selectedLocality = localities.find((locality) => locality.id === values.localityId);
 
@@ -179,7 +187,7 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
         <label className="block text-sm font-medium">¿A qué te dedicás?
           <select value={oficio} onChange={(e) => elegirOficio(e.target.value)} className={FIELD}>
             <option value="">Elegí de la lista</option>
-            {compatibleCategories.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.parent ? `${category.parent.name} · ` : ""}{category.name}</option>)}
+            {groupedCategories.map(([group, items]) => <optgroup key={group} label={group}>{items.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name}</option>)}</optgroup>)}
             <option value="otra">Otra (la escribo yo)</option>
           </select>
           {oficio === "otra" && <input value={values.headline} onChange={(e) => update("headline", e.target.value)} maxLength={60} placeholder="Ej: Restaurador de muebles" className={FIELD} />}
@@ -190,7 +198,7 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
           <span className="mt-1 block text-xs font-normal text-slate-500">Los que llevás trabajando, dentro y fuera de ServiRed. Se muestra aparte de tu antigüedad en la plataforma.</span>
         </label>
         <label className="block text-sm font-medium">Descripción de los trabajos que ofrecés<textarea value={values.bio} onChange={(e) => update("bio", e.target.value)} minLength={20} maxLength={1000} rows={4} placeholder="Contá qué trabajos hacés, cómo trabajás y qué te diferencia." className={`${FIELD} resize-none`} /></label>
-        <fieldset><legend className="text-sm font-semibold">Rubros de {providerType}</legend><div className="mt-2 grid max-h-64 gap-2 overflow-y-auto sm:grid-cols-2">{compatibleCategories.map((category) => <label key={category.id} className="rounded-xl bg-white/70 p-3 text-sm"><input type="checkbox" checked={categoryIds.includes(category.id)} onChange={(e) => setCategoryIds((current) => e.target.checked ? [...current, category.id] : current.filter((id) => id !== category.id))} className="mr-2" />{category.icon} {category.parent ? `${category.parent.name} · ` : ""}{category.name}</label>)}</div></fieldset>
+        <fieldset><legend className="text-sm font-semibold">Rubros de {providerType}</legend><div className="mt-2 max-h-72 space-y-3 overflow-y-auto rounded-2xl bg-white/40 p-3">{groupedCategories.map(([group, items]) => <section key={group}><h3 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">{group}</h3><div className="grid gap-2 sm:grid-cols-2">{items.map((category) => <label key={category.id} className="rounded-xl bg-white/80 p-3 text-sm"><input type="checkbox" checked={categoryIds.includes(category.id)} onChange={(e) => setCategoryIds((current) => e.target.checked ? [...current, category.id] : current.filter((id) => id !== category.id))} className="mr-2" />{category.icon} {category.name}</label>)}</div></section>)}</div></fieldset>
         <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800">Cuando aprueben tu perfil, vinculá tu cuenta de Mercado Pago desde /pro para cobrar tus trabajos.</p>
       </>}
       {step === 2 && <>

@@ -84,14 +84,14 @@ export function PublicarSolicitudForm({ categorias }: { categorias: Categoria[] 
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-900">Rubro y detalle</label>
+          <label className="mb-1 block text-sm font-medium text-slate-900">Categoría y subcategoría</label>
           <select
             required
             value={selectedPrincipal}
             onChange={(e) => update("categorySlug", e.target.value)}
             className={`${inputCls} cursor-pointer`}
           >
-            <option value="">Elegí un rubro</option>
+            <option value="">Elegí una categoría</option>
             {principales.map((c) => (
               <option key={c.slug} value={c.slug}>
                 {c.icon} {c.name}

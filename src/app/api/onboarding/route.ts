@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   let savedDocuments: (Awaited<ReturnType<typeof saveKycDocument>> & { kind: string })[] = [];
   let committed = false;
   try {
-    const validCategories = await prisma.category.findMany({ where: { id: { in: categoryIds }, kind: providerType, approvalStatus: "approved" } });
+    const validCategories = await prisma.category.findMany({ where: { id: { in: categoryIds }, kind: providerType, approvalStatus: "approved", parentId: { not: null } } });
     if (validCategories.length !== categoryIds.length) return NextResponse.json({ error: "Elegí rubros compatibles con el tipo de perfil." }, { status: 422 });
 
     const [duplicateIdentity, previousCase] = await Promise.all([
@@ -105,8 +105,9 @@ export async function POST(req: NextRequest) {
       const linkedCategoryIds = validCategories.map((category) => category.id);
       if (customCategory) {
         const slug = slugify(customCategory);
+        const otros = await tx.category.findUnique({ where: { slug: "otros-servicios" }, select: { id: true } });
         const category = await tx.category.findUnique({ where: { slug }, select: { id: true } })
-          ?? await tx.category.create({ data: { name: customCategory, slug, icon: "🛠️", kind: providerType, approvalStatus: "pending", createdByUserId: session.id } });
+          ?? await tx.category.create({ data: { name: customCategory, slug, icon: "🛠️", kind: providerType, parentId: otros?.id, approvalStatus: "pending", createdByUserId: session.id } });
         if (!linkedCategoryIds.includes(category.id)) linkedCategoryIds.push(category.id);
       }
       const professional = await tx.professional.upsert({

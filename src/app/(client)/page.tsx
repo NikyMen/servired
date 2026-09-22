@@ -28,7 +28,7 @@ async function getData({ q, categoria, tipo }: Search) {
   const cerca = (lat: number, lng: number) => !centro || haversineKm(centro, { lat, lng }) <= RADIO_KM;
 
   const [categories, pros, requests, workPhotos, ads] = await Promise.all([
-    prisma.category.findMany({ where: { approvalStatus: "approved", ...(tipo ? { kind: tipo } : {}) }, include: { parent: true }, orderBy: [{ parentId: "asc" }, { createdAt: "asc" }] }),
+    prisma.category.findMany({ where: { approvalStatus: "approved" }, include: { parent: true }, orderBy: [{ parentId: "asc" }, { createdAt: "asc" }] }),
     // Categoría y ubicación filtran; el texto libre se rankea en memoria
     // (ver src/lib/search.ts: LIKE de SQLite no ignora acentos ni tolera typos).
     buscarProfesionales({ q, categoria, tipo }, centro),
@@ -81,6 +81,12 @@ export default async function HomePage({
     getPublicitarHref(),
   ]);
   const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
+  const rubrosVisibles = categories.filter((category) => category.parentId && (!params.tipo || category.kind === params.tipo));
+  const parentIdsVisibles = new Set(rubrosVisibles.map((category) => category.parentId));
+  const seleccionada = categories.find((category) => category.slug === params.categoria);
+  const principalSeleccionada = seleccionada?.parentId ? categories.find((category) => category.id === seleccionada.parentId) : seleccionada;
+  const principales = categories.filter((category) => !category.parentId && (parentIdsVisibles.has(category.id) || category.id === principalSeleccionada?.id));
+  const subcategorias = principalSeleccionada ? rubrosVisibles.filter((category) => category.parentId === principalSeleccionada.id) : [];
 
   return (
     <div className="relative space-y-6">
@@ -134,13 +140,20 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* Categorías: hasta 4 filas y "Ver más" despliega el resto (celu y compu). */}
-      <CategoriasChips
-        items={[
-          { key: "", href: chipHref(params, ""), label: "Todos", active: !params.categoria },
-          ...categories.map((c) => ({ key: c.slug, href: chipHref(params, c.slug), label: `${c.parent ? "↳ " : ""}${c.icon} ${c.name}`, active: params.categoria === c.slug })),
-        ]}
-      />
+      <section aria-label="Categorías de servicios" className="space-y-3">
+        <CategoriasChips
+          items={[
+            { key: "", href: chipHref(params, ""), label: "Todos", active: !params.categoria },
+            ...principales.map((category) => ({ key: category.slug, href: chipHref(params, category.slug), label: `${category.icon} ${category.name}`, active: principalSeleccionada?.id === category.id })),
+          ]}
+        />
+        {principalSeleccionada && subcategorias.length > 0 && (
+          <div className="rounded-2xl border border-white/70 bg-white/45 p-3 shadow-sm backdrop-blur-sm">
+            <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wide text-slate-500">Subcategorías de {principalSeleccionada.name}</p>
+            <CategoriasChips items={subcategorias.map((category) => ({ key: category.slug, href: chipHref(params, category.slug), label: `${category.icon} ${category.name}`, active: params.categoria === category.slug }))} />
+          </div>
+        )}
+      </section>
 
       <div id="resultados" className="scroll-mt-28" />
       <ClientResultSwitch

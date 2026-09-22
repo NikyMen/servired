@@ -11,7 +11,8 @@ export const metadata: Metadata = { title: "Publicar solicitud" };
 export default async function PublicarSolicitudPage() {
   const [categorias, user] = await Promise.all([
     prisma.category.findMany({
-      orderBy: { createdAt: "asc" },
+      where: { approvalStatus: "approved" },
+      orderBy: [{ parentId: "asc" }, { name: "asc" }],
       select: { id: true, slug: true, name: true, icon: true, parentId: true, parent: { select: { name: true } } },
     }),
     getSessionUser(),

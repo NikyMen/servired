@@ -194,7 +194,7 @@ model Category {
   parent            Category?              @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children          Category[]             @relation("CategoryTree")
   analytics         SearchMetric[]
-  kind              String                 @default("oficio") // profesional | oficio
+  kind              String                 @default("oficio") // categoria | profesional | oficio
   approvalStatus    String                 @default("approved") // pending | approved | rejected
   createdByUserId   String?
   createdBy         User?                  @relation("CategoryCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)

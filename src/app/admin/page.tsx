@@ -61,6 +61,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     return { id: kyc.id, status: kyc.status, legalName: kyc.legalName, email: kyc.user.email, phone: kyc.phone, cuil: decryptKyc(kyc.cuilEncrypted), dni: decryptKyc(kyc.dniEncrypted), birthDate: kyc.birthDate.toISOString(), address: kyc.address, country: kyc.country, province: kyc.province, locality: kyc.locality, provider: kyc.user.oauthAccounts[0]?.provider || "email", providerType: professional?.providerType || "oficio", headline: professional?.headline || null, bio: professional?.bio || null, submittedAt: kyc.submittedAt?.toISOString() || null, reviewReason: kyc.reviewReason, reviewedBy: kyc.reviewedBy, reviewedAt: kyc.reviewedAt?.toISOString() || null, videoChallenge: kyc.videoChallenge, documents: kyc.documents.map((document) => ({ id: document.id, kind: document.kind })) };
   });
   const serializedAds = ads.map((ad) => ({ slot: ad.slot, title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, enabled: ad.enabled, reencuadrar: necesitaReencuadre(ad) }));
+  const categoryGroups = categories.filter((category) => !category.parentId);
 
   const secciones: AdminSeccion[] = [
     { tab: "resumen", nombre: "Resumen", titulo: "Resumen", descripcion: "Cómo viene la plataforma y qué está esperando una decisión.", icono: "◧", grupo: "Panel" },
@@ -71,7 +72,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     { tab: "trabajos", nombre: "Trabajos", titulo: "Trabajos y propuestas", descripcion: "Actividad reciente del marketplace y estados comerciales.", icono: "🧰", grupo: "Comunidad" },
     { tab: "preinscripciones", nombre: "Preinscripciones", titulo: "Preinscripciones", descripcion: `${preinscriptions.length} contactos únicos captados antes del lanzamiento.`, icono: "📇", grupo: "Comunidad" },
     { tab: "publicidad", nombre: "Publicidad", titulo: "Publicidad del sitio", descripcion: "12 lugares y son todos: 3 al costado izquierdo, 3 al derecho y 6 debajo de la portada. Todas las placas son iguales; cambiar una de lugar es un botón.", icono: "🖼️", grupo: "Portada" },
-    { tab: "catalogo", nombre: "Rubros", titulo: "Rubros y categorías", descripcion: "La clasificación que se ve en la portada, separada entre Profesional y Oficio.", icono: "🏷️", grupo: "Portada" },
+    { tab: "catalogo", nombre: "Rubros", titulo: "Categorías y subcategorías", descripcion: "Organizá los rubros por tema sin cambiar sus perfiles ni solicitudes.", icono: "🏷️", grupo: "Portada" },
     { tab: "soporte", nombre: "Soporte", titulo: "Botón “Necesito ayuda”", descripcion: "El WhatsApp al que escribe quien pide ayuda desde cualquier pantalla.", icono: "💬", grupo: "Sitio" },
     { tab: "localidades", nombre: "Localidades", titulo: "Localidades", descripcion: "Las que se pueden elegir al darse de alta, y el punto de cada una en el mapa.", icono: "📍", grupo: "Sitio" },
     { tab: "legales", nombre: "Legales", titulo: "Términos y condiciones", descripcion: "El texto que acepta toda cuenta al entrar.", icono: "📜", grupo: "Sitio" },
@@ -158,39 +159,56 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       {tab === "catalogo" && (
         <div className="space-y-4">
-          <form action={createCategoryAction} className="adm-card adm-card-pad grid gap-3 sm:grid-cols-[80px_1fr_1fr_150px_auto] sm:items-end">
+          <form action={createCategoryAction} className="adm-card adm-card-pad grid gap-3 lg:grid-cols-[70px_1fr_1fr_180px_150px_auto] lg:items-end">
             <div><label className="adm-label" htmlFor="rubro-icono">Ícono</label><input id="rubro-icono" name="icon" placeholder="🛠️" className="adm-field" /></div>
             <div><label className="adm-label" htmlFor="rubro-nombre">Nombre</label><input id="rubro-nombre" name="name" required placeholder="Nombre del rubro" className="adm-field" /></div>
             <div><label className="adm-label" htmlFor="rubro-slug">Slug</label><input id="rubro-slug" name="slug" placeholder="se arma solo" className="adm-field" /></div>
-            <div><label className="adm-label" htmlFor="rubro-tipo">Tipo</label><select id="rubro-tipo" name="kind" className="adm-field"><option value="oficio">Oficio</option><option value="profesional">Profesional</option></select></div>
+            <div><label className="adm-label" htmlFor="rubro-padre">Categoría principal</label><select id="rubro-padre" name="parentId" className="adm-field"><option value="">Crear categoría principal</option>{categoryGroups.map((group) => <option key={group.id} value={group.id}>{group.icon} {group.name}</option>)}</select></div>
+            <div><label className="adm-label" htmlFor="rubro-tipo">Tipo de subcategoría</label><select id="rubro-tipo" name="kind" className="adm-field"><option value="oficio">Oficio</option><option value="profesional">Profesional</option></select></div>
             <button className="adm-btn">Agregar</button>
           </form>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            {(["profesional", "oficio"] as const).map((kind) => {
-              const delTipo = categories.filter((category) => category.kind === kind);
+          <p className="text-sm text-slate-500">Las categorías principales ordenan la portada. Los perfiles y las solicitudes se vinculan únicamente a subcategorías.</p>
+          <div className="grid gap-4 xl:grid-cols-2">
+            {categoryGroups.map((group) => {
+              const children = categories.filter((category) => category.parentId === group.id);
+              const profiles = children.reduce((total, category) => total + category._count.professionals, 0);
+              const requests = children.reduce((total, category) => total + category._count.requests, 0);
               return (
-                <div key={kind} className="adm-card">
-                  <div className="adm-card-head">
-                    <h2 className="font-bold capitalize text-slate-900">{kind}</h2>
-                    <span className="adm-badge">{delTipo.length} rubros</span>
+                <div key={group.id} className="adm-card">
+                  <div className="border-b border-slate-100 bg-slate-50/70 p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl" aria-hidden>{group.icon}</span>
+                      <div className="min-w-0 flex-1"><h2 className="font-bold text-slate-900">{group.name}</h2><p className="text-xs text-slate-500">{children.length} subcategorías · {profiles} perfiles · {requests} solicitudes</p></div>
+                      <details className="group relative">
+                        <summary className="adm-btn adm-btn-ghost adm-btn-sm cursor-pointer list-none">Editar categoría</summary>
+                        <form action={updateCategoryAction} className="absolute right-0 z-20 mt-2 grid w-[min(32rem,85vw)] gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl sm:grid-cols-[65px_1fr_1fr_auto]">
+                          <input type="hidden" name="id" value={group.id} />
+                          <input name="icon" defaultValue={group.icon} aria-label="Ícono" className="adm-field" />
+                          <input name="name" required defaultValue={group.name} aria-label="Nombre" className="adm-field" />
+                          <input name="slug" defaultValue={group.slug} aria-label="Slug" className="adm-field" />
+                          <button className="adm-btn adm-btn-sm">Guardar</button>
+                        </form>
+                      </details>
+                    </div>
                   </div>
                   <div className="divide-y divide-slate-100">
-                    {delTipo.map((category) => (
+                    {children.map((category) => (
                       <details key={category.id} className="group px-4 py-2.5">
                         <summary className="flex cursor-pointer list-none items-center gap-3">
                           <span className="text-xl">{category.icon}</span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-semibold text-slate-900">{category.name}</span>
+                            <span className="flex items-center gap-2 truncate text-sm font-semibold text-slate-900">{category.name}<span className="adm-badge capitalize">{category.kind}</span></span>
                             <span className="block text-xs text-slate-500">{category._count.professionals} perfiles · {category._count.requests} solicitudes</span>
                           </span>
                           <span className="adm-btn adm-btn-ghost adm-btn-sm">Editar</span>
                         </summary>
-                        <form action={updateCategoryAction} className="mt-3 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-[70px_1fr_1fr_130px_auto] sm:items-center">
+                        <form action={updateCategoryAction} className="mt-3 grid gap-2 border-t border-slate-100 pt-3 lg:grid-cols-[60px_1fr_1fr_160px_130px_auto] lg:items-center">
                           <input type="hidden" name="id" value={category.id} />
                           <input name="icon" defaultValue={category.icon} aria-label="Ícono" className="adm-field" />
                           <input name="name" required defaultValue={category.name} aria-label="Nombre" className="adm-field" />
                           <input name="slug" defaultValue={category.slug} aria-label="Slug" className="adm-field" />
+                          <select name="parentId" defaultValue={category.parentId ?? ""} aria-label="Categoría principal" className="adm-field">{categoryGroups.map((option) => <option key={option.id} value={option.id}>{option.icon} {option.name}</option>)}</select>
                           <select name="kind" defaultValue={category.kind} aria-label="Tipo" className="adm-field"><option value="oficio">Oficio</option><option value="profesional">Profesional</option></select>
                           <button className="adm-btn adm-btn-sm">Guardar</button>
                         </form>
@@ -200,7 +218,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         </form>
                       </details>
                     ))}
-                    {!delTipo.length && <p className="px-4 py-6 text-center text-sm text-slate-500">Todavía no hay rubros de este tipo.</p>}
+                    {!children.length && <p className="px-4 py-6 text-center text-sm text-slate-500">Todavía no hay subcategorías.</p>}
                   </div>
                 </div>
               );

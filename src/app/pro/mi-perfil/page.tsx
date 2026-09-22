@@ -18,7 +18,7 @@ export default async function MiPerfilProfesionalPage() {
   if (user.professionalStatus !== "approved") redirect("/pro");
   const pro = await prisma.professional.findUniqueOrThrow({ where: { id: user.professionalId }, include: { categoryLinks: true } });
   const [categories, workSamples, activeJobs, credenciales] = await Promise.all([
-    prisma.category.findMany({ where: { approvalStatus: "approved", kind: pro.providerType }, orderBy: [{ parentId: "asc" }, { name: "asc" }], select: { id: true, name: true, icon: true, parentId: true, parent: { select: { name: true } } } }),
+    prisma.category.findMany({ where: { approvalStatus: "approved", kind: pro.providerType, parentId: { not: null } }, orderBy: [{ parentId: "asc" }, { name: "asc" }], select: { id: true, name: true, icon: true, parentId: true, parent: { select: { name: true } } } }),
     prisma.workSample.findMany({ where: { professionalId: user.professionalId }, orderBy: { createdAt: "desc" }, include: { images: { orderBy: { position: "asc" } } } }),
     prisma.booking.count({ where: { professionalId: user.professionalId, status: { in: ACTIVE_JOB_STATUSES } } }),
     listarCredenciales(user.professionalId),

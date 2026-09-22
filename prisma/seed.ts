@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/password";
+import { CATEGORY_GROUPS, CATEGORY_KIND, groupSlugForCategory } from "../src/lib/categorias";
 
 const prisma = new PrismaClient();
 
@@ -32,8 +33,7 @@ function clientEmail(name: string): string {
   return `${slug(name).split(/\s+/).filter(Boolean).join(".")}@servired.test`;
 }
 
-const categories = [
-  { slug: "hogar", name: "Hogar", icon: "🏠", kind: "oficio" },
+const serviceCategories = [
   { slug: "plomeria", name: "Plomería", icon: "🔧", kind: "oficio" },
   { slug: "electricidad", name: "Electricidad", icon: "⚡", kind: "oficio" },
   { slug: "limpieza", name: "Limpieza", icon: "🧽", kind: "oficio" },
@@ -45,6 +45,11 @@ const categories = [
   { slug: "contador", name: "Contadores", icon: "📊", kind: "profesional" },
   { slug: "diseno", name: "Diseño", icon: "🖌️", kind: "profesional" },
   { slug: "otro", name: "Otro", icon: "+", kind: "oficio" },
+];
+
+const categories = [
+  ...CATEGORY_GROUPS.map(({ slug, name, icon }) => ({ slug, name, icon, kind: CATEGORY_KIND })),
+  ...serviceCategories,
 ];
 
 type ProSeed = {
@@ -283,8 +288,12 @@ async function main() {
 
   console.log("🌱 Creando categorías...");
   const categoryMap = new Map<string, string>();
-  for (const c of categories) {
+  for (const c of categories.filter((category) => category.kind === CATEGORY_KIND)) {
     const created = await prisma.category.create({ data: c });
+    categoryMap.set(c.slug, created.id);
+  }
+  for (const c of serviceCategories) {
+    const created = await prisma.category.create({ data: { ...c, parentId: categoryMap.get(groupSlugForCategory(c.slug)) } });
     categoryMap.set(c.slug, created.id);
   }
 

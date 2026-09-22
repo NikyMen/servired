@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 import { saveUpload } from "@/lib/uploads";
 import { slugify } from "@/lib/format";
+import { CATEGORY_KIND } from "@/lib/categorias";
 import { removeUpload } from "@/lib/uploads";
 import { notificar } from "@/lib/notificaciones";
 import { guardarSoporte } from "@/lib/soporte";
@@ -287,7 +288,7 @@ export async function createCategoryAction(formData: FormData) {
     const parent = await prisma.category.findUnique({ where: { id: parentId }, select: { parentId: true } });
     if (!parent || parent.parentId) return;
   }
-  const kind = text(formData, "kind") === "profesional" ? "profesional" : "oficio";
+  const kind = parentId ? (text(formData, "kind") === "profesional" ? "profesional" : "oficio") : CATEGORY_KIND;
   await prisma.category.create({ data: { name, slug, icon: text(formData, "icon") || "🛠️", parentId, kind } });
   revalidatePath("/");
   revalidatePath("/admin");
@@ -311,7 +312,7 @@ export async function updateCategoryAction(formData: FormData) {
   }
   await prisma.category.update({
     where: { id },
-    data: { name: text(formData, "name"), slug: slugify(text(formData, "slug") || text(formData, "name")), icon: text(formData, "icon") || "🛠️", parentId, kind: text(formData, "kind") === "profesional" ? "profesional" : "oficio" },
+    data: { name: text(formData, "name"), slug: slugify(text(formData, "slug") || text(formData, "name")), icon: text(formData, "icon") || "🛠️", parentId, kind: parentId ? (text(formData, "kind") === "profesional" ? "profesional" : "oficio") : CATEGORY_KIND },
   });
   revalidatePath("/");
   revalidatePath("/admin");

@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
   }
 
   const categories = await prisma.category.findMany({
+    where: { approvalStatus: "approved", parentId: { not: null } },
     orderBy: { createdAt: "asc" },
     select: { name: true, slug: true },
   });

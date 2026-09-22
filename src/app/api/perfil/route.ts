@@ -34,7 +34,7 @@ export async function PATCH(req: NextRequest) {
   const requestedCategories = categoryIds.length ? categoryIds : typeof body.categoryId === "string" ? [body.categoryId] : [];
   const categoryId = requestedCategories[0];
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return NextResponse.json({ error: "Marcá una ubicación válida." }, { status: 422 });
-  const validCategories = await prisma.category.findMany({ where: { id: { in: requestedCategories }, approvalStatus: "approved", kind: professional.providerType }, select: { id: true } });
+  const validCategories = await prisma.category.findMany({ where: { id: { in: requestedCategories }, approvalStatus: "approved", kind: professional.providerType, parentId: { not: null } }, select: { id: true } });
   if (!categoryId || validCategories.length !== requestedCategories.length) return NextResponse.json({ error: "Elegí al menos un rubro válido." }, { status: 422 });
   const headline = String(body.headline ?? "").trim().slice(0, 100);
   const bio = String(body.bio ?? "").trim().slice(0, 1200);

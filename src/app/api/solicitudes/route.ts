@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   let categoryId: string | null = null;
   if (typeof categorySlug === "string" && categorySlug) {
-    const cat = await prisma.category.findFirst({ where: { slug: categorySlug, approvalStatus: "approved" }, select: { id: true } });
+    const cat = await prisma.category.findFirst({ where: { slug: categorySlug, approvalStatus: "approved", parentId: { not: null } }, select: { id: true } });
     if (!cat) return NextResponse.json({ error: "Elegí un rubro habilitado." }, { status: 422 });
     categoryId = cat.id;
   }

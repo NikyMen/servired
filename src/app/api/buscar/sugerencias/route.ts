@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       },
     }),
     prisma.category.findMany({
-      where: { approvalStatus: "approved", ...(tipo ? { kind: tipo } : {}) },
+      where: { approvalStatus: "approved", parentId: { not: null }, ...(tipo ? { kind: tipo } : {}) },
       orderBy: { createdAt: "asc" },
       select: { slug: true, name: true, icon: true },
     }),

@@ -31,7 +31,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
     : null;
   if (!pro || pro.profileStatus === "changes_requested" || (pro.profileStatus === "approved" && editarKyc === "1")) {
     const [categories, localities] = await Promise.all([
-      prisma.category.findMany({ where: { approvalStatus: "approved" }, include: { parent: { select: { name: true } } }, orderBy: [{ kind: "asc" }, { name: "asc" }] }),
+      prisma.category.findMany({ where: { approvalStatus: "approved", parentId: { not: null } }, include: { parent: { select: { name: true } } }, orderBy: [{ kind: "asc" }, { parentId: "asc" }, { name: "asc" }] }),
       getLocalidades(user.localityId),
     ]);
     const providerType = pro?.providerType === "profesional" || pro?.providerType === "oficio"

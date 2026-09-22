@@ -47,6 +47,11 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
   const [preview, setPreview] = useState<string | null>(perfil.avatarUrl);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const groupedCategories = [...categories.reduce((groups, category) => {
+    const name = category.parent?.name ?? "Otros servicios";
+    groups.set(name, [...(groups.get(name) ?? []), category]);
+    return groups;
+  }, new Map<string, typeof categories>()).entries()];
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -99,11 +104,11 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
           <label className="text-sm font-medium text-slate-900">Nombre del local o negocio
             <input value={form.businessName ?? ""} onChange={(e) => setForm({ ...form, businessName: e.target.value })} placeholder="Ej: Electricidad Gómez" className={`${field} mt-1`} />
           </label>
-          <fieldset className="text-sm font-medium text-slate-900"><legend>Rubros</legend><div className="mt-1 max-h-40 space-y-1 overflow-y-auto rounded-xl bg-white/50 p-2">{categories.map((c) => <label key={c.id} className="block text-xs font-normal"><input type="checkbox" checked={categoryIds.includes(c.id)} onChange={(e) => setCategoryIds((current) => e.target.checked ? [...current, c.id] : current.filter((id) => id !== c.id))} className="mr-2" />{c.parent ? `↳ ${c.name}` : `${c.icon} ${c.name}`}</label>)}</div></fieldset>
+          <fieldset className="text-sm font-medium text-slate-900"><legend>Rubros</legend><div className="mt-1 max-h-52 space-y-3 overflow-y-auto rounded-xl bg-white/50 p-3">{groupedCategories.map(([group, items]) => <section key={group}><h3 className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">{group}</h3>{items.map((c) => <label key={c.id} className="block py-0.5 text-xs font-normal"><input type="checkbox" checked={categoryIds.includes(c.id)} onChange={(e) => setCategoryIds((current) => e.target.checked ? [...current, c.id] : current.filter((id) => id !== c.id))} className="mr-2" />{c.icon} {c.name}</label>)}</section>)}</div></fieldset>
           <label className="text-sm font-medium text-slate-900">Actividad
             <select value={oficio} onChange={(e) => { const value = e.target.value; setOficio(value); const category = categories.find((item) => item.id === value); setForm((current) => ({ ...current, headline: category ? category.name : "" })); if (category) setCategoryIds((current) => current.includes(category.id) ? current : [...current, category.id]); }} className={`${field} mt-1`}>
               <option value="">Elegí de la lista</option>
-              {categories.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.parent ? `${category.parent.name} · ` : ""}{category.name}</option>)}
+              {groupedCategories.map(([group, items]) => <optgroup key={group} label={group}>{items.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name}</option>)}</optgroup>)}
               <option value="otra">Otra (la escribo yo)</option>
             </select>
             {oficio === "otra" && <input required maxLength={60} value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} placeholder="Ej: Restaurador de muebles" className={`${field} mt-1`} />}
