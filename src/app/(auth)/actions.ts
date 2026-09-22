@@ -158,8 +158,14 @@ export async function requestPasswordResetAction(_prev: AuthState, formData: For
 export async function resetPasswordAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const token = String(formData.get("token") ?? "");
   const password = String(formData.get("password") ?? "");
+  const repetida = String(formData.get("password2") ?? "");
   if (password.length < 8) {
     return { error: "La contraseña necesita al menos 8 caracteres.", field: "password" };
+  }
+  // Se escribe dos veces porque acá no hay forma de volver atrás: si se cuela un
+  // error de tipeo, la persona queda afuera y tiene que pedir otro enlace.
+  if (password !== repetida) {
+    return { error: "Las dos contraseñas no coinciden. Escribilas de nuevo.", field: "password2" };
   }
   const result = await consumePasswordReset(token, password);
   if (!result.ok) return { error: result.error };

@@ -15,7 +15,8 @@ export function NuevaClaveForm({ token }: { token: string }) {
 
       <form action={formAction} className="glass glass-solid mt-5 space-y-5 rounded-[1.5rem] p-5 sm:p-6">
         <input type="hidden" name="token" value={token} />
-        <PasswordField id="password" label="Contraseña nueva" autoComplete="new-password" tone="cliente" />
+        <PasswordField id="password" label="Contraseña nueva" autoComplete="new-password" tone="cliente" hint="Mínimo 8 caracteres." />
+        <PasswordField id="password2" label="Repetí la contraseña nueva" autoComplete="new-password" tone="cliente" />
         <div className="space-y-3">
           <FormError message={state?.error} />
           <SubmitButton tone="cliente" pendingLabel="Guardando…">Guardar y entrar</SubmitButton>
