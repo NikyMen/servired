@@ -9,10 +9,6 @@ const FIELD = "glass-field px-3.5 py-3 text-sm";
 
 export function RegisterForm({ next, providerType, localities }: { next?: string; providerType?: "profesional" | "oficio"; localities: { id: string; name: string; province: string }[] }) {
   const [state, formAction] = useActionState<AuthState, FormData>(registerAction, undefined);
-  const query = new URLSearchParams();
-  if (next) query.set("next", next);
-  if (providerType) query.set("tipo", providerType);
-  const oauthQuery = query.toString();
   const values = state?.values ?? {};
 
   return (
@@ -24,11 +20,6 @@ export function RegisterForm({ next, providerType, localities }: { next?: string
       {/* key: al volver con error React 19 ya vació el form; remontarlo repone lo escrito. */}
       <form key={JSON.stringify(state?.values ?? null)} action={formAction} className="glass glass-solid mt-5 space-y-5 rounded-[1.5rem] p-5 sm:p-6">
         {next && <input type="hidden" name="next" value={next} />}
-        <div className="grid gap-2 sm:grid-cols-2">
-          <a href={`/api/auth/oauth/google${oauthQuery ? `?${oauthQuery}` : ""}`} className="glass-btn glass-btn-ghost justify-center px-3 py-2.5 text-sm">Continuar con Google</a>
-          <a href={`/api/auth/oauth/facebook${oauthQuery ? `?${oauthQuery}` : ""}`} className="glass-btn glass-btn-ghost justify-center px-3 py-2.5 text-sm">Continuar con Facebook</a>
-        </div>
-        <div className="flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" /><span>o con email</span><span className="h-px flex-1 bg-slate-200" /></div>
         <label className="block space-y-1.5 text-sm font-medium text-slate-700">Nombre y apellido<input name="name" required minLength={3} autoComplete="name" placeholder="María González" defaultValue={values.name} className={FIELD} /></label>
         <label className="block space-y-1.5 text-sm font-medium text-slate-700">Email<input name="email" required type="email" autoComplete="email" placeholder="vos@email.com" defaultValue={values.email} className={FIELD} /></label>
         <PasswordField id="password" label="Contraseña" autoComplete="new-password" tone="cliente" hint="Mínimo 8 caracteres." />

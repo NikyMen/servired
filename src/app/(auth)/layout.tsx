@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { FondoLiquido } from "@/components/FondoLiquido";
 import { LogoMark } from "@/components/Logo";
-import { FacebookIcon, SearchIcon, BriefcaseIcon, VerifiedIcon, ChatIcon } from "@/components/icons";
-import { FACEBOOK_URL } from "@/lib/links";
+import { FacebookIcon, InstagramIcon, SearchIcon, BriefcaseIcon, VerifiedIcon, ChatIcon } from "@/components/icons";
+import { FACEBOOK_URL, INSTAGRAM_URL } from "@/lib/links";
 import { AyudaFlotante } from "@/components/AyudaFlotante";
 import { getSoporte } from "@/lib/soporte";
 
@@ -87,15 +87,26 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
             </ul>
           </div>
 
-          <a
-            href={FACEBOOK_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 inline-flex w-fit items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white lg:mt-10"
-          >
-            <FacebookIcon width={18} height={18} />
-            Seguinos en Facebook
-          </a>
+          <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 lg:mt-10">
+            <a
+              href={FACEBOOK_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-fit items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white"
+            >
+              <FacebookIcon width={18} height={18} />
+              Seguinos en Facebook
+            </a>
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-fit items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white"
+            >
+              <InstagramIcon width={18} height={18} />
+              Seguinos en Instagram
+            </a>
+          </div>
         </div>
       </aside>
 

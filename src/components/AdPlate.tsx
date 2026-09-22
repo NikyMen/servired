@@ -36,7 +36,7 @@ export function AdPlate({ ad, label, className = "", lazy = false, invitarHref =
   ) : vacia;
 
   const borde = libre && invitarHref ? "border-dashed border-slate-300 bg-white/60 hover:border-emerald-400 hover:bg-emerald-50/70" : "border-slate-200 bg-white/70";
-  const style = `relative flex aspect-square overflow-hidden items-center justify-center rounded-[1.5rem] border shadow-sm ${borde} ${className}`;
+  const style = `relative flex aspect-square overflow-hidden items-center justify-center rounded-[1.5rem] border shadow-sm ${borde} ${libre ? "opacity-50 transition-opacity hover:opacity-75" : ""} ${className}`;
   const href = conAviso && ad!.whatsappPhone ? waLink(ad!.whatsappPhone, ad!.whatsappMessage) : libre ? invitarHref : null;
   const aria = conAviso ? `${label}: abre WhatsApp` : `${label}: espacio disponible, abre WhatsApp`;
   return href
