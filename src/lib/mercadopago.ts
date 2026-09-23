@@ -21,7 +21,10 @@ async function tokenRequest(fields: Record<string, string>): Promise<TokenRespon
     body: new URLSearchParams({ client_id: process.env.MP_CLIENT_ID!, client_secret: process.env.MP_CLIENT_SECRET!, ...fields }),
     cache: "no-store",
   });
-  if (!response.ok) throw new Error("Mercado Pago no pudo autorizar la cuenta.");
+  if (!response.ok) {
+    console.error(`[mercadopago] oauth/token ${fields.grant_type} falló (${response.status}):`, await response.text().catch(() => ""));
+    throw new Error("Mercado Pago no pudo autorizar la cuenta.");
+  }
   const result = await response.json() as TokenResponse;
   if (!result.access_token || !result.refresh_token || !result.user_id || !result.expires_in) throw new Error("Respuesta OAuth incompleta.");
   return result;
