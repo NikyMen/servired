@@ -21,8 +21,6 @@ export const dynamic = "force-dynamic";
 
 type Search = { q?: string; categoria?: string; tipo?: "profesional" | "oficio" };
 
-/** Placas de cada carrusel del celular como mínimo: lo que falta son lugares libres. */
-const PLACAS_POR_FILA = 6;
 
 async function getData({ q, categoria, tipo }: Search) {
   const user = await getSessionUser();
@@ -86,17 +84,17 @@ export default async function HomePage({
     getPublicitarHref(),
   ]);
   const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
-  // Celular: una fila por tipo, con las placas cargadas de ese tipo y lugares
-  // libres ("Tu publicidad acá") hasta completar 6, como las 12 de antes.
-  const filaDe = (tipo: "oficio" | "profesional"): ItemCarrusel[] => {
-    const items: ItemCarrusel[] = PLACAS.flatMap((placa) => {
+  // Celular: una fila por tipo, solo con las placas activas de ese tipo (sin
+  // lugares libres). Una fila sin placas no se muestra.
+  const filaDe = (tipo: "oficio" | "profesional"): ItemCarrusel[] =>
+    PLACAS.flatMap((placa) => {
       const ad = adMap.get(placa.slot);
-      const conAviso = ad && ad.enabled && (ad.imageUrl || ad.title);
-      return conAviso && (ad.tipo === "profesional" ? "profesional" : "oficio") === tipo ? [{ key: placa.slot, ad, label: `Publicidad ${placa.nombre}` }] : [];
+      const activa = ad && ad.enabled && (ad.imageUrl || ad.title);
+      if (!activa || (ad.tipo === "profesional" ? "profesional" : "oficio") !== tipo) return [];
+      return [{ key: placa.slot, label: `Publicidad ${placa.nombre}`, ad: { title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, enabled: ad.enabled } }];
     });
-    for (let i = items.length; i < PLACAS_POR_FILA; i++) items.push({ key: `libre-${i}`, ad: null, label: `Publicidad de ${tipo === "oficio" ? "oficios" : "profesionales"}` });
-    return items;
-  };
+  const filaOficios = filaDe("oficio");
+  const filaProfesionales = filaDe("profesional");
   const rubrosVisibles = categories.filter((category) => category.parentId && (!params.tipo || category.kind === params.tipo));
   const parentIdsVisibles = new Set(rubrosVisibles.map((category) => category.parentId));
   const seleccionada = categories.find((category) => category.slug === params.categoria);
@@ -145,11 +143,14 @@ export default async function HomePage({
           medida que las de los costados. */}
       <section aria-label="Publicidad">
         {/* Celular: dos carruseles que no paran, primero oficios (hacia la
-            derecha) y abajo profesionales (hacia la izquierda). */}
-        <div className="space-y-3 md:hidden">
-          <CarruselPublicidad titulo="Oficios" tono="bg-emerald-600" sentido="derecha" items={filaDe("oficio")} invitarHref={publicitarHref} />
-          <CarruselPublicidad titulo="Profesionales" tono="bg-blue-600" sentido="izquierda" items={filaDe("profesional")} invitarHref={publicitarHref} />
-        </div>
+            derecha) y abajo profesionales (hacia la izquierda). Se pueden
+            arrastrar y revolear; a los 2 s de soltarlos siguen solos. */}
+        {(filaOficios.length > 0 || filaProfesionales.length > 0) && (
+          <div className="space-y-3 md:hidden">
+            <CarruselPublicidad titulo="Oficios" tono="bg-emerald-600" sentido="derecha" items={filaOficios} />
+            <CarruselPublicidad titulo="Profesionales" tono="bg-blue-600" sentido="izquierda" items={filaProfesionales} />
+          </div>
+        )}
         <div className="hidden grid-cols-4 gap-2 sm:gap-3 md:grid xl:hidden">
           {PLACAS.map((placa) => (
             <AdPlate key={placa.slot} ad={adMap.get(placa.slot) || null} label={`Publicidad ${placa.nombre}`} className="rounded-2xl" invitarHref={publicitarHref} />

@@ -176,3 +176,6 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
   WhatsApp del lugar anterior y «Guardar» los pisaba). En el celular la
   publicidad son dos carruseles infinitos: oficios hacia la derecha y
   profesionales hacia la izquierda, con lugares libres hasta completar 6.
+- **Carruseles (23/09, ajuste):** solo muestran placas activas (sin lugares
+  libres; una fila vacía no aparece). Se pueden frenar, arrastrar y revolear
+  para cualquier lado; a los 2 s de soltarlos vuelven a andar solos.
