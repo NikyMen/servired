@@ -1,7 +1,8 @@
 import { WhatsAppIcon } from "@/components/icons";
 
 /**
- * "Necesito ayuda": abre el WhatsApp de soporte (el número sale de
+ * "Necesito ayuda": solo el logo de WhatsApp, redondo y del mismo tamaño que
+ * el botón de ServiRed IA de abajo. Abre el WhatsApp de soporte (el número sale de
  * SOPORTE_WHATSAPP en el .env; ver src/lib/soporte.ts). Va a la derecha,
  * apilado arriba del botón de ServiRed IA (que está en right-4 bottom-24 y
  * md:bottom-6): de ahí salen las alturas de `abajo`, que también lo dejan
@@ -28,10 +29,9 @@ export function AyudaFlotante({
       rel="noopener noreferrer"
       aria-label="Necesito ayuda por WhatsApp"
       title="Necesito ayuda"
-      className={`fixed right-4 ${abajo} z-30 flex size-13 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white text-slate-700 shadow-lg transition-all hover:shadow-xl active:scale-95 md:size-auto md:px-4 md:py-3`}
+      className={`fixed right-4 ${abajo} z-30 flex size-13 items-center justify-center rounded-full border border-slate-200 bg-white shadow-lg transition-all hover:shadow-xl active:scale-95`}
     >
-      <WhatsAppIcon width={22} height={22} className="shrink-0 text-[#25D366]" />
-      <span className="hidden text-sm font-semibold md:inline">¿Necesitás ayuda?</span>
+      <WhatsAppIcon width={28} height={28} className="shrink-0 text-[#25D366]" />
     </a>
   );
 }

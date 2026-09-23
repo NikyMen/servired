@@ -11,7 +11,8 @@ export async function GET(req: NextRequest) {
   const state = req.nextUrl.searchParams.get("state");
   const code = req.nextUrl.searchParams.get("code");
   const access = await interactionAccess();
-  const result = new URL("/pro", process.env.APP_URL);
+  const result = new URL("/pro/mi-perfil", process.env.APP_URL);
+  result.hash = "mercado-pago";
   if ("error" in access || !access.user.professionalId || access.user.professionalStatus !== "approved" || !mercadoPagoConfigured() || !stored || !state || !code || stored.length !== state.length || !timingSafeEqual(Buffer.from(stored), Buffer.from(state))) {
     const motivo = "error" in access ? "sin sesión" : !access.user.professionalId || access.user.professionalStatus !== "approved" ? "profesional no aprobado" : !mercadoPagoConfigured() ? "faltan variables MP" : !code ? `sin code (error=${req.nextUrl.searchParams.get("error")})` : !stored ? "sin cookie de state" : "state no coincide";
     console.error(`[mercadopago] callback rechazado: ${motivo}`);

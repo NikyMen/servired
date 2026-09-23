@@ -17,7 +17,7 @@ export function MercadoPagoCard({ estado, aviso, comision }: { estado: EstadoMer
   if (estado.estado === "vinculada") return <Vinculada cuenta={estado.cuenta} desde={estado.desde} recien={aviso === "conectado"} comision={comision} />;
 
   return (
-    <section aria-labelledby="mp-titulo" className="relative overflow-hidden rounded-2xl border border-sky-200/80 bg-white p-5 shadow-sm sm:p-6">
+    <section id="mercado-pago" aria-labelledby="mp-titulo" className="relative scroll-mt-24 overflow-hidden rounded-2xl border border-sky-200/80 bg-white p-5 shadow-sm sm:p-6">
       {/* Fondo difuminado con los colores de Mercado Pago. */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute -top-20 -left-16 size-64 rounded-full bg-[#009EE3]/30 blur-3xl" />
@@ -83,7 +83,7 @@ export function MercadoPagoCard({ estado, aviso, comision }: { estado: EstadoMer
 
 function Vinculada({ cuenta, desde, recien, comision }: { cuenta: string; desde: Date; recien: boolean; comision: number }) {
   return (
-    <section aria-labelledby="mp-titulo" className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#00B1EA] via-[#009EE3] to-[#2D3277] p-5 text-white shadow-lg shadow-[#009EE3]/25 sm:p-6">
+    <section id="mercado-pago" aria-labelledby="mp-titulo" className="relative scroll-mt-24 overflow-hidden rounded-2xl bg-gradient-to-br from-[#00B1EA] via-[#009EE3] to-[#2D3277] p-5 text-white shadow-lg shadow-[#009EE3]/25 sm:p-6">
       {/* Brillos difuminados sobre el degradé. */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 -right-10 size-72 rounded-full bg-white/25 blur-3xl" />

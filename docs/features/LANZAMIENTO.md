@@ -163,3 +163,7 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
   grande (cuenta, fecha y comisión) y sin botón; "Volver a vincular" aparece
   solo si Mercado Pago rechaza renovar el acceso (`estadoMercadoPago`), y en
   ese caso tampoco deja cerrar trabajos hasta volver a vincular.
+- **Ayuda y Mi perfil (23/09):** el botón flotante de soporte es solo el logo
+  de WhatsApp, redondo como el de ServiRed IA. La tarjeta de Mercado Pago pasó
+  a Mi perfil del pro (`/pro/mi-perfil#mercado-pago`, ahí vuelve el OAuth); el
+  panel solo muestra un aviso celeste si falta vincular o se cortó.

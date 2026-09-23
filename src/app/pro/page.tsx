@@ -9,14 +9,13 @@ import { TrabajosParticulares } from "@/components/pro/TrabajosParticulares";
 import { BookingActions } from "@/components/BookingActions";
 import { SolicitudCard } from "@/components/pro/SolicitudCard";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
-import { ChatIcon, ChevronLeftIcon } from "@/components/icons";
+import { ChatIcon, ChevronLeftIcon, MercadoPagoIcon } from "@/components/icons";
 import { expirePendingProposals, expireServiceRequests, openRequestsWhere } from "@/lib/workflow";
 import { ProfessionalOnboardingForm } from "@/components/ProfessionalOnboardingForm";
 import { redirect } from "next/navigation";
 import { decryptKyc } from "@/lib/kyc";
 import { getLocalidades } from "@/lib/localidades";
-import { comisionPorcentaje, estadoMercadoPago } from "@/lib/mercadopago";
-import { MercadoPagoCard } from "@/components/pro/MercadoPagoCard";
+import { estadoMercadoPago } from "@/lib/mercadopago";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Panel del profesional" };
@@ -25,7 +24,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
   const user = await getSessionUser();
   if (!user) redirect("/entrar?next=/pro");
   if (!user.emailVerified || !user.canInteract) redirect("/onboarding?next=/pro");
-  const { tipo, editarKyc, mp } = await searchParams;
+  const { tipo, editarKyc } = await searchParams;
   await Promise.all([expirePendingProposals(), expireServiceRequests()]);
   const pro = user?.professionalId
     ? await prisma.professional.findUnique({ where: { id: user.professionalId }, include: { categoryLinks: { where: { category: { approvalStatus: "approved" } } }, user: { select: { kycCase: { select: { status: true, reviewReason: true, legalName: true, phone: true, birthDate: true, cuilEncrypted: true, dniEncrypted: true, address: true } } } } } })
@@ -118,7 +117,17 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
         </section>
       )}
 
-      {pro && mpEstado && <MercadoPagoCard estado={mpEstado} aviso={mp} comision={comisionPorcentaje()} />}
+      {/* La vinculación vive en Mi perfil; acá solo se avisa si falta o se cortó. */}
+      {(mpEstado?.estado === "sin_vincular" || mpEstado?.estado === "revincular") && (
+        <Link href="/pro/mi-perfil#mercado-pago" className="flex items-center gap-3 rounded-2xl bg-[#009EE3] p-4 text-white shadow-md shadow-[#009EE3]/25 transition hover:bg-[#0087c2]">
+          <MercadoPagoIcon width={30} height={30} className="shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">{mpEstado.estado === "revincular" ? "Se cortó la conexión con Mercado Pago" : "Vinculá Mercado Pago para cobrar"}</span>
+            <span className="block text-sm text-white/85">Lo hacés desde Mi perfil, en un minuto.</span>
+          </span>
+          <span aria-hidden className="text-xl">→</span>
+        </Link>
+      )}
 
       {/* Propuestas recibidas */}
       <section className="space-y-3">
