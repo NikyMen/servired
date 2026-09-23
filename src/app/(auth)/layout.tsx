@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { FondoLiquido } from "@/components/FondoLiquido";
 import { LogoMark } from "@/components/Logo";
-import { FacebookIcon, InstagramIcon, SearchIcon, BriefcaseIcon, VerifiedIcon, ChatIcon } from "@/components/icons";
-import { FACEBOOK_URL, INSTAGRAM_URL } from "@/lib/links";
+import { FacebookIcon, InstagramIcon, TikTokIcon, SearchIcon, BriefcaseIcon, VerifiedIcon, ChatIcon } from "@/components/icons";
+import { FACEBOOK_URL, INSTAGRAM_URL, TIKTOK_URL } from "@/lib/links";
 import { AyudaFlotante } from "@/components/AyudaFlotante";
 import { getSoporte } from "@/lib/soporte";
 
@@ -105,6 +105,15 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
             >
               <InstagramIcon width={18} height={18} />
               Seguinos en Instagram
+            </a>
+            <a
+              href={TIKTOK_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-fit items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white"
+            >
+              <TikTokIcon width={18} height={18} />
+              Seguinos en TikTok
             </a>
           </div>
         </div>
