@@ -4,7 +4,8 @@ import { useEffect, useRef } from "react";
 import { AdPlate } from "@/components/AdPlate";
 
 type Ad = { title: string; imageUrl: string | null; whatsappPhone: string | null; whatsappMessage: string | null; enabled: boolean };
-export type ItemCarrusel = { key: string; ad: Ad; label: string };
+/** ad null = lugar libre: invita a publicitar (hace falta invitarHref). */
+export type ItemCarrusel = { key: string; ad: Ad | null; label: string };
 
 /** Velocidad del movimiento solo, en px por segundo. */
 const VELOCIDAD = 30;
@@ -30,7 +31,7 @@ const UMBRAL_ARRASTRE = 6;
  * con un transform desde requestAnimationFrame (sin re-render por cuadro).
  * Quien pidió menos movimiento la ve quieta, pero la puede arrastrar igual.
  */
-export function CarruselPublicidad({ titulo, tono, sentido, items }: { titulo: string; tono: string; sentido: "izquierda" | "derecha"; items: ItemCarrusel[] }) {
+export function CarruselPublicidad({ titulo, tono, sentido, items, invitarHref = null }: { titulo: string; tono: string; sentido: "izquierda" | "derecha"; items: ItemCarrusel[]; invitarHref?: string | null }) {
   const caja = useRef<HTMLDivElement>(null);
   const pista = useRef<HTMLDivElement>(null);
   const vuelta = useRef<HTMLDivElement>(null);
@@ -168,7 +169,7 @@ export function CarruselPublicidad({ titulo, tono, sentido, items }: { titulo: s
       return (
         // pr en vez de gap: así cada vuelta mide exacto la mitad de la pista.
         <div key={`${copia ? "b" : "a"}-${i}-${item.key}`} aria-hidden={repetida || undefined} className="w-[30vw] max-w-40 shrink-0 pr-2">
-          <AdPlate ad={item.ad} label={item.label} className="rounded-2xl" />
+          <AdPlate ad={item.ad} label={item.label} className="rounded-2xl" invitarHref={invitarHref} />
         </div>
       );
     });

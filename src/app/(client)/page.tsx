@@ -84,17 +84,18 @@ export default async function HomePage({
     getPublicitarHref(),
   ]);
   const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
-  // Celular: una fila por tipo, solo con las placas activas de ese tipo (sin
-  // lugares libres). Una fila sin placas no se muestra.
-  const filaDe = (tipo: "oficio" | "profesional"): ItemCarrusel[] =>
-    PLACAS.flatMap((placa) => {
+  // Celular: una fila por tipo, solo con las placas activas de ese tipo. Si un
+  // tipo no tiene ninguna, su fila igual se ve, con lugares libres que invitan
+  // a publicitar ("Tu publicidad acá"), así los dos carruseles están siempre.
+  const filaDe = (tipo: "oficio" | "profesional"): ItemCarrusel[] => {
+    const activas: ItemCarrusel[] = PLACAS.flatMap((placa) => {
       const ad = adMap.get(placa.slot);
       const activa = ad && ad.enabled && (ad.imageUrl || ad.title);
       if (!activa || (ad.tipo === "profesional" ? "profesional" : "oficio") !== tipo) return [];
       return [{ key: placa.slot, label: `Publicidad ${placa.nombre}`, ad: { title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, enabled: ad.enabled } }];
     });
-  const filaOficios = filaDe("oficio");
-  const filaProfesionales = filaDe("profesional");
+    return activas.length ? activas : [{ key: `libre-${tipo}`, ad: null, label: `Publicidad de ${tipo === "oficio" ? "oficios" : "profesionales"}` }];
+  };
   const rubrosVisibles = categories.filter((category) => category.parentId && (!params.tipo || category.kind === params.tipo));
   const parentIdsVisibles = new Set(rubrosVisibles.map((category) => category.parentId));
   const seleccionada = categories.find((category) => category.slug === params.categoria);
@@ -145,12 +146,10 @@ export default async function HomePage({
         {/* Celular: dos carruseles que no paran, primero oficios (hacia la
             derecha) y abajo profesionales (hacia la izquierda). Se pueden
             arrastrar y revolear; a los 2 s de soltarlos siguen solos. */}
-        {(filaOficios.length > 0 || filaProfesionales.length > 0) && (
-          <div className="space-y-3 md:hidden">
-            <CarruselPublicidad titulo="Oficios" tono="bg-emerald-600" sentido="derecha" items={filaOficios} />
-            <CarruselPublicidad titulo="Profesionales" tono="bg-blue-600" sentido="izquierda" items={filaProfesionales} />
-          </div>
-        )}
+        <div className="space-y-3 md:hidden">
+          <CarruselPublicidad titulo="Oficios" tono="bg-emerald-600" sentido="derecha" items={filaDe("oficio")} invitarHref={publicitarHref} />
+          <CarruselPublicidad titulo="Profesionales" tono="bg-blue-600" sentido="izquierda" items={filaDe("profesional")} invitarHref={publicitarHref} />
+        </div>
         <div className="hidden grid-cols-4 gap-2 sm:gap-3 md:grid xl:hidden">
           {PLACAS.map((placa) => (
             <AdPlate key={placa.slot} ad={adMap.get(placa.slot) || null} label={`Publicidad ${placa.nombre}`} className="rounded-2xl" invitarHref={publicitarHref} />

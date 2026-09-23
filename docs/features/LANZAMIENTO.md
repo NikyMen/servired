@@ -179,3 +179,10 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
 - **Carruseles (23/09, ajuste):** solo muestran placas activas (sin lugares
   libres; una fila vacía no aparece). Se pueden frenar, arrastrar y revolear
   para cualquier lado; a los 2 s de soltarlos vuelven a andar solos.
+- **Carruseles siempre visibles (23/09):** un tipo sin placas activas muestra
+  igual su carrusel, con lugares libres que invitan a publicitar.
+- **nginx del VPS (23/09):** se sacó el `listen 443 ssl` que Certbot había
+  metido en `sites-available/cuantico` (el 443 es de Traefik; nginx no
+  arrancaba y se caía el http de todos los sitios) y se desactivó
+  `installer = nginx` en las 8 renovaciones de `/etc/letsencrypt/renewal`,
+  para que no vuelva a pasar. Copias en `/root/backups-20260923-nginx443`.
