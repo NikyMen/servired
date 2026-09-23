@@ -2,9 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatARS, formatDate, formatMonthYear } from "@/lib/format";
+import { formatDate, formatMonthYear } from "@/lib/format";
 import { getSessionUser } from "@/lib/auth";
-import { saludoPerfil, waLink } from "@/lib/whatsapp";
 import { Avatar, MatriculadoBadge, Rating, VerifiedBadge } from "@/components/ui";
 import { ContratarBox } from "@/components/ContratarBox";
 import { ContratarSheet } from "@/components/ContratarSheet";
@@ -29,7 +28,9 @@ async function getPro(id: string) {
         orderBy: { updatedAt: "desc" },
         include: {
           user: { select: { name: true, avatarColor: true } },
-          service: { select: { title: true, description: true, priceFrom: true } },
+          service: { select: { title: true, description: true } },
+          // La calificación de quien contrató: es lo que se muestra del trabajo, no el monto.
+          reviews: { select: { rating: true }, orderBy: { createdAt: "desc" }, take: 1 },
         },
       },
     },
@@ -54,10 +55,8 @@ export default async function ProfesionalPage({
   const { id } = await params;
   const [pro, viewer] = await Promise.all([getPro(id), getSessionUser()]);
   if (!pro) notFound();
-  // El teléfono se muestra entero, pero no a cualquiera: una cuenta con el
-  // correo confirmado es el peaje mínimo para que la agenda de oferentes no se
-  // pueda levantar entera con un script.
-  const puedeVerTelefono = Boolean(viewer?.canInteract);
+  // El teléfono y el WhatsApp no se muestran: el contacto va por el chat de
+  // ServiRed, así la contratación y el pago quedan dentro de la plataforma.
   // Denunciar queda a nombre de alguien, y nadie se denuncia a sí mismo.
   const puedeDenunciar = Boolean(viewer?.canInteract) && pro.userId !== viewer?.id;
 
@@ -118,24 +117,6 @@ export default async function ProfesionalPage({
                   </span>
                 )}
               </div>
-              {pro.phone && (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {puedeVerTelefono ? (
-                    <>
-                      <a href={`tel:${telLink(pro.phone)}`} className="glass-chip px-3 py-1.5 text-sm font-semibold text-slate-700">
-                        📞 {pro.phone}
-                      </a>
-                      <a href={waLink(pro.phone, saludoPerfil(pro.name))} target="_blank" rel="noopener noreferrer" className="glass-chip px-3 py-1.5 text-sm font-semibold text-pro-dark">
-                        WhatsApp
-                      </a>
-                    </>
-                  ) : (
-                    <Link href={`/entrar?next=/profesionales/${pro.id}`} className="glass-chip px-3 py-1.5 text-sm font-medium text-slate-600">
-                      📞 Entrá con tu cuenta para ver el teléfono
-                    </Link>
-                  )}
-                </div>
-              )}
             </div>
           </div>
           {pro.bio && (
@@ -171,7 +152,7 @@ export default async function ProfesionalPage({
             </ul>
           </section>
 
-          {/* Historial público de trabajos: conecta cliente, profesional y monto final. */}
+          {/* Historial público de trabajos: conecta cliente, profesional y la calificación que dejó el cliente. */}
           {pro.bookings.length > 0 && (
             <section className="glass glass-solid rounded-2xl p-4 sm:p-6">
               <div className="mb-4 flex items-end justify-between gap-3">
@@ -185,7 +166,7 @@ export default async function ProfesionalPage({
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 {pro.bookings.map((booking) => {
-                  const amount = booking.finalPrice ?? booking.service?.priceFrom;
+                  const estrellas = booking.reviews[0]?.rating ?? null;
                   return (
                     <article key={booking.id} className="glass glass-thin rounded-2xl border-emerald-300/35 bg-emerald-400/8 p-4">
                       <div className="flex items-start justify-between gap-3">
@@ -197,12 +178,18 @@ export default async function ProfesionalPage({
                             {booking.workSummary ?? booking.service?.description ?? "Trabajo coordinado por ServiRed."}
                           </p>
                         </div>
-                        {amount != null && (
-                          <div className="shrink-0 text-right">
-                            <p className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">Monto final</p>
-                            <p className="font-bold text-pro-dark">{formatARS(amount)}</p>
-                          </div>
-                        )}
+                        <div className="shrink-0 text-right">
+                          <p className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">Calificación</p>
+                          {estrellas != null ? (
+                            <div className="mt-0.5 flex items-center justify-end gap-0.5 text-amber-400" role="img" aria-label={`${estrellas} de 5 estrellas`}>
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <StarIcon key={i} width={15} height={15} filled={i < estrellas} className={i < estrellas ? "" : "text-slate-200"} />
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-400">Sin calificar</p>
+                          )}
+                        </div>
                       </div>
                       <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-emerald-100 pt-3 text-xs text-slate-500">
                         <span className="inline-flex items-center gap-1.5">
@@ -328,9 +315,4 @@ export default async function ProfesionalPage({
 function rubrosMatricula(credenciales: { category: { name: string } | null }[]) {
   const nombres = [...new Set(credenciales.map((c) => c.category?.name).filter((n): n is string => Boolean(n)))];
   return nombres.length ? nombres.join(", ") : undefined;
-}
-
-/** El teléfono se guarda como lo escribió la persona; para marcar hay que limpiarlo. */
-function telLink(phone: string) {
-  return phone.replace(/[^\d+]/g, "");
 }

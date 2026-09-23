@@ -4,6 +4,7 @@ import { getSessionUser, interactionAccess } from "@/lib/auth";
 import { notificarMensaje } from "@/lib/notificaciones";
 import { CLIENT_BLUE, PRO_GREEN } from "@/lib/brand";
 import { contarNoLeidos } from "@/lib/mensajes";
+import { calificacionPendiente, MENSAJE_CALIFICACION_PENDIENTE } from "@/lib/calificacion";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,8 @@ export async function POST(req: NextRequest) {
   const access = await interactionAccess();
   if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
   const user = access.user;
+  const pendienteCalificar = await calificacionPendiente(user.id);
+  if (pendienteCalificar) return NextResponse.json({ error: MENSAJE_CALIFICACION_PENDIENTE }, { status: 409 });
 
   let body: unknown;
   try {

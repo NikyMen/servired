@@ -143,3 +143,18 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
 - **Soporte (19/09):** el número del cliente (+54 9 3794 40-4086) quedó en
   `SOPORTE_WHATSAPP` del `.env` del VPS. Aparece en el botón flotante y en el
   footer, con el mismo enlace de WhatsApp.
+
+- **Mercado Pago (22-23/09):** app nueva de producción (Checkout Pro, API de
+  Preferencias, OAuth con redirect `…/api/mercadopago/callback`, webhook solo
+  "Pagos (legacy)"). Comisión de ServiRed por `MP_COMISION_PORCENTAJE` (1 % en
+  el VPS) enviada como `marketplace_fee`; queda en `Payment.commission`.
+- **Portada (23/09):** categorías como menú (la abierta es una pestaña pegada a
+  su panel de subcategorías) y filtros sin recargar ni mover el scroll. Menú de
+  la cuenta y campanita sólidos; cerrar sesión en rojo. TikTok en login/registro.
+- **Pago, perfil y calificación (23/09):** el botón "Pagar" del chat y "Pagar con
+  Mercado Pago" llevan el logo y el celeste de MP. El perfil ya no muestra
+  teléfono ni WhatsApp del oferente, y en "Trabajos realizados" se ven las
+  estrellas del cliente en vez del monto final. Calificar es obligatorio: un
+  trabajo pagado sin calificar abre una pantalla que tapa el sitio del cliente
+  (`CalificarObligatorio`) y el servidor rechaza contratar, abrir conversaciones
+  o publicar solicitudes hasta calificarlo (`lib/calificacion.ts`).

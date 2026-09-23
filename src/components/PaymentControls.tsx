@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { BookingActions } from "@/components/BookingActions";
-import { BriefcaseIcon, XIcon } from "@/components/icons";
+import { BriefcaseIcon, MercadoPagoIcon, XIcon } from "@/components/icons";
 import { StatusPill } from "@/components/ui";
 import { PROPOSAL_TTL_LABEL, jobProgress } from "@/lib/trabajo";
 
@@ -52,6 +52,8 @@ export type EstadoAcuerdo = {
   boton: string;
   /** Te toca hacer algo: el botón lleva un punto. */
   destacado: boolean;
+  /** El cliente paga por Mercado Pago: el botón va con su logo y su celeste. */
+  mercadoPago?: boolean;
 };
 
 const ars = (n: number) => `$${n.toLocaleString("es-AR")}`;
@@ -59,6 +61,8 @@ const NEUTRO = "text-slate-500 hover:bg-white/70";
 const AMBAR = "bg-amber-50 text-amber-700 ring-1 ring-amber-200 hover:bg-amber-100";
 const AMBAR_FUERTE = "bg-amber-500 text-white hover:bg-amber-600";
 const VERDE = "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100";
+/** El celeste de Mercado Pago, con letra blanca, como su botón de pago. */
+export const MERCADO_PAGO = "bg-[#009EE3] text-white shadow-sm hover:bg-[#0087c2]";
 
 /**
  * En qué va el acuerdo, dicho desde el lado de quien mira. Así "Enviar
@@ -89,6 +93,7 @@ export function estadoAcuerdo(booking: Booking | null, viewer: Viewer): EstadoAc
       };
     }
     case "finished":
+      if (!pro && booking.mercadoPagoAvailable) return { label: "Trabajo terminado · pagá con Mercado Pago", corto: "Pagar", tono: "text-amber-700", boton: MERCADO_PAGO, destacado: true, mercadoPago: true };
       return { label: "Trabajo terminado · pago habilitado", corto: pro ? "Terminado" : "Pagar", tono: "text-amber-700", boton: pro ? AMBAR : AMBAR_FUERTE, destacado: !pro };
     case "payment_reported":
       return { label: "Pago informado", corto: pro ? "Confirmar pago" : "Pago informado", tono: "text-amber-700", boton: pro ? AMBAR_FUERTE : AMBAR, destacado: pro };
@@ -122,7 +127,7 @@ export function PaymentControls({ conversationId, viewer, booking, reload }: { c
   const estado = estadoAcuerdo(booking, viewer);
   return <>
     <button type="button" onClick={() => setOpen(true)} title={estado.label} aria-label={estado.label} className={`relative flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-2.5 text-xs font-semibold transition-colors ${estado.boton}`}>
-      <BriefcaseIcon width={17} height={17} />
+      {estado.mercadoPago ? <MercadoPagoIcon width={20} height={20} /> : <BriefcaseIcon width={17} height={17} />}
       <span className="hidden max-w-[10rem] truncate sm:inline">{estado.corto}</span>
       {estado.destacado && <span aria-hidden className="absolute -top-1 -right-1 size-2.5 animate-pulse rounded-full bg-red-500 ring-2 ring-white" />}
     </button>

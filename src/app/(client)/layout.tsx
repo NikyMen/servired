@@ -10,6 +10,8 @@ import { datosCompletarAlta } from "@/lib/completar-alta";
 import { AyudaFlotante } from "@/components/AyudaFlotante";
 import { AdsCostados } from "@/components/AdsCostados";
 import { getSoporte } from "@/lib/soporte";
+import { calificacionPendiente } from "@/lib/calificacion";
+import { CalificarObligatorio } from "@/components/CalificarObligatorio";
 
 export default async function ClientLayout({
   children,
@@ -19,6 +21,8 @@ export default async function ClientLayout({
   const [user, soporte] = await Promise.all([getSessionUser(), getSoporte()]);
   // Cuenta sin términos vigentes o sin localidad: la pantalla de aceptación tapa todo.
   const alta = user && pendienteDeAlta(user) ? await datosCompletarAlta(user) : null;
+  // Trabajo pagado sin calificar: hay que calificarlo para seguir (va después del alta).
+  const calificar = user && !alta ? await calificacionPendiente(user.id) : null;
 
   return (
     // data-modo pinta el fondo azulado desde el CSS (ver globals.css).
@@ -50,6 +54,7 @@ export default async function ClientLayout({
         </UbicacionEnVivo>
       </NoLeidosProvider>
       {alta && <CompletarAlta {...alta} tono="cliente" />}
+      {calificar && <CalificarObligatorio key={calificar.paymentId} pendiente={calificar} />}
     </div>
   );
 }
