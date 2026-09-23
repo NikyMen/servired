@@ -12,6 +12,13 @@ export function mercadoPagoRedirectUri() {
   return `${process.env.APP_URL!.replace(/\/$/, "")}/api/mercadopago/callback`;
 }
 
+/** Comisión de ServiRed en pesos enteros según MP_COMISION_PORCENTAJE (0 si no está); nunca se lleva el total. */
+export function mercadoPagoCommission(amount: number) {
+  const percent = Number(process.env.MP_COMISION_PORCENTAJE ?? 0);
+  if (!Number.isFinite(percent) || percent <= 0 || amount <= 1) return 0;
+  return Math.min(Math.round(amount * percent / 100), amount - 1);
+}
+
 type TokenResponse = { access_token: string; refresh_token: string; user_id: number; expires_in: number; live_mode: boolean };
 
 async function tokenRequest(fields: Record<string, string>): Promise<TokenResponse> {
@@ -51,7 +58,7 @@ export async function sellerToken(professionalId: string) {
   return { token: refreshed.access_token, collectorId: updated.collectorId };
 }
 
-export async function createPreference(token: string, payment: { id: string; amount: number; bookingId: string; clientEmail: string }) {
+export async function createPreference(token: string, payment: { id: string; amount: number; commission: number; bookingId: string; clientEmail: string }) {
   const response = await fetch(`${API}/checkout/preferences`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "X-Idempotency-Key": payment.id },
@@ -59,6 +66,8 @@ export async function createPreference(token: string, payment: { id: string; amo
       items: [{ id: payment.bookingId, title: "Servicio contratado en ServiRed", currency_id: "ARS", quantity: 1, unit_price: payment.amount }],
       payer: { email: payment.clientEmail },
       external_reference: payment.id,
+      // Con el token del profesional, MP acredita esta parte en la cuenta dueña de la integración.
+      ...(payment.commission > 0 ? { marketplace_fee: payment.commission } : {}),
       back_urls: {
         success: `${process.env.APP_URL!.replace(/\/$/, "")}/contrataciones`,
         pending: `${process.env.APP_URL!.replace(/\/$/, "")}/contrataciones`,

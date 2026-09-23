@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { test } from "node:test";
-import { validWebhookSignature } from "../src/lib/mercadopago";
+import { mercadoPagoCommission, validWebhookSignature } from "../src/lib/mercadopago";
 
 test("el webhook exige firma, request ID y marca de tiempo vigente", () => {
   const previous = process.env.MP_WEBHOOK_SECRET;
@@ -22,5 +22,24 @@ test("el webhook exige firma, request ID y marca de tiempo vigente", () => {
   } finally {
     if (previous === undefined) delete process.env.MP_WEBHOOK_SECRET;
     else process.env.MP_WEBHOOK_SECRET = previous;
+  }
+});
+
+test("la comisión sale de MP_COMISION_PORCENTAJE y nunca se lleva el total", () => {
+  const previous = process.env.MP_COMISION_PORCENTAJE;
+  try {
+    delete process.env.MP_COMISION_PORCENTAJE;
+    assert.equal(mercadoPagoCommission(10000), 0);
+    process.env.MP_COMISION_PORCENTAJE = "1";
+    assert.equal(mercadoPagoCommission(10000), 100);
+    assert.equal(mercadoPagoCommission(150), 2);
+    assert.equal(mercadoPagoCommission(1), 0);
+    process.env.MP_COMISION_PORCENTAJE = "100";
+    assert.equal(mercadoPagoCommission(500), 499);
+    process.env.MP_COMISION_PORCENTAJE = "abc";
+    assert.equal(mercadoPagoCommission(10000), 0);
+  } finally {
+    if (previous === undefined) delete process.env.MP_COMISION_PORCENTAJE;
+    else process.env.MP_COMISION_PORCENTAJE = previous;
   }
 });

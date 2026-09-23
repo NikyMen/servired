@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { interactionAccess } from "@/lib/auth";
-import { createPreference, mercadoPagoConfigured, sellerToken } from "@/lib/mercadopago";
+import { createPreference, mercadoPagoCommission, mercadoPagoConfigured, sellerToken } from "@/lib/mercadopago";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -19,8 +19,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     if (!seller) return NextResponse.json({ error: "El profesional todavía no vinculó Mercado Pago." }, { status: 409 });
     const existing = booking.payments[0];
     if (existing?.checkoutUrl) return NextResponse.json({ url: existing.checkoutUrl });
-    const payment = existing ?? await prisma.payment.create({ data: { amount: booking.finalPrice, commission: 0, netAmount: booking.finalPrice, provider: "mercadopago", status: "pendiente", userId: booking.userId, professionalId: booking.professionalId, conversationId: conversation.id, bookingId: booking.id } });
-    const preference = await createPreference(seller.token, { id: payment.id, amount: payment.amount, bookingId: booking.id, clientEmail: access.user.email });
+    const commission = mercadoPagoCommission(booking.finalPrice);
+    const payment = existing ?? await prisma.payment.create({ data: { amount: booking.finalPrice, commission, netAmount: booking.finalPrice - commission, provider: "mercadopago", status: "pendiente", userId: booking.userId, professionalId: booking.professionalId, conversationId: conversation.id, bookingId: booking.id } });
+    const preference = await createPreference(seller.token, { id: payment.id, amount: payment.amount, commission: payment.commission, bookingId: booking.id, clientEmail: access.user.email });
     await prisma.payment.update({ where: { id: payment.id }, data: { providerPreferenceId: preference.id, checkoutUrl: preference.url } });
     return NextResponse.json({ url: preference.url });
   } catch {
