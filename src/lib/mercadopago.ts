@@ -12,10 +12,16 @@ export function mercadoPagoRedirectUri() {
   return `${process.env.APP_URL!.replace(/\/$/, "")}/api/mercadopago/callback`;
 }
 
+/** Porcentaje de MP_COMISION_PORCENTAJE; 0 si no está o no es un número positivo. */
+export function comisionPorcentaje() {
+  const percent = Number(process.env.MP_COMISION_PORCENTAJE ?? 0);
+  return Number.isFinite(percent) && percent > 0 ? percent : 0;
+}
+
 /** Comisión de ServiRed en pesos enteros según MP_COMISION_PORCENTAJE (0 si no está); nunca se lleva el total. */
 export function mercadoPagoCommission(amount: number) {
-  const percent = Number(process.env.MP_COMISION_PORCENTAJE ?? 0);
-  if (!Number.isFinite(percent) || percent <= 0 || amount <= 1) return 0;
+  const percent = comisionPorcentaje();
+  if (percent <= 0 || amount <= 1) return 0;
   return Math.min(Math.round(amount * percent / 100), amount - 1);
 }
 
@@ -56,6 +62,26 @@ export async function sellerToken(professionalId: string) {
     data: { collectorId: String(refreshed.user_id), accessToken: encryptKyc(refreshed.access_token), refreshToken: encryptKyc(refreshed.refresh_token), expiresAt: new Date(Date.now() + refreshed.expires_in * 1000) },
   });
   return { token: refreshed.access_token, collectorId: updated.collectorId };
+}
+
+export type EstadoMercadoPago =
+  | { estado: "no_disponible" }
+  | { estado: "sin_vincular" }
+  | { estado: "vinculada"; cuenta: string; desde: Date }
+  | { estado: "revincular"; cuenta: string };
+
+/**
+ * Cómo está la cuenta de cobro del profesional. Volver a vincular solo hace
+ * falta si se cortó la conexión: sellerToken renueva el acceso cuando está por
+ * vencer, y si Mercado Pago lo rechaza (permiso revocado desde su cuenta,
+ * clave cambiada) los cobros no andan hasta autorizar de nuevo.
+ */
+export async function estadoMercadoPago(professionalId: string): Promise<EstadoMercadoPago> {
+  if (!mercadoPagoConfigured()) return { estado: "no_disponible" };
+  const account = await prisma.mercadoPagoAccount.findUnique({ where: { professionalId }, select: { collectorId: true, createdAt: true } });
+  if (!account) return { estado: "sin_vincular" };
+  const activa = await sellerToken(professionalId).then(Boolean).catch(() => false);
+  return activa ? { estado: "vinculada", cuenta: account.collectorId, desde: account.createdAt } : { estado: "revincular", cuenta: account.collectorId };
 }
 
 export async function createPreference(token: string, payment: { id: string; amount: number; commission: number; bookingId: string; clientEmail: string }) {

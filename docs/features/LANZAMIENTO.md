@@ -158,3 +158,8 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
   trabajo pagado sin calificar abre una pantalla que tapa el sitio del cliente
   (`CalificarObligatorio`) y el servidor rechaza contratar, abrir conversaciones
   o publicar solicitudes hasta calificarlo (`lib/calificacion.ts`).
+- **Tarjeta de Mercado Pago del panel pro (23/09):** con los colores de MP y
+  fondo difuminado (`components/pro/MercadoPagoCard.tsx`). Vinculada se ve en
+  grande (cuenta, fecha y comisión) y sin botón; "Volver a vincular" aparece
+  solo si Mercado Pago rechaza renovar el acceso (`estadoMercadoPago`), y en
+  ese caso tampoco deja cerrar trabajos hasta volver a vincular.
