@@ -5,7 +5,8 @@ import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { HeroFondo } from "@/components/HeroFondo";
 import { MapView } from "@/components/MapView";
 import { AdPlate } from "@/components/AdPlate";
-import { CategoriasChips } from "@/components/CategoriasChips";
+import { CategoriasMenu } from "@/components/CategoriasMenu";
+import { Atenuable, EnlaceSuave, NavegacionSuave } from "@/components/NavegacionSuave";
 import { PLACAS, SLOTS, nombreDeSlot } from "@/lib/publicidad";
 import { getPublicitarHref } from "@/lib/soporte";
 import { getSessionUser } from "@/lib/auth";
@@ -61,13 +62,13 @@ async function getData({ q, categoria, tipo }: Search) {
   };
 }
 
-function chipHref(params: Search, categoria: string, destino: "categorias" | "resultados" = "resultados") {
+function chipHref(params: Search, categoria: string) {
   const sp = new URLSearchParams();
   if (params.q) sp.set("q", params.q);
   if (params.tipo) sp.set("tipo", params.tipo);
   if (categoria) sp.set("categoria", categoria);
   const qs = sp.toString();
-  return qs ? `/?${qs}#${destino}` : `/#${destino}`;
+  return qs ? `/?${qs}` : "/";
 }
 
 export default async function HomePage({
@@ -86,9 +87,9 @@ export default async function HomePage({
   const seleccionada = categories.find((category) => category.slug === params.categoria);
   const principalSeleccionada = seleccionada?.parentId ? categories.find((category) => category.id === seleccionada.parentId) : seleccionada;
   const principales = categories.filter((category) => !category.parentId && (parentIdsVisibles.has(category.id) || category.id === principalSeleccionada?.id));
-  const subcategorias = principalSeleccionada ? rubrosVisibles.filter((category) => category.parentId === principalSeleccionada.id) : [];
 
   return (
+    <NavegacionSuave>
     <div className="relative space-y-6">
       {/* Hero: banner con la foto de portada (public/servired-panel-entrada2.jpeg;
           si no está, <HeroFondo> cae en la escena dibujada en canvas) y los dos
@@ -103,8 +104,8 @@ export default async function HomePage({
           <HeroFondo />
 
           <div className="hero-weld-filtros absolute inset-0 z-[3] grid grid-cols-2 overflow-hidden rounded-[1.5rem]" aria-label="Filtrar prestadores">
-            <Link href="/?tipo=profesional#resultados" className="flex items-start justify-center border-r border-white/25 px-2 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70 sm:justify-start sm:px-6 sm:pt-6" aria-label="Ver solo profesionales"><span className="hero-weld-filtro rounded-full bg-blue-600/90 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm">Profesionales</span></Link>
-            <Link href="/?tipo=oficio#resultados" className="flex items-start justify-center px-2 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70 sm:justify-end sm:px-6 sm:pt-6" aria-label="Ver solo oficios"><span className="hero-weld-filtro rounded-full bg-emerald-600/90 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm">Oficios</span></Link>
+            <EnlaceSuave href="/?tipo=profesional" irA="resultados" className="flex items-start justify-center border-r border-white/25 px-2 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70 sm:justify-start sm:px-6 sm:pt-6" aria-label="Ver solo profesionales"><span className="hero-weld-filtro rounded-full bg-blue-600/90 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm">Profesionales</span></EnlaceSuave>
+            <EnlaceSuave href="/?tipo=oficio" irA="resultados" className="flex items-start justify-center px-2 pt-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70 sm:justify-end sm:px-6 sm:pt-6" aria-label="Ver solo oficios"><span className="hero-weld-filtro rounded-full bg-emerald-600/90 px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-sm">Oficios</span></EnlaceSuave>
           </div>
 
           {/* La frase va al medio del banner, en los dos ejes. El
@@ -141,21 +142,23 @@ export default async function HomePage({
       </section>
 
       <section id="categorias" aria-label="Categorías de servicios" className="scroll-mt-28 space-y-3">
-        <CategoriasChips
-          items={[
-            { key: "", href: chipHref(params, ""), label: "Todos", active: !params.categoria },
-            ...principales.map((category) => ({ key: category.slug, href: chipHref(params, category.slug, "categorias"), label: `${category.icon} ${category.name}`, active: principalSeleccionada?.id === category.id })),
-          ]}
+        <CategoriasMenu
+          todos={{ key: "", href: chipHref(params, ""), label: "Todos", active: !params.categoria }}
+          principales={principales.map((category) => ({
+            key: category.slug,
+            href: chipHref(params, category.slug),
+            label: `${category.icon} ${category.name}`,
+            name: category.name,
+            active: principalSeleccionada?.id === category.id,
+            subcategorias: rubrosVisibles
+              .filter((sub) => sub.parentId === category.id)
+              .map((sub) => ({ key: sub.slug, href: chipHref(params, sub.slug), label: `${sub.icon} ${sub.name}`, active: params.categoria === sub.slug })),
+          }))}
         />
-        {principalSeleccionada && subcategorias.length > 0 && (
-          <div className="rounded-2xl border border-white/70 bg-white/45 p-3 shadow-sm backdrop-blur-sm">
-            <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wide text-slate-500">Subcategorías de {principalSeleccionada.name}</p>
-            <CategoriasChips items={subcategorias.map((category) => ({ key: category.slug, href: chipHref(params, category.slug), label: `${category.icon} ${category.name}`, active: params.categoria === category.slug }))} />
-          </div>
-        )}
       </section>
 
       <div id="resultados" className="scroll-mt-28" />
+      <Atenuable className="space-y-6">
       <ClientResultSwitch
         requests={requests.map((r) => ({
           ...r,
@@ -208,6 +211,7 @@ export default async function HomePage({
           ))}
         </div>
       )}
+      </Atenuable>
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -259,5 +263,6 @@ export default async function HomePage({
       </section>
 
     </div>
+    </NavegacionSuave>
   );
 }

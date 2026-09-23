@@ -54,9 +54,9 @@ export function UserMenu({ user, mode }: { user: SessionUser | null; mode: Mode 
       {open && (
         <div
           role="menu"
-          className="glass animate-fade-in absolute top-full right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-xl"
+          className="animate-fade-in absolute top-full right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
         >
-          <div className="flex items-center gap-3 border-b border-white/60 p-3">
+          <div className="flex items-center gap-3 border-b border-slate-100 p-3">
             <Avatar name={user.name} color={user.avatarColor} src={user.avatarUrl} size={40} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900">{user.name}</p>
@@ -81,7 +81,7 @@ export function UserMenu({ user, mode }: { user: SessionUser | null; mode: Mode 
               href={isPro ? "/pro/mi-perfil" : "/mi-perfil"}
               role="menuitem"
               onClick={() => setOpen(false)}
-              className="block px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70"
+              className="block px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
             >
               Mi perfil
             </Link>
@@ -90,7 +90,7 @@ export function UserMenu({ user, mode }: { user: SessionUser | null; mode: Mode 
                 href={`/profesionales/${user.professionalId}`}
                 role="menuitem"
                 onClick={() => setOpen(false)}
-                className="block px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-white/70"
+                className="block px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100"
               >
                 Ver mi perfil público
               </Link>
@@ -99,17 +99,17 @@ export function UserMenu({ user, mode }: { user: SessionUser | null; mode: Mode 
               href={isPro ? "/pro/mensajes" : "/mensajes"}
               role="menuitem"
               onClick={() => setOpen(false)}
-              className="block px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-white/70"
+              className="block px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100"
             >
               Mensajes
             </Link>
           </div>
 
-          <form action={logoutAction} className="border-t border-white/60">
+          <form action={logoutAction} className="border-t border-slate-100 p-2">
             <button
               type="submit"
               role="menuitem"
-              className="flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-red-700"
             >
               <LogOutIcon width={16} height={16} />
               Cerrar sesión

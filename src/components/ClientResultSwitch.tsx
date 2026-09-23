@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useNavegacionSuave } from "@/components/NavegacionSuave";
 import { SolicitudCard } from "@/components/pro/SolicitudCard";
 
 type RequestCard = {
@@ -19,7 +20,7 @@ type RequestCard = {
  * píldora absoluta cuya geometría se rompía y dejaba letras afuera del borde.
  */
 function TipoSwitch() {
-  const router = useRouter();
+  const { navegar } = useNavegacionSuave();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const tipo = searchParams.get("tipo");
@@ -29,7 +30,7 @@ function TipoSwitch() {
     if (tipo === next) sp.delete("tipo");
     else sp.set("tipo", next);
     const qs = sp.toString();
-    router.push(`${pathname}${qs ? `?${qs}` : ""}#resultados`);
+    navegar(`${pathname}${qs ? `?${qs}` : ""}`);
   };
 
   return (

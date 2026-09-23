@@ -65,11 +65,11 @@ export function Campanita() {
 
       {open && (
         // En el teléfono ocupa el ancho de la pantalla: anclado al botón quedaba cortado.
-        <div className="glass glass-solid animate-reveal-down fixed inset-x-3 top-16 z-50 flex max-h-[75dvh] flex-col overflow-hidden rounded-2xl shadow-xl sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-96">
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/60 px-4 py-3">
+        <div className="animate-reveal-down fixed inset-x-3 top-16 z-50 flex max-h-[75dvh] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-96">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
             <p className="text-sm font-bold text-slate-900">Avisos</p>
             {avisos.length > 0 && (
-              <button type="button" onClick={() => void borrarAvisos()} className="rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 transition-colors hover:bg-white/70 hover:text-red-600">
+              <button type="button" onClick={() => void borrarAvisos()} className="rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-600">
                 Borrar todo
               </button>
             )}
@@ -77,10 +77,10 @@ export function Campanita() {
           {avisos.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-slate-500">No tenés avisos. Acá te contamos de mensajes, propuestas y solicitudes.</p>
           ) : (
-            <ul className="min-h-0 flex-1 divide-y divide-white/60 overflow-y-auto overscroll-contain">
+            <ul className="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto overscroll-contain">
               {avisos.map((aviso) => (
                 <li key={aviso.id} className={`group relative ${aviso.readAt ? "" : "bg-[rgb(var(--accent-rgb)/0.07)]"}`}>
-                  <Link href={aviso.url} onClick={() => setOpen(false)} className="flex gap-3 py-3 pr-11 pl-4 transition-colors hover:bg-white/60">
+                  <Link href={aviso.url} onClick={() => setOpen(false)} className="flex gap-3 py-3 pr-11 pl-4 transition-colors hover:bg-slate-50">
                     <span aria-hidden className="text-lg leading-none">{ICONOS_AVISO[aviso.kind] ?? "🔔"}</span>
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold text-slate-900">{aviso.title}</span>
@@ -93,7 +93,7 @@ export function Campanita() {
                     onClick={() => void borrarAvisos(aviso.id)}
                     aria-label={`Borrar aviso: ${aviso.title}`}
                     title="Borrar"
-                    className="absolute top-2.5 right-2.5 rounded-full p-1.5 text-slate-400 transition hover:bg-white hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+                    className="absolute top-2.5 right-2.5 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
                   >
                     <XIcon width={14} height={14} />
                   </button>
@@ -101,7 +101,7 @@ export function Campanita() {
               ))}
             </ul>
           )}
-          <Link href="/notificaciones" onClick={() => setOpen(false)} className="block shrink-0 border-t border-white/60 px-4 py-2.5 text-center text-xs font-semibold text-[var(--accent)] transition-colors hover:bg-white/60">
+          <Link href="/notificaciones" onClick={() => setOpen(false)} className="block shrink-0 border-t border-slate-100 px-4 py-2.5 text-center text-xs font-semibold text-[var(--accent)] transition-colors hover:bg-slate-50">
             Ver todas las notificaciones
           </Link>
         </div>

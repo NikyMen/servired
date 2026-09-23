@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { EnlaceSuave } from "@/components/NavegacionSuave";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
-export type Chip = { key: string; href: string; label: string; active: boolean };
+/** Con `onSelect` el chip es un botón que no navega (abre un menú); si no, filtra la portada sin recargar. */
+export type Chip = { key: string; href: string; label: string; active: boolean; onSelect?: () => void; expanded?: boolean };
 
 /** Filas que se ven de entrada; la última termina en "Ver más". */
 const FILAS = 4;
@@ -139,19 +140,31 @@ export function CategoriasChips({ items }: { items: Chip[] }) {
         className="flex flex-wrap content-start gap-2 overflow-hidden py-1 transition-[height] duration-300 ease-out motion-reduce:transition-none"
         style={{ height: alto }}
       >
-        {visibles.map((item) => (
-          <Link key={item.key} href={item.href} aria-current={item.active ? "true" : undefined} className={claseChip(item.active)}>{item.label}</Link>
-        ))}
+        {visibles.map((item) => <ChipEnlace key={item.key} item={item} />)}
         {corte != null && (
           <button type="button" onClick={alternar} aria-expanded={abierto} aria-controls={listaId} className={claseMas}>
             {abierto ? MENOS : MAS}
           </button>
         )}
         {/* Los que no entran siguen en la página para los buscadores, pero fuera del foco. */}
-        {ocultos.map((item) => (
-          <Link key={item.key} href={item.href} tabIndex={-1} aria-hidden className={claseChip(item.active)}>{item.label}</Link>
-        ))}
+        {ocultos.map((item) => <ChipEnlace key={item.key} item={item} oculto />)}
       </div>
     </div>
+  );
+}
+
+function ChipEnlace({ item, oculto }: { item: Chip; oculto?: boolean }) {
+  const accesible = oculto ? { tabIndex: -1, "aria-hidden": true } : {};
+  if (item.onSelect) {
+    return (
+      <button type="button" onClick={item.onSelect} aria-expanded={item.expanded} {...accesible} className={claseChip(item.active)}>
+        {item.label}
+      </button>
+    );
+  }
+  return (
+    <EnlaceSuave href={item.href} aria-current={item.active ? "true" : undefined} {...accesible} className={claseChip(item.active)}>
+      {item.label}
+    </EnlaceSuave>
   );
 }
