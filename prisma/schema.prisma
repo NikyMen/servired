@@ -33,6 +33,12 @@ model User {
   termsVersion    Int?
   termsAcceptedAt DateTime?
 
+  /// Quiere recibir por privado ofertas de trabajo en relación de dependencia.
+  /// Se tilda al registrarse como oficio/profesional o en su perfil pro, y la
+  /// lista la ve administración. La fecha es la de la última vez que lo tildó.
+  ofertasDependencia   Boolean   @default(false)
+  ofertasDependenciaAt DateTime?
+
   /// Qué avisos quiere recibir por correo. Arrancan prendidos; cada mail trae
   /// su enlace para apagar ese tipo.
   mailMensajes    Boolean @default(true)
@@ -226,6 +232,10 @@ model Ad {
   /// se agrega al armar el link de WhatsApp, nunca se guarda acá.
   whatsappPhone   String?
   whatsappMessage String?
+
+  /// A quién va dirigida: "oficio" | "profesional". En el celular cada una va
+  /// a su carrusel (primero oficios, después profesionales).
+  tipo String @default("oficio")
 
   enabled   Boolean  @default(true)
   createdAt DateTime @default(now())

@@ -5,6 +5,7 @@ import { ProfessionalCard } from "@/components/ProfessionalCard";
 import { HeroFondo } from "@/components/HeroFondo";
 import { MapView } from "@/components/MapView";
 import { AdPlate } from "@/components/AdPlate";
+import { CarruselPublicidad, type ItemCarrusel } from "@/components/CarruselPublicidad";
 import { CategoriasMenu } from "@/components/CategoriasMenu";
 import { Atenuable, EnlaceSuave, NavegacionSuave } from "@/components/NavegacionSuave";
 import { PLACAS, SLOTS, nombreDeSlot } from "@/lib/publicidad";
@@ -19,6 +20,9 @@ import { MapaBloqueado } from "@/components/mapa/MapaBloqueado";
 export const dynamic = "force-dynamic";
 
 type Search = { q?: string; categoria?: string; tipo?: "profesional" | "oficio" };
+
+/** Placas de cada carrusel del celular como mínimo: lo que falta son lugares libres. */
+const PLACAS_POR_FILA = 6;
 
 async function getData({ q, categoria, tipo }: Search) {
   const user = await getSessionUser();
@@ -82,6 +86,17 @@ export default async function HomePage({
     getPublicitarHref(),
   ]);
   const adMap = new Map(ads.map((ad) => [ad.slot, ad]));
+  // Celular: una fila por tipo, con las placas cargadas de ese tipo y lugares
+  // libres ("Tu publicidad acá") hasta completar 6, como las 12 de antes.
+  const filaDe = (tipo: "oficio" | "profesional"): ItemCarrusel[] => {
+    const items: ItemCarrusel[] = PLACAS.flatMap((placa) => {
+      const ad = adMap.get(placa.slot);
+      const conAviso = ad && ad.enabled && (ad.imageUrl || ad.title);
+      return conAviso && (ad.tipo === "profesional" ? "profesional" : "oficio") === tipo ? [{ key: placa.slot, ad, label: `Publicidad ${placa.nombre}` }] : [];
+    });
+    for (let i = items.length; i < PLACAS_POR_FILA; i++) items.push({ key: `libre-${i}`, ad: null, label: `Publicidad de ${tipo === "oficio" ? "oficios" : "profesionales"}` });
+    return items;
+  };
   const rubrosVisibles = categories.filter((category) => category.parentId && (!params.tipo || category.kind === params.tipo));
   const parentIdsVisibles = new Set(rubrosVisibles.map((category) => category.parentId));
   const seleccionada = categories.find((category) => category.slug === params.categoria);
@@ -122,14 +137,20 @@ export default async function HomePage({
         </section>
       </div>
 
-      {/* Las 12 placas, todas del mismo tamaño. Hasta xl no hay lugar para las
-          franjas de los costados, así que acá se ven las 12 juntas, de 4 en 4
-          (3 filas). Desde xl, 6 se van a las franjas fijas de los costados
+      {/* Las 12 placas, todas del mismo tamaño. En el celular van en dos
+          carruseles por tipo. De md a xl no hay lugar para las franjas de los
+          costados, así que acá se ven las 12 juntas, de 4 en 4 (3 filas). Desde xl, 6 se van a las franjas fijas de los costados
           (<AdsCostados>, en el layout) y acá queda una sola fila con las otras
           6, que en 1024 px de contenido da cuadrados de ~155 px: casi la misma
           medida que las de los costados. */}
       <section aria-label="Publicidad">
-        <div className="grid grid-cols-4 gap-2 sm:gap-3 xl:hidden">
+        {/* Celular: dos carruseles que no paran, primero oficios (hacia la
+            derecha) y abajo profesionales (hacia la izquierda). */}
+        <div className="space-y-3 md:hidden">
+          <CarruselPublicidad titulo="Oficios" tono="bg-emerald-600" sentido="derecha" items={filaDe("oficio")} invitarHref={publicitarHref} />
+          <CarruselPublicidad titulo="Profesionales" tono="bg-blue-600" sentido="izquierda" items={filaDe("profesional")} invitarHref={publicitarHref} />
+        </div>
+        <div className="hidden grid-cols-4 gap-2 sm:gap-3 md:grid xl:hidden">
           {PLACAS.map((placa) => (
             <AdPlate key={placa.slot} ad={adMap.get(placa.slot) || null} label={`Publicidad ${placa.nombre}`} className="rounded-2xl" invitarHref={publicitarHref} />
           ))}

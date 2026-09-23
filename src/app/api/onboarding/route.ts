@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
   if (!form) return NextResponse.json({ error: "No pudimos leer el formulario." }, { status: 400 });
 
   const providerType = value(form, "providerType") === "profesional" ? "profesional" : "oficio";
+  const ofertasDependencia = value(form, "ofertasDependencia") === "on";
   const legalName = value(form, "legalName");
   const phone = value(form, "phone");
   const birthDate = new Date(value(form, "birthDate"));
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
       });
       await tx.professionalCategory.deleteMany({ where: { professionalId: professional.id } });
       await tx.professionalCategory.createMany({ data: linkedCategoryIds.map((categoryId, index) => ({ professionalId: professional.id, categoryId, isPrimary: index === 0 })) });
-      await tx.user.update({ where: { id: session.id }, data: { name: legalName, avatarUrl, localityId: localidad.id } });
+      await tx.user.update({ where: { id: session.id }, data: { name: legalName, avatarUrl, localityId: localidad.id, ofertasDependencia, ofertasDependenciaAt: ofertasDependencia ? new Date() : null } });
     });
     committed = true;
     await Promise.all(previousCase?.documents.map((document) => removeKycDocument(document.filename)) ?? []);

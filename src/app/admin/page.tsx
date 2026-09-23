@@ -23,7 +23,7 @@ import { listarLocalidadesAdmin } from "@/lib/localidades";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Administración" };
 
-const TABS = ["resumen", "kyc", "matriculas", "denuncias", "usuarios", "trabajos", "catalogo", "publicidad", "soporte", "localidades", "legales", "preinscripciones"] as const;
+const TABS = ["resumen", "kyc", "matriculas", "denuncias", "usuarios", "empleo", "trabajos", "catalogo", "publicidad", "soporte", "localidades", "legales", "preinscripciones"] as const;
 type Tab = (typeof TABS)[number];
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -32,7 +32,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   // "todo" era la pestaña vieja que mostraba todo junto: ahora cae al resumen.
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "resumen";
 
-  const [preinscriptions, kycCases, users, bookings, categories, ads, terminos, reports, userCount, verifiedProviderCount, activeJobCount, soporte, localidades, credenciales] = await Promise.all([
+  const [preinscriptions, kycCases, users, bookings, categories, ads, terminos, reports, userCount, verifiedProviderCount, activeJobCount, soporte, localidades, credenciales, buscanEmpleo] = await Promise.all([
     listPreinscriptions(),
     prisma.kycCase.findMany({ orderBy: { updatedAt: "desc" }, include: { documents: true, user: { include: { oauthAccounts: true, professional: true } } } }),
     prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, include: { professional: { select: { providerType: true, profileStatus: true, verified: true } }, oauthAccounts: { select: { provider: true } } } }),
@@ -47,6 +47,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     getSoporteConfig(),
     listarLocalidadesAdmin(),
     prisma.credential.findMany({ orderBy: [{ status: "asc" }, { createdAt: "desc" }], take: 100, include: { professional: { select: { name: true } }, category: { select: { name: true } } } }),
+    // Quienes tildaron "ofertas en relación de dependencia": al registrarse o en su perfil pro.
+    prisma.user.findMany({
+      where: { ofertasDependencia: true },
+      orderBy: { ofertasDependenciaAt: "desc" },
+      select: {
+        id: true, name: true, email: true, ofertasDependenciaAt: true, accountStatus: true,
+        locality: { select: { name: true, province: true } },
+        kycCase: { select: { phone: true } },
+        professional: { select: { id: true, providerType: true, profileStatus: true, headline: true, phone: true, categoryLinks: { select: { category: { select: { name: true } } } } } },
+      },
+    }),
   ]);
 
   const soporteEnv = soporteDelEnv();
@@ -60,7 +71,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     const professional = kyc.user.professional;
     return { id: kyc.id, status: kyc.status, legalName: kyc.legalName, email: kyc.user.email, phone: kyc.phone, cuil: decryptKyc(kyc.cuilEncrypted), dni: decryptKyc(kyc.dniEncrypted), birthDate: kyc.birthDate.toISOString(), address: kyc.address, country: kyc.country, province: kyc.province, locality: kyc.locality, provider: kyc.user.oauthAccounts[0]?.provider || "email", providerType: professional?.providerType || "oficio", headline: professional?.headline || null, bio: professional?.bio || null, submittedAt: kyc.submittedAt?.toISOString() || null, reviewReason: kyc.reviewReason, reviewedBy: kyc.reviewedBy, reviewedAt: kyc.reviewedAt?.toISOString() || null, videoChallenge: kyc.videoChallenge, documents: kyc.documents.map((document) => ({ id: document.id, kind: document.kind })) };
   });
-  const serializedAds = ads.map((ad) => ({ slot: ad.slot, title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, enabled: ad.enabled, reencuadrar: necesitaReencuadre(ad) }));
+  const serializedAds = ads.map((ad) => ({ slot: ad.slot, title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, tipo: ad.tipo === "profesional" ? "profesional" as const : "oficio" as const, enabled: ad.enabled, reencuadrar: necesitaReencuadre(ad) }));
   const categoryGroups = categories.filter((category) => !category.parentId);
 
   const secciones: AdminSeccion[] = [
@@ -69,6 +80,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     { tab: "matriculas", nombre: "Matrículas", titulo: "Matrículas y certificados", descripcion: "Aprobada, el perfil muestra la insignia “Matriculado”. Rechazar pide motivo.", icono: "🎓", grupo: "Revisión", pendientes: pendingCredentials },
     { tab: "denuncias", nombre: "Denuncias", titulo: "Denuncias", descripcion: "Imágenes y conversaciones reportadas por la comunidad.", icono: "🚩", grupo: "Revisión", pendientes: pendingReports },
     { tab: "usuarios", nombre: "Usuarios", titulo: "Usuarios y oferentes", descripcion: "Las últimas 50 altas, con su estado de cuenta.", icono: "👥", grupo: "Comunidad" },
+    { tab: "empleo", nombre: "Empleo", titulo: "Ofertas en relación de dependencia", descripcion: `${buscanEmpleo.length} ${buscanEmpleo.length === 1 ? "persona quiere" : "personas quieren"} recibir por privado ofertas de trabajo en relación de dependencia.`, icono: "💼", grupo: "Comunidad" },
     { tab: "trabajos", nombre: "Trabajos", titulo: "Trabajos y propuestas", descripcion: "Actividad reciente del marketplace y estados comerciales.", icono: "🧰", grupo: "Comunidad" },
     { tab: "preinscripciones", nombre: "Preinscripciones", titulo: "Preinscripciones", descripcion: `${preinscriptions.length} contactos únicos captados antes del lanzamiento.`, icono: "📇", grupo: "Comunidad" },
     { tab: "publicidad", nombre: "Publicidad", titulo: "Publicidad del sitio", descripcion: "12 lugares y son todos: 3 al costado izquierdo, 3 al derecho y 6 debajo de la portada. Todas las placas son iguales; cambiar una de lugar es un botón.", icono: "🖼️", grupo: "Portada" },
@@ -134,6 +146,50 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </tbody>
           </table>
         </div>
+      )}
+
+      {tab === "empleo" && (
+        buscanEmpleo.length === 0 ? (
+          <div className="adm-card adm-card-pad text-sm text-slate-500">Todavía nadie tildó «Me gustaría recibir ofertas por privado en relación de dependencia». Aparece al registrarse como oficio o profesional, al completar el alta pro y en Mi perfil del pro.</div>
+        ) : (
+          <div className="adm-card overflow-x-auto">
+            <table className="adm-table min-w-[860px]">
+              <thead>
+                <tr><th>Persona</th><th>Contacto</th><th>Oferente</th><th>Rubros</th><th>Localidad</th><th>Desde</th></tr>
+              </thead>
+              <tbody>
+                {buscanEmpleo.map((persona) => {
+                  const telefono = persona.kycCase?.phone || persona.professional?.phone || null;
+                  const rubros = persona.professional?.categoryLinks.map((link) => link.category.name).join(", ");
+                  return (
+                    <tr key={persona.id}>
+                      <td>
+                        <p className="font-semibold text-slate-900">{persona.name}</p>
+                        {persona.professional?.headline && <p className="text-xs text-slate-500">{persona.professional.headline}</p>}
+                      </td>
+                      <td>
+                        <a href={`mailto:${persona.email}`} className="block text-indigo-700 hover:underline">{persona.email}</a>
+                        {telefono ? <span className="text-xs text-slate-600">{telefono}</span> : <span className="text-xs text-slate-400">Sin teléfono todavía</span>}
+                      </td>
+                      <td>
+                        {persona.professional ? (
+                          <span className={`adm-badge ${persona.professional.profileStatus === "approved" ? "adm-badge-ok" : "adm-badge-warn"}`}>
+                            {persona.professional.providerType === "profesional" ? "Profesional" : "Oficio"} · {persona.professional.profileStatus === "approved" ? "aprobado" : persona.professional.profileStatus === "pending" ? "en revisión" : persona.professional.profileStatus}
+                          </span>
+                        ) : (
+                          <span className="adm-badge">Alta sin completar</span>
+                        )}
+                      </td>
+                      <td className="max-w-[16rem] text-slate-600">{rubros || "—"}</td>
+                      <td className="text-slate-600">{persona.locality ? `${persona.locality.name}, ${persona.locality.province}` : "—"}</td>
+                      <td className="text-slate-500">{persona.ofertasDependenciaAt ? formatDate(persona.ofertasDependenciaAt) : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
       {tab === "trabajos" && (

@@ -167,3 +167,12 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
   de WhatsApp, redondo como el de ServiRed IA. La tarjeta de Mercado Pago pasó
   a Mi perfil del pro (`/pro/mi-perfil#mercado-pago`, ahí vuelve el OAuth); el
   panel solo muestra un aviso celeste si falta vincular o se cortó.
+- **Empleo y publicidad (23/09):** tilde «Me gustaría recibir ofertas por
+  privado en relación de dependencia» arriba de términos al registrarse como
+  oficio/profesional, en el alta pro y en Mi perfil (`User.ofertasDependencia`);
+  la lista está en el admin, pestaña «Empleo». Cada placa tiene tipo
+  (`Ad.tipo`: oficio | profesional) y viaja entera al moverla; el formulario
+  del admin se remonta después de mover (antes mostraba el título y el
+  WhatsApp del lugar anterior y «Guardar» los pisaba). En el celular la
+  publicidad son dos carruseles infinitos: oficios hacia la derecha y
+  profesionales hacia la izquierda, con lugares libres hasta completar 6.

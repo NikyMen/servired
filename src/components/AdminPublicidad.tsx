@@ -11,9 +11,20 @@ export type AdminAd = {
   imageUrl: string | null;
   whatsappPhone: string | null;
   whatsappMessage: string | null;
+  tipo: "oficio" | "profesional";
   enabled: boolean;
   reencuadrar: boolean;
 };
+
+/**
+ * Llave del formulario de una placa: cambia cuando cambia lo guardado. Los
+ * campos usan defaultValue, que React no vuelve a aplicar; sin remontar, al
+ * mover una placa la imagen viajaba pero el título, el WhatsApp y el mensaje
+ * seguían mostrando los del lugar anterior (y "Guardar" los pisaba).
+ */
+function llaveDe(slot: string, ad: AdminAd | undefined) {
+  return `${slot}:${JSON.stringify(ad ?? null)}`;
+}
 
 /** Miniatura de la placa. Sin link: acá no se abre WhatsApp, se administra. */
 function Miniatura({ ad, size = 56 }: { ad: AdminAd | undefined; size?: number }) {
@@ -47,7 +58,7 @@ export function AdminPublicidad({ ads }: { ads: AdminAd[] }) {
       <div className="adm-card adm-card-pad flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-600">
         <p><strong className="text-slate-900">{PLACAS.length} lugares</strong>, y son todos</p>
         <p><strong className="text-slate-900">{ads.filter((a) => a.imageUrl && a.enabled).length}</strong> activas</p>
-        <p className="text-xs text-slate-500">Todas las placas son cuadradas de {LADO_PLACA} × {LADO_PLACA} px: se sube una sola imagen por lugar y se ve igual en el celular y en la compu. En la compu, 3 van al costado izquierdo y 3 al derecho —acompañan el scroll por todo el sitio— y 6 quedan debajo de la portada; en el celular se ven las 12 juntas, de 4 en 4. Para cambiar una de lugar, usá <strong>Mover</strong> y elegí con cuál se intercambia. Un lugar sin imagen muestra «Tu publicidad acá» con el WhatsApp de soporte.</p>
+        <p className="text-xs text-slate-500">Todas las placas son cuadradas de {LADO_PLACA} × {LADO_PLACA} px: se sube una sola imagen por lugar y se ve igual en el celular y en la compu. En la compu, 3 van al costado izquierdo y 3 al derecho —acompañan el scroll por todo el sitio— y 6 quedan debajo de la portada; en el celular van en dos carruseles que no paran: arriba las de oficios y abajo las de profesionales. Para cambiar una de lugar, usá <strong>Mover</strong> y elegí con cuál se intercambia. Un lugar sin imagen muestra «Tu publicidad acá» con el WhatsApp de soporte.</p>
       </div>
 
       {(Object.keys(UBICACIONES) as Ubicacion[]).map((ubicacion) => (
@@ -74,6 +85,7 @@ export function AdminPublicidad({ ads }: { ads: AdminAd[] }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="font-bold text-slate-900">{placa.nombre}</h4>
                       <span className={`adm-badge ${estado.clase}`}>{estado.texto}</span>
+                      {ad?.imageUrl && <span className="adm-badge">{ad.tipo === "profesional" ? "Profesionales" : "Oficios"}</span>}
                       {ad?.reencuadrar && <span className="adm-badge adm-badge-warn">Conviene reencuadrar</span>}
                     </div>
                     <p className="truncate text-xs text-slate-500">Lugar {i + 1} de {PLACAS.length}</p>
@@ -107,7 +119,7 @@ export function AdminPublicidad({ ads }: { ads: AdminAd[] }) {
                 </div>
               )}
 
-              <form action={saveAdAction} className="space-y-3 p-4">
+              <form key={llaveDe(placa.slot, ad)} action={saveAdAction} className="space-y-3 p-4">
                 <input type="hidden" name="slot" value={placa.slot} />
                 <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                   <div>
@@ -119,6 +131,19 @@ export function AdminPublicidad({ ads }: { ads: AdminAd[] }) {
                     Mostrar en el sitio
                   </label>
                 </div>
+
+                <fieldset>
+                  <legend className="adm-label">¿A quién va dirigida?</legend>
+                  <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-sm font-semibold">
+                    {(["oficio", "profesional"] as const).map((tipo) => (
+                      <label key={tipo} className="cursor-pointer rounded-md px-3 py-1.5 text-slate-600 has-checked:bg-white has-checked:text-indigo-700 has-checked:shadow-sm">
+                        <input type="radio" name="tipo" value={tipo} defaultChecked={(ad?.tipo ?? "oficio") === tipo} className="sr-only" />
+                        {tipo === "oficio" ? "Oficios" : "Profesionales"}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">En el celular, cada una va a su carrusel: primero el de oficios y abajo el de profesionales.</p>
+                </fieldset>
 
                 <AdCropper name="image" currentUrl={ad?.imageUrl || null} />
 

@@ -180,7 +180,8 @@ export async function saveAdAction(formData: FormData) {
   const number = text(formData, "whatsappNumber").replace(/\D/g, "");
   const whatsappPhone = areaCode.length === 4 && number.length === 6 ? `${areaCode}${number}` : null;
   const whatsappMessage = text(formData, "whatsappMessage") || null;
-  const data = { title, imageUrl, whatsappPhone, whatsappMessage, enabled: formData.get("enabled") === "on", ...(nueva ? ENCUADRE_NEUTRO : {}) };
+  const tipo = text(formData, "tipo") === "profesional" ? "profesional" : "oficio";
+  const data = { title, imageUrl, whatsappPhone, whatsappMessage, tipo, enabled: formData.get("enabled") === "on", ...(nueva ? ENCUADRE_NEUTRO : {}) };
 
   await prisma.ad.upsert({ where: { slot }, create: { slot, ...data }, update: data });
   if (nueva && existing?.imageUrl && existing.imageUrl !== imageUrl) await removeUpload(existing.imageUrl);
@@ -188,13 +189,13 @@ export async function saveAdAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
-/** Lo que hace a una placa: todo menos el slot, que es el lugar donde vive. */
-const PLACA_VACIA = { title: "", imageUrl: null as string | null, whatsappPhone: null as string | null, whatsappMessage: null as string | null, enabled: true, ...ENCUADRE_NEUTRO };
+/** Lo que hace a una placa: todo menos el slot, que es el lugar donde vive. Al moverla, viaja entera. */
+const PLACA_VACIA = { title: "", imageUrl: null as string | null, whatsappPhone: null as string | null, whatsappMessage: null as string | null, tipo: "oficio", enabled: true, ...ENCUADRE_NEUTRO };
 type ContenidoPlaca = typeof PLACA_VACIA;
 
-function contenidoDePlaca(ad: { title: string; imageUrl: string | null; whatsappPhone: string | null; whatsappMessage: string | null; enabled: boolean; imageScale: number; imageX: number; imageY: number; imageStretchX: number; imageStretchY: number } | null): ContenidoPlaca {
+function contenidoDePlaca(ad: { title: string; imageUrl: string | null; whatsappPhone: string | null; whatsappMessage: string | null; tipo: string; enabled: boolean; imageScale: number; imageX: number; imageY: number; imageStretchX: number; imageStretchY: number } | null): ContenidoPlaca {
   if (!ad) return { ...PLACA_VACIA };
-  return { title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, enabled: ad.enabled, imageScale: ad.imageScale, imageX: ad.imageX, imageY: ad.imageY, imageStretchX: ad.imageStretchX, imageStretchY: ad.imageStretchY };
+  return { title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, tipo: ad.tipo, enabled: ad.enabled, imageScale: ad.imageScale, imageX: ad.imageX, imageY: ad.imageY, imageStretchX: ad.imageStretchX, imageStretchY: ad.imageStretchY };
 }
 
 /**

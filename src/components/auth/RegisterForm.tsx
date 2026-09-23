@@ -10,6 +10,8 @@ const FIELD = "glass-field px-3.5 py-3 text-sm";
 export function RegisterForm({ next, providerType, localities }: { next?: string; providerType?: "profesional" | "oficio"; localities: { id: string; name: string; province: string }[] }) {
   const [state, formAction] = useActionState<AuthState, FormData>(registerAction, undefined);
   const values = state?.values ?? {};
+  // Se registra para ofrecer: por tipo (oficio / profesional) o porque vuelve al panel pro.
+  const paraOfrecer = Boolean(providerType || next?.startsWith("/pro"));
 
   return (
     <div data-modo="cliente" className="animate-page-in">
@@ -29,6 +31,12 @@ export function RegisterForm({ next, providerType, localities }: { next?: string
           </select>
           <span className="block text-xs font-normal text-slate-500">La usamos para mostrarte lo que tenés cerca cuando no compartís tu ubicación.</span>
         </label>
+        {paraOfrecer && (
+          <label className="flex items-start gap-3 text-sm text-slate-700">
+            <input type="checkbox" name="ofertasDependencia" defaultChecked={values.ofertasDependencia === "on"} className="mt-0.5 size-5 shrink-0" />
+            <span>Me gustaría recibir ofertas por privado en relación de dependencia.</span>
+          </label>
+        )}
         {/* Nunca tildada de antemano; el enlace abre aparte para no perder lo escrito. */}
         <label className="flex items-start gap-3 text-sm text-slate-700">
           <input type="checkbox" name="acceptTerms" required className="mt-0.5 size-5 shrink-0" />

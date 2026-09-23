@@ -485,6 +485,25 @@
   animation: reveal-down 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Carruseles de publicidad del celular. La pista lleva la lista dos veces:
+   correr exactamente la mitad deja la segunda copia donde estaba la primera,
+   y el salto de vuelta no se ve. La duración la pone el componente según
+   cuántas placas haya, así todas avanzan a la misma velocidad. */
+@keyframes carrusel-izq {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes carrusel-der {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+@utility animate-carrusel-izq {
+  animation: carrusel-izq 30s linear infinite;
+}
+@utility animate-carrusel-der {
+  animation: carrusel-der 30s linear infinite;
+}
+
 /* ============================================================
    Cambio de modo (busca <-> ofrece)
 
