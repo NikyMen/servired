@@ -1,10 +1,10 @@
 "use client";
 
 import { EnlaceSuave } from "@/components/NavegacionSuave";
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 /** Con `onSelect` el chip es un botón que no navega (abre un menú); si no, filtra la portada sin recargar. */
-export type Chip = { key: string; href: string; label: string; active: boolean; onSelect?: () => void; expanded?: boolean };
+export type Chip = { key: string; href: string; label: string; active: boolean; onSelect?: () => void; expanded?: boolean; pestana?: boolean };
 
 /** Filas que se ven de entrada; la última termina en "Ver más". */
 const FILAS = 4;
@@ -15,6 +15,11 @@ const ALTO_INICIAL = 4 * 38 + 3 * 8 + 8;
 // bloque queda parejo en vez de terminar cada fila en un lugar distinto.
 const claseChip = (active: boolean) =>
   `glass-chip inline-flex grow shrink-0 justify-center px-3.5 py-2 text-sm font-medium whitespace-nowrap ${active ? "glass-chip-on" : "text-slate-600"}`;
+/* La categoría abierta es la pestaña del panel de abajo: mismo fondo y borde,
+   sin borde inferior. El panel sube 1 px por debajo y la pestaña, encima,
+   tapa ese tramo de su borde: se ven como una sola pieza. */
+const clasePestana =
+  "relative z-10 inline-flex grow shrink-0 justify-center rounded-t-2xl border border-b-0 border-slate-200 bg-white px-3.5 py-2 text-sm font-bold whitespace-nowrap text-slate-900";
 const MAS = "Ver más ▾";
 const MENOS = "Ver menos ▴";
 const claseMas = "glass-chip inline-flex grow shrink-0 justify-center px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-cliente-dark";
@@ -30,7 +35,11 @@ const claseMas = "glass-chip inline-flex grow shrink-0 justify-center px-3.5 py-
  * también la tipografía que termina de cargar y cambia el ancho de cada chip),
  * y una vez desplegado el alto queda libre, así nunca corta la última fila.
  */
-export function CategoriasChips({ items }: { items: Chip[] }) {
+/**
+ * `panel`: se inserta a lo ancho justo debajo de la fila del chip `key` (no al
+ * final de todos), para que quede pegado a él.
+ */
+export function CategoriasChips({ items, panel }: { items: Chip[]; panel?: { key: string; render: (fila: { primero: boolean; ultimo: boolean }) => ReactNode } | null }) {
   const listaId = useId();
   const copia = useRef<HTMLDivElement>(null);
   // null hasta medir; corte null = entran todos en 4 filas y no hace falta el botón.
@@ -41,6 +50,8 @@ export function CategoriasChips({ items }: { items: Chip[] }) {
   // Para plegar desde "automático" hay que partir de un alto en px.
   const [altoFijo, setAltoFijo] = useState<number | null>(null);
   const lista = useRef<HTMLDivElement>(null);
+  // Último elemento de la fila del chip del panel: el panel va después de ese.
+  const [fila, setFila] = useState<{ fin: string; primero: boolean; ultimo: boolean } | null>(null);
 
   const medir = useCallback(() => {
     const caja = copia.current;
@@ -112,6 +123,29 @@ export function CategoriasChips({ items }: { items: Chip[] }) {
     }, 20);
   }
 
+  const panelKey = panel?.key ?? null;
+  const ubicarPanel = useCallback(() => {
+    const caja = lista.current;
+    if (!caja || !panelKey) return setFila(null);
+    const enFila = Array.from(caja.querySelectorAll<HTMLElement>(":scope > [data-key]")).filter((el) => el.offsetParent);
+    const chip = enFila.find((el) => el.dataset.key === panelKey);
+    if (!chip) return setFila(null);
+    const deLaFila = enFila.filter((el) => el.offsetTop === chip.offsetTop);
+    const fin = deLaFila.at(-1)!.dataset.key!;
+    const primero = deLaFila[0] === chip;
+    const ultimo = deLaFila.at(-1) === chip;
+    // Mismo valor, mismo objeto: si no, cada medición volvería a renderizar.
+    setFila((antes) => (antes?.fin === fin && antes.primero === primero && antes.ultimo === ultimo ? antes : { fin, primero, ultimo }));
+  }, [panelKey]);
+  useLayoutEffect(ubicarPanel);
+  useEffect(() => {
+    const caja = lista.current;
+    if (!caja || typeof ResizeObserver === "undefined") return;
+    const observador = new ResizeObserver(() => ubicarPanel());
+    observador.observe(caja);
+    return () => observador.disconnect();
+  }, [ubicarPanel]);
+
   const corte = medida?.corte ?? null;
   // Si la categoría elegida quedó en la parte escondida, arranca desplegado.
   const activa = items.findIndex((item) => item.active);
@@ -123,7 +157,9 @@ export function CategoriasChips({ items }: { items: Chip[] }) {
   const visibles = cortado ? items.slice(0, corte) : items;
   const ocultos = cortado ? items.slice(corte) : [];
   // Sin corte (entran en 4 filas) o desplegado y quieto: alto libre.
-  const alto = altoFijo ?? (!medida ? ALTO_INICIAL : corte == null ? undefined : !abierto ? medida.cerrado : libre ? undefined : medida.abierto);
+  // Con un panel abierto el alto es libre: lo anima el propio panel.
+  const alto = panel ? undefined : altoFijo ?? (!medida ? ALTO_INICIAL : corte == null ? undefined : !abierto ? medida.cerrado : libre ? undefined : medida.abierto);
+  const conPanel = (key: string) => panel && fila?.fin === key && <Fragment key={`panel-${panel.key}`}>{panel.render(fila)}</Fragment>;
 
   return (
     <div className="relative">
@@ -140,30 +176,38 @@ export function CategoriasChips({ items }: { items: Chip[] }) {
         className="flex flex-wrap content-start gap-2 overflow-hidden py-1 transition-[height] duration-300 ease-out motion-reduce:transition-none"
         style={{ height: alto }}
       >
-        {visibles.map((item) => <ChipEnlace key={item.key} item={item} />)}
+        {visibles.map((item) => (
+          <Fragment key={item.key}>
+            <ChipEnlace item={item} />
+            {conPanel(item.key)}
+          </Fragment>
+        ))}
         {corte != null && (
-          <button type="button" onClick={alternar} aria-expanded={abierto} aria-controls={listaId} className={claseMas}>
+          <button type="button" data-key="__mas" onClick={alternar} aria-expanded={abierto} aria-controls={listaId} className={claseMas}>
             {abierto ? MENOS : MAS}
           </button>
         )}
+        {conPanel("__mas")}
         {/* Los que no entran siguen en la página para los buscadores, pero fuera del foco. */}
-        {ocultos.map((item) => <ChipEnlace key={item.key} item={item} oculto />)}
+        {/* Con el alto libre no los corta el overflow: ahí van fuera del flujo. */}
+        {ocultos.map((item) => <ChipEnlace key={item.key} item={item} oculto={panel ? "fuera" : true} />)}
       </div>
     </div>
   );
 }
 
-function ChipEnlace({ item, oculto }: { item: Chip; oculto?: boolean }) {
-  const accesible = oculto ? { tabIndex: -1, "aria-hidden": true } : {};
+function ChipEnlace({ item, oculto }: { item: Chip; oculto?: boolean | "fuera" }) {
+  const accesible = oculto ? { tabIndex: -1, "aria-hidden": true } : { "data-key": item.key };
+  const clase = `${item.pestana ? clasePestana : claseChip(item.active)}${oculto === "fuera" ? " hidden" : ""}`;
   if (item.onSelect) {
     return (
-      <button type="button" onClick={item.onSelect} aria-expanded={item.expanded} {...accesible} className={claseChip(item.active)}>
+      <button type="button" onClick={item.onSelect} aria-expanded={item.expanded} {...accesible} className={clase}>
         {item.label}
       </button>
     );
   }
   return (
-    <EnlaceSuave href={item.href} aria-current={item.active ? "true" : undefined} {...accesible} className={claseChip(item.active)}>
+    <EnlaceSuave href={item.href} aria-current={item.active ? "true" : undefined} {...accesible} className={clase}>
       {item.label}
     </EnlaceSuave>
   );

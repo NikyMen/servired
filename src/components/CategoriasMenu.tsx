@@ -24,6 +24,7 @@ export function CategoriasMenu({ todos, principales }: { todos: Opcion; principa
   const actual = principales.find((p) => p.key === (abierta ?? mostrada));
   // Si cambia el filtro de tipo, la abierta puede dejar de estar en la lista.
   const desplegado = Boolean(abierta && principales.some((p) => p.key === abierta));
+  const soloPrincipal = Boolean(actual?.active && actual.subcategorias.every((s) => !s.active));
 
   function alternar(key: string) {
     const siguiente = abierta === key ? null : key;
@@ -31,37 +32,40 @@ export function CategoriasMenu({ todos, principales }: { todos: Opcion; principa
     if (siguiente) setMostrada(siguiente);
   }
 
-  return (
-    <>
-      <CategoriasChips
-        items={[
-          { ...todos, onSelect: () => { setAbierta(null); navegar(todos.href); } },
-          ...principales.map((p) => ({ key: p.key, href: p.href, label: p.label, active: p.active || abierta === p.key, expanded: abierta === p.key, onSelect: () => alternar(p.key) })),
-        ]}
-      />
-      <div
-        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${desplegado ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
-        onTransitionEnd={() => !desplegado && setMostrada(null)}
-        inert={!desplegado}
-      >
-        <div className="min-h-0 overflow-hidden">
-          {actual && (
-            <div key={actual.key} className="animate-fade-in rounded-2xl border border-white/70 bg-white/45 p-3 shadow-sm backdrop-blur-sm">
-              <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wide text-slate-500">Subcategorías de {actual.name}</p>
-              <div className="flex flex-wrap gap-2">
-                <EnlaceSuave href={actual.href} aria-current={actual.active && actual.subcategorias.every((s) => !s.active) ? "true" : undefined} className={claseSub(actual.active && actual.subcategorias.every((s) => !s.active))}>
-                  Todo {actual.name}
-                </EnlaceSuave>
-                {actual.subcategorias.map((sub) => (
-                  <EnlaceSuave key={sub.key} href={sub.href} aria-current={sub.active ? "true" : undefined} className={claseSub(sub.active)}>
-                    {sub.label}
-                  </EnlaceSuave>
-                ))}
-              </div>
-            </div>
-          )}
+  const menu = ({ primero, ultimo }: { primero: boolean; ultimo: boolean }) => actual && (
+    // A lo ancho de la lista, justo debajo de la fila de su categoría. El
+    // margen se come el espacio entre filas y 1 px más, que queda debajo de la
+    // pestaña; plegado mide 0 y la fila siguiente queda (casi) donde estaba.
+    <div
+      className={`-mt-[9px] grid basis-full transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${desplegado ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+      onTransitionEnd={() => !desplegado && setMostrada(null)}
+      inert={!desplegado}
+    >
+      <div className="min-h-0 overflow-hidden">
+        <div key={actual.key} className={`rounded-2xl border border-slate-200 bg-white p-3 shadow-sm ${primero ? "rounded-tl-none" : ""} ${ultimo ? "rounded-tr-none" : ""}`}>
+          <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wide text-slate-500">Subcategorías de {actual.name}</p>
+          <div className="flex flex-wrap gap-2">
+            <EnlaceSuave href={actual.href} aria-current={soloPrincipal ? "true" : undefined} className={claseSub(soloPrincipal)}>
+              Todo {actual.name}
+            </EnlaceSuave>
+            {actual.subcategorias.map((sub) => (
+              <EnlaceSuave key={sub.key} href={sub.href} aria-current={sub.active ? "true" : undefined} className={claseSub(sub.active)}>
+                {sub.label}
+              </EnlaceSuave>
+            ))}
+          </div>
         </div>
       </div>
-    </>
+    </div>
+  );
+
+  return (
+    <CategoriasChips
+      panel={actual ? { key: actual.key, render: menu } : null}
+      items={[
+        { ...todos, onSelect: () => { setAbierta(null); navegar(todos.href); } },
+        ...principales.map((p) => ({ key: p.key, href: p.href, label: p.label, active: p.active || abierta === p.key, expanded: abierta === p.key, pestana: desplegado && abierta === p.key, onSelect: () => alternar(p.key) })),
+      ]}
+    />
   );
 }
