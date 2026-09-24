@@ -8,6 +8,7 @@ import { PROPOSAL_TTL_LABEL, jobProgress, validEstimatedDays } from "../src/lib/
 import { parseTexto } from "../src/lib/site-text";
 import { AYUDA_DEFAULT, saludoPerfil, validSupportPhone, waLink } from "../src/lib/whatsapp";
 import { CAPITAL, LOCALIDADES_BASE, validarLocalidad, validarPunto, zonaDe } from "../src/lib/localidades";
+import { idPorDefecto } from "../src/lib/localidad-defecto";
 import { pendienteDeAlta } from "../src/lib/auth";
 import { PLAZO_MENSAJES_MS, debeAvisarMensaje, firmaBaja, firmaValida, puedeRecibir } from "../src/lib/avisos-correo";
 import { validarCredencial } from "../src/lib/matriculas";
@@ -351,4 +352,11 @@ test("la IP sale de Traefik y no de lo que manda el cliente", () => {
 test("el teléfono de soporte se muestra como se escribe en Argentina", async () => {
   const { telefonoLegible } = await import("../src/lib/whatsapp");
   assert.equal(telefonoLegible("3794404086"), "+54 9 3794 40-4086");
+});
+
+test("la localidad por defecto es Resistencia y si no está, la primera", () => {
+  const lista = [{ id: "a", name: "Corrientes Capital", province: "Corrientes" }, { id: "b", name: "Resistencia", province: "Chaco" }];
+  assert.equal(idPorDefecto(lista), "b");
+  assert.equal(idPorDefecto([lista[0]]), "a");
+  assert.equal(idPorDefecto([]), "");
 });

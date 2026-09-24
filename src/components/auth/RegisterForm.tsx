@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { registerAction, type AuthState } from "@/app/(auth)/actions";
 import { FormError, PasswordField, SubmitButton } from "@/components/auth/fields";
+import { idPorDefecto } from "@/lib/localidad-defecto";
 
 const FIELD = "glass-field px-3.5 py-3 text-sm";
 
@@ -26,7 +27,7 @@ export function RegisterForm({ next, providerType, localities }: { next?: string
         <label className="block space-y-1.5 text-sm font-medium text-slate-700">Email<input name="email" required type="email" autoComplete="email" placeholder="vos@email.com" defaultValue={values.email} className={FIELD} /></label>
         <PasswordField id="password" label="Contraseña" autoComplete="new-password" tone="cliente" hint="Mínimo 8 caracteres." />
         <label className="block space-y-1.5 text-sm font-medium text-slate-700">Localidad
-          <select name="localityId" required defaultValue={values.localityId || localities[0]?.id} className={FIELD}>
+          <select name="localityId" required defaultValue={values.localityId || idPorDefecto(localities)} className={FIELD}>
             {localities.map((l) => <option key={l.id} value={l.id}>{l.name}, {l.province}</option>)}
           </select>
           <span className="block text-xs font-normal text-slate-500">La usamos para mostrarte lo que tenés cerca cuando no compartís tu ubicación.</span>
