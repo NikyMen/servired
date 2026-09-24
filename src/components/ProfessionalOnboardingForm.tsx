@@ -10,7 +10,7 @@ type Locality = { id: string; name: string; province: string };
 type Initial = {
   name: string; email: string; avatarUrl: string | null; providerType?: ProviderType; status?: string; reason?: string | null;
   categoryIds?: string[]; headline?: string; bio?: string; yearsExperience?: number;
-  legalName?: string; phone?: string; birthDate?: string; cuil?: string; dni?: string; address?: string; localityId?: string | null;
+  legalName?: string; phone?: string; birthDate?: string; cuil?: string; address?: string; localityId?: string | null;
   ofertasDependencia?: boolean;
 };
 
@@ -29,7 +29,7 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
   });
   const [values, setValues] = useState({
     headline: initial.headline ?? "", bio: initial.bio ?? "", yearsExperience: String(initial.yearsExperience ?? 0), legalName: initial.legalName ?? initial.name,
-    phone: initial.phone ?? "", birthDate: initial.birthDate ?? "", cuil: initial.cuil ?? "", dni: initial.dni ?? "", address: initial.address ?? "",
+    phone: initial.phone ?? "", birthDate: initial.birthDate ?? "", cuil: initial.cuil ?? "", address: initial.address ?? "",
     // La primera de la lista es Capital: ahí se dio de alta todo el mundo hasta ahora.
     localityId: initial.localityId ?? localities[0]?.id ?? "",
   });
@@ -110,7 +110,6 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
     const legalParts = values.legalName.trim().split(/\s+/).map((part) => part.replace(/[^\p{L}]/gu, ""));
     if (step === 2 && (legalParts.length < 2 || legalParts.some((part) => part.length < 2) || values.phone.replace(/\D/g, "").length < 8 || !values.birthDate || values.address.trim().length < 5)) return "Ingresá nombre y apellido completos y revisá tus datos personales.";
     if (step === 2 && values.cuil.replace(/\D/g, "").length !== 11) return "El CUIL debe tener 11 dígitos.";
-    if (step === 2 && !/^\d{7,8}$/.test(values.dni.replace(/\D/g, ""))) return "Ingresá un DNI válido.";
     if (step === 3 && !initial.avatarUrl && !avatar) return "Subí una foto de perfil donde se vea tu cara.";
     if (step === 3 && (!dniFront || !dniBack || !video || !challengeToken)) return "Completá las dos fotos del DNI y el video guiado.";
     return null;
@@ -205,7 +204,7 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
         <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800">Cuando aprueben tu perfil, vinculá tu cuenta de Mercado Pago desde Mi perfil para cobrar tus trabajos.</p>
       </>}
       {step === 2 && <>
-        <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Nombre legal<input value={values.legalName} onChange={(e) => update("legalName", e.target.value)} className={FIELD} /></label><label className="text-sm font-medium">Email verificado<input value={initial.email} disabled className={`${FIELD} opacity-70`} /></label><label className="text-sm font-medium">Teléfono<input value={values.phone} onChange={(e) => update("phone", e.target.value)} type="tel" className={FIELD} /></label><label className="text-sm font-medium">Fecha de nacimiento<input value={values.birthDate} onChange={(e) => update("birthDate", e.target.value)} type="date" className={FIELD} /></label><label className="text-sm font-medium">CUIL<input value={values.cuil} onChange={(e) => update("cuil", e.target.value)} inputMode="numeric" placeholder="20-12345678-6" className={FIELD} /></label><label className="text-sm font-medium">DNI<input value={values.dni} onChange={(e) => update("dni", e.target.value)} inputMode="numeric" className={FIELD} /></label><label className="text-sm font-medium sm:col-span-2">Domicilio<input value={values.address} onChange={(e) => update("address", e.target.value)} className={FIELD} /></label></div>
+        <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Nombre legal<input value={values.legalName} onChange={(e) => update("legalName", e.target.value)} className={FIELD} /></label><label className="text-sm font-medium">Email verificado<input value={initial.email} disabled className={`${FIELD} opacity-70`} /></label><label className="text-sm font-medium">Teléfono<input value={values.phone} onChange={(e) => update("phone", e.target.value)} type="tel" className={FIELD} /></label><label className="text-sm font-medium">Fecha de nacimiento<input value={values.birthDate} onChange={(e) => update("birthDate", e.target.value)} type="date" className={FIELD} /></label><label className="text-sm font-medium">CUIL<input value={values.cuil} onChange={(e) => update("cuil", e.target.value)} inputMode="numeric" placeholder="20-12345678-6" className={FIELD} /></label><label className="text-sm font-medium sm:col-span-2">Domicilio<input value={values.address} onChange={(e) => update("address", e.target.value)} className={FIELD} /></label></div>
         <div className="grid gap-3 sm:grid-cols-3"><label className="text-sm font-medium">Localidad<select value={values.localityId} onChange={(e) => update("localityId", e.target.value)} required className={FIELD}>{!localities.length && <option value="">No pudimos cargar las localidades</option>}{localities.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label><label className="text-sm font-medium">Provincia<input value={selectedLocality?.province ?? ""} disabled className={`${FIELD} opacity-70`} /></label><label className="text-sm font-medium">País<input value="Argentina" disabled className={`${FIELD} opacity-70`} /></label></div>
       </>}
       {step === 3 && <>

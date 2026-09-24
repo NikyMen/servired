@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveUpload } from "@/lib/uploads";
-import { cuilMatchesDni, encryptKyc, lookupKyc, normalizeDigits, removeKycDocument, saveKycDocument, validCuil, validDni, validPhone, videoChallengeExpiry } from "@/lib/kyc";
+import { dniFromCuil, encryptKyc, lookupKyc, normalizeDigits, removeKycDocument, saveKycDocument, validCuil, validPhone, videoChallengeExpiry } from "@/lib/kyc";
 import { ACTIVE_JOB_STATUSES } from "@/lib/workflow";
 import { slugify } from "@/lib/format";
 import { resolverLocalidad, zonaDe } from "@/lib/localidades";
@@ -25,7 +25,6 @@ export async function POST(req: NextRequest) {
   const address = value(form, "address");
   const localityId = value(form, "localityId");
   const cuil = normalizeDigits(value(form, "cuil"));
-  const dni = normalizeDigits(value(form, "dni"));
   const headline = value(form, "headline");
   const bio = value(form, "bio");
   const yearsExperience = Math.trunc(Number(value(form, "yearsExperience") || 0));
@@ -43,8 +42,7 @@ export async function POST(req: NextRequest) {
   const province = localidad.province;
   const locality = localidad.name;
   if (!validCuil(cuil)) return NextResponse.json({ error: "El CUIL no es válido." }, { status: 422 });
-  if (!validDni(dni)) return NextResponse.json({ error: "El DNI no es válido." }, { status: 422 });
-  if (!cuilMatchesDni(cuil, dni)) return NextResponse.json({ error: "El CUIL no corresponde al DNI ingresado." }, { status: 422 });
+  const dni = dniFromCuil(cuil);
   if (headline.length < 3 || bio.length < 20 || bio.length > 1000) return NextResponse.json({ error: "Completá actividad y descripción." }, { status: 422 });
   if (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 60) return NextResponse.json({ error: "Los años en el oficio tienen que estar entre 0 y 60." }, { status: 422 });
   if (customCategory && (customCategory.length < 3 || !slugify(customCategory))) return NextResponse.json({ error: "El rubro que escribiste es muy corto o no tiene letras." }, { status: 422 });

@@ -57,15 +57,9 @@ export function validCuil(value: string) {
   return check === Number(digits[10]);
 }
 
-export function validDni(value: string) {
-  return /^\d{7,8}$/.test(normalizeDigits(value));
-}
-
-export function cuilMatchesDni(cuil: string, dni: string) {
-  const cuilDigits = normalizeDigits(cuil);
-  const rawDni = normalizeDigits(dni);
-  const dniDigits = rawDni.padStart(8, "0");
-  return validCuil(cuilDigits) && validDni(rawDni) && cuilDigits.slice(2, 10) === dniDigits;
+/** El CUIL lleva el DNI en los dígitos 3 a 10 (con un cero adelante si el DNI tiene 7). */
+export function dniFromCuil(cuil: string) {
+  return normalizeDigits(cuil).slice(2, 10).replace(/^0/, "");
 }
 
 export function validPhone(value: string) {

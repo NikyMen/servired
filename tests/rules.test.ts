@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createVideoChallenge, cuilMatchesDni, parsePaymentHandle, validCuil, validCvu, validDni, validPhone, verifyVideoChallenge } from "../src/lib/kyc";
+import { createVideoChallenge, dniFromCuil, parsePaymentHandle, validCuil, validCvu, validPhone, verifyVideoChallenge } from "../src/lib/kyc";
 import { ACTIVE_JOB_STATUSES, PROPOSAL_TTL_MS, proposalIsActive } from "../src/lib/workflow";
 import { canRevealPaymentDetails } from "../src/lib/payments";
 import { MAX_REPUBLISH, REQUEST_TTL_MS, requestDaysLeft, requestIsLastDay } from "../src/lib/solicitudes";
@@ -20,10 +20,8 @@ import { ENCUADRE_NEUTRO, LADO_PLACA, PLACAS, SLOTS, SLOTS_VIEJOS, esSlotDePlaca
 test("valida CUIL por formato y dígito verificador", () => {
   assert.equal(validCuil("20-12345678-6"), true);
   assert.equal(validCuil("20-12345678-5"), false);
-  assert.equal(validDni("12345678"), true);
-  assert.equal(validDni("123"), false);
-  assert.equal(cuilMatchesDni("20-12345678-6", "12345678"), true);
-  assert.equal(cuilMatchesDni("20-12345678-6", "87654321"), false);
+  assert.equal(dniFromCuil("20-12345678-6"), "12345678");
+  assert.equal(dniFromCuil("20-01234567-3"), "1234567");
 });
 
 test("valida teléfono y CVU con sus dígitos verificadores", () => {
