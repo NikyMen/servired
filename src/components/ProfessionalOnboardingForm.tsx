@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 
 type ProviderType = "profesional" | "oficio";
@@ -210,7 +210,7 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
       </>}
       {step === 3 && <>
         <p className="text-sm text-slate-600">Los documentos y el video son privados: solo administración puede verlos.</p>
-        <div className="grid gap-4 sm:grid-cols-3"><FileField label="Foto de perfil" accept="image/jpeg,image/png,image/webp" current={initial.avatarUrl ? "Foto actual disponible" : null} onChange={setAvatar} /><FileField label="DNI frente" accept="image/jpeg,image/png,image/webp" onChange={setDniFront} /><FileField label="DNI dorso" accept="image/jpeg,image/png,image/webp" onChange={setDniBack} /></div>
+        <div className="grid gap-4 sm:grid-cols-3"><FileField label="Foto de perfil" accept="image/jpeg,image/png,image/webp" capture="user" current={initial.avatarUrl ? "Ya tenés una foto cargada" : null} onChange={setAvatar} /><FileField label="DNI frente" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={setDniFront} /><FileField label="DNI dorso" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={setDniBack} /></div>
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"><h2 className="font-bold text-slate-900">Video de identidad</h2><p className="mt-1 text-sm text-slate-600">Mostrá tu cara y el DNI, y leé en voz alta la frase que aparece. Máximo 30 segundos.</p>{challenge && <p className="mt-3 rounded-xl bg-white p-4 text-center text-base leading-relaxed font-bold text-pro-dark sm:text-lg">{challenge}</p>}<video ref={liveVideoRef} autoPlay muted playsInline className={`${recording ? "block" : "hidden"} mt-3 max-h-72 w-full scale-x-[-1] rounded-xl bg-black`} /><div className="mt-3 flex flex-wrap gap-2">{recording ? <button type="button" onClick={stopRecording} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Detener ({seconds}s)</button> : <button type="button" onClick={startRecording} className="glass-btn px-4 py-2 text-sm">{video ? "Volver a grabar" : "Grabar video"}</button>}</div>{videoUrl && !recording && <video src={videoUrl} controls playsInline className="mt-3 max-h-72 w-full rounded-xl bg-black" />}</section>
       </>}
       {step === 4 && <section className="space-y-3"><h2 className="text-xl font-bold text-slate-900">Revisá antes de enviar</h2><dl className="grid gap-3 text-sm sm:grid-cols-2"><Summary label="Tipo" value={providerType} /><Summary label="Actividad" value={values.headline} /><Summary label="Rubros" value={String(categoryIds.length)} /><Summary label="Años en el oficio" value={values.yearsExperience || "0"} /><Summary label="Ubicación" value="Corrientes Capital, Corrientes, Argentina" /><Summary label="Cobro" value="Mercado Pago: se vincula después de la aprobación" /><Summary label="Localidad" value={selectedLocality ? `${selectedLocality.name}, ${selectedLocality.province}` : "—"} /><Summary label="Identidad" value="DNI frente, dorso y video listos" /></dl><label className="flex items-start gap-3 rounded-xl bg-white/70 p-3 text-sm text-slate-700"><input type="checkbox" checked={ofertasDependencia} onChange={(e) => setOfertasDependencia(e.target.checked)} className="mt-0.5 size-5 shrink-0" /><span>Me gustaría recibir ofertas por privado en relación de dependencia.</span></label><p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">El perfil quedará pendiente hasta que administración revise la documentación.</p></section>}
@@ -220,9 +220,43 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
   </div>;
 }
 
-function FileField({ label, accept, current, onChange }: { label: string; accept: string; current?: string | null; onChange: (file: File | null) => void }) {
-  const [name, setName] = useState(current || "Sin archivo");
-  return <label className="rounded-xl bg-white/70 p-3 text-sm font-medium">{label}<input type="file" accept={accept} onChange={(e) => { const file = e.target.files?.[0] || null; onChange(file); setName(file?.name || current || "Sin archivo"); }} className="mt-2 block w-full text-xs" /><span className="mt-1 block truncate text-xs font-normal text-slate-500">{name}</span></label>;
+/* Dos botones en vez del input nativo ("Seleccionar archivo Sin arc…nados"):
+   uno abre la cámara directo (capture) y el otro la galería. */
+function FileField({ label, accept, capture, current, onChange }: { label: string; accept: string; capture: "user" | "environment"; current?: string | null; onChange: (file: File | null) => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+
+  function pick(e: ChangeEvent<HTMLInputElement>) {
+    const picked = e.target.files?.[0] || null;
+    e.target.value = "";
+    if (!picked) return;
+    setFile(picked); onChange(picked);
+    setPreview(URL.createObjectURL(picked));
+  }
+
+  return <div className="flex flex-col rounded-2xl bg-white/70 p-3 text-sm">
+    <p className="font-semibold text-slate-900">{label}</p>
+    <div className="mt-2 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-dashed border-emerald-300 bg-emerald-50/60">
+      {preview ? <img src={preview} alt={label} className="size-full object-cover" /> : <span className="px-3 text-center text-xs text-slate-500">{current || "Todavía no cargaste la foto"}</span>}
+    </div>
+    <div className="mt-3 grid grid-cols-2 gap-2">
+      <button type="button" onClick={() => cameraRef.current?.click()} className="glass-btn flex items-center justify-center gap-1.5 px-2 py-2.5 text-xs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4 shrink-0" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
+        Sacar foto
+      </button>
+      <button type="button" onClick={() => galleryRef.current?.click()} className="glass-btn glass-btn-ghost flex items-center justify-center gap-1.5 px-2 py-2.5 text-xs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4 shrink-0" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" /></svg>
+        Galería
+      </button>
+    </div>
+    <input ref={cameraRef} type="file" accept={accept} capture={capture} onChange={pick} className="hidden" />
+    <input ref={galleryRef} type="file" accept={accept} onChange={pick} className="hidden" />
+    {file && <span className="mt-2 block truncate text-xs text-emerald-700">✓ Foto cargada</span>}
+  </div>;
 }
 
 function Summary({ label, value }: { label: string; value: string }) {
