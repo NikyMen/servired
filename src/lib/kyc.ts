@@ -142,7 +142,40 @@ export function videoChallengeExpiry(userId: string, challenge: string, token: s
   return payload ? new Date(payload.e) : null;
 }
 
-function privateDir() {
+/* Los archivos privados se guardan cifrados (AES-256-GCM): quien se lleve la
+   carpeta o un backup solo encuentra bytes ilegibles. Formato en disco:
+   "SRK1" + iv (12) + tag (16) + contenido cifrado. La clave de archivos se
+   deriva de KYC_ENCRYPTION_KEY para no reusar la misma que firma y cifra
+   los números. Los archivos anteriores a esto siguen en claro hasta que se
+   corre `pnpm kyc:cifrar`; mientras tanto se leen igual. */
+const FILE_MAGIC = Buffer.from("SRK1", "ascii");
+
+function fileKey() {
+  return createHmac("sha256", key()).update("servired-kyc-files-v1").digest();
+}
+
+export function isEncryptedFile(data: Buffer) {
+  return data.length > FILE_MAGIC.length + 28 && data.subarray(0, FILE_MAGIC.length).equals(FILE_MAGIC);
+}
+
+export function encryptFile(data: Buffer) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", fileKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
+  return Buffer.concat([FILE_MAGIC, iv, cipher.getAuthTag(), encrypted]);
+}
+
+export function decryptFile(data: Buffer<ArrayBuffer>): Buffer<ArrayBuffer> {
+  if (!isEncryptedFile(data)) return data; // archivo viejo, todavía en claro
+  const start = FILE_MAGIC.length;
+  const decipher = createDecipheriv("aes-256-gcm", fileKey(), data.subarray(start, start + 12));
+  decipher.setAuthTag(data.subarray(start + 12, start + 28));
+  return Buffer.concat([decipher.update(data.subarray(start + 28)), decipher.final()]);
+}
+
+const PRIVATE_FILENAME = /^[a-f0-9]{48}\.(jpg|png|webp|webm|mp4|pdf)$/;
+
+export function privateDir() {
   const directory = path.resolve(process.env.PRIVATE_UPLOAD_DIR || path.join(process.cwd(), "data", "kyc"));
   const publicDirectory = path.resolve(process.cwd(), "public");
   const relativeToPublic = path.relative(publicDirectory, directory);
@@ -161,7 +194,7 @@ export async function saveKycDocument(file: File, expected: "image" | "video" = 
   if (!spec.valid(buffer)) throw new Error(`El ${expected === "video" ? "video" : "archivo"} no coincide con su formato.`);
   const filename = `${randomBytes(24).toString("hex")}.${spec.ext}`;
   await mkdir(privateDir(), { recursive: true });
-  await writeFile(path.join(privateDir(), filename), buffer, { flag: "wx" });
+  await writeFile(path.join(privateDir(), filename), encryptFile(buffer), { flag: "wx" });
   return { filename, mimeType: file.type, size: file.size };
 }
 
@@ -178,7 +211,7 @@ export async function saveCredentialFile(file: File) {
   if (!spec.valid(buffer)) throw new Error("El archivo no coincide con su formato.");
   const filename = `${randomBytes(24).toString("hex")}.${spec.ext}`;
   await mkdir(privateDir(), { recursive: true });
-  await writeFile(path.join(privateDir(), filename), buffer, { flag: "wx" });
+  await writeFile(path.join(privateDir(), filename), encryptFile(buffer), { flag: "wx" });
   return { filename, mimeType: file.type, size: file.size };
 }
 
@@ -189,13 +222,13 @@ export function formatoPorContenido(mimeType: string, buffer: Buffer) {
 }
 
 export async function readKycDocument(filename: string) {
-  if (!/^[a-f0-9]{48}\.(jpg|png|webp|webm|mp4|pdf)$/.test(filename)) throw new Error("Documento inválido.");
-  return readFile(path.join(privateDir(), filename));
+  if (!PRIVATE_FILENAME.test(filename)) throw new Error("Documento inválido.");
+  return decryptFile(await readFile(path.join(privateDir(), filename)));
 }
 
 /** Elimina un documento privado reemplazado; no falla si ya no existe. */
 export async function removeKycDocument(filename: string) {
-  if (!/^[a-f0-9]{48}\.(jpg|png|webp|webm|mp4|pdf)$/.test(filename)) return;
+  if (!PRIVATE_FILENAME.test(filename)) return;
   await unlink(path.join(privateDir(), filename)).catch((error: NodeJS.ErrnoException) => {
     if (error.code !== "ENOENT") console.error("[kyc] no se pudo eliminar un archivo reemplazado:", error);
   });

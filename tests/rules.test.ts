@@ -12,7 +12,7 @@ import { idPorDefecto } from "../src/lib/localidad-defecto";
 import { pendienteDeAlta } from "../src/lib/auth";
 import { PLAZO_MENSAJES_MS, debeAvisarMensaje, firmaBaja, firmaValida, puedeRecibir } from "../src/lib/avisos-correo";
 import { validarCredencial } from "../src/lib/matriculas";
-import { formatoPorContenido } from "../src/lib/kyc";
+import { decryptFile, encryptFile, formatoPorContenido, isEncryptedFile } from "../src/lib/kyc";
 import { RADIO_KM, agruparPuntos, formatoDistancia, haversineKm, leerPuntoCookie, puntoDePro, valorCookieUbicacion } from "../src/lib/geo";
 import { rankProfessionals } from "../src/lib/search";
 import { crearFreno, ipCliente } from "../src/lib/intentos";
@@ -360,3 +360,21 @@ test("la localidad por defecto es Resistencia y si no está, la primera", () => 
   assert.equal(idPorDefecto([lista[0]]), "a");
   assert.equal(idPorDefecto([]), "");
 });
+
+test("los archivos privados se guardan cifrados y se leen igual que antes", () => {
+  const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.from("foto del DNI")]);
+  const cifrado = encryptFile(jpg);
+  assert.equal(isEncryptedFile(cifrado), true);
+  assert.equal(cifrado.includes(Buffer.from("foto del DNI")), false);
+  assert.deepEqual(decryptFile(cifrado), jpg);
+  // Dos cifrados del mismo archivo no se parecen: el IV es nuevo cada vez.
+  assert.notDeepEqual(encryptFile(jpg), cifrado);
+  // Un archivo viejo, guardado en claro antes del cambio, se sigue leyendo.
+  assert.equal(isEncryptedFile(jpg), false);
+  assert.deepEqual(decryptFile(jpg), jpg);
+  // Si alguien toca un byte del archivo cifrado, no se abre.
+  const tocado = Buffer.from(cifrado);
+  tocado[tocado.length - 1] ^= 1;
+  assert.throws(() => decryptFile(tocado));
+});
+

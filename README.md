@@ -268,6 +268,13 @@ Los DNI y videos KYC no usan esa carpeta pública: se guardan en
 `PRIVATE_UPLOAD_DIR` y solo se sirven a una sesión administrativa. Las imágenes
 admiten hasta 8 MB y el video MP4/WEBM hasta 25 MB.
 
+En disco van **cifrados** (AES-256-GCM, con una clave derivada de
+`KYC_ENCRYPTION_KEY`), igual que las matrículas. Los archivos guardados antes de
+eso se cifran una sola vez con `pnpm kyc:cifrar`, exportando la misma
+`KYC_ENCRYPTION_KEY` que usa el server. Cada vez que administración abre uno
+queda una fila en `DocumentAccessLog` (quién, cuándo, IP y navegador), y el
+expediente KYC muestra esos accesos.
+
 ## Estructura
 
 ```

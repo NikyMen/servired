@@ -67,9 +67,22 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   const serializedPreinscriptions = preinscriptions.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }));
   const serializedReports = reports.map((report) => ({ ...report, createdAt: report.createdAt.toISOString(), resolvedAt: report.resolvedAt?.toISOString() ?? null }));
+  // Vistas de los documentos privados, por dueño: el total y las últimas 10.
+  const accesos = await prisma.documentAccessLog.findMany({
+    where: { source: "kyc", ownerUserId: { in: kycCases.map((kyc) => kyc.userId) } },
+    orderBy: { createdAt: "desc" },
+    select: { ownerUserId: true, createdAt: true, viewer: true, ip: true, documentKind: true },
+  });
+  const accesosPorUsuario = new Map<string, { total: number; ultimos: { at: string; viewer: string; ip: string | null; kind: string }[] }>();
+  for (const acceso of accesos) {
+    const resumen = accesosPorUsuario.get(acceso.ownerUserId!) ?? { total: 0, ultimos: [] };
+    resumen.total++;
+    if (resumen.ultimos.length < 10) resumen.ultimos.push({ at: acceso.createdAt.toISOString(), viewer: acceso.viewer, ip: acceso.ip, kind: acceso.documentKind });
+    accesosPorUsuario.set(acceso.ownerUserId!, resumen);
+  }
   const serializedKyc = kycCases.map((kyc) => {
     const professional = kyc.user.professional;
-    return { id: kyc.id, status: kyc.status, legalName: kyc.legalName, email: kyc.user.email, phone: kyc.phone, cuil: decryptKyc(kyc.cuilEncrypted), dni: decryptKyc(kyc.dniEncrypted), birthDate: kyc.birthDate.toISOString(), address: kyc.address, country: kyc.country, province: kyc.province, locality: kyc.locality, provider: kyc.user.oauthAccounts[0]?.provider || "email", providerType: professional?.providerType || "oficio", headline: professional?.headline || null, bio: professional?.bio || null, submittedAt: kyc.submittedAt?.toISOString() || null, reviewReason: kyc.reviewReason, reviewedBy: kyc.reviewedBy, reviewedAt: kyc.reviewedAt?.toISOString() || null, videoChallenge: kyc.videoChallenge, documents: kyc.documents.map((document) => ({ id: document.id, kind: document.kind })) };
+    return { id: kyc.id, status: kyc.status, legalName: kyc.legalName, email: kyc.user.email, phone: kyc.phone, cuil: decryptKyc(kyc.cuilEncrypted), dni: decryptKyc(kyc.dniEncrypted), birthDate: kyc.birthDate.toISOString(), address: kyc.address, country: kyc.country, province: kyc.province, locality: kyc.locality, provider: kyc.user.oauthAccounts[0]?.provider || "email", providerType: professional?.providerType || "oficio", headline: professional?.headline || null, bio: professional?.bio || null, submittedAt: kyc.submittedAt?.toISOString() || null, reviewReason: kyc.reviewReason, reviewedBy: kyc.reviewedBy, reviewedAt: kyc.reviewedAt?.toISOString() || null, videoChallenge: kyc.videoChallenge, documents: kyc.documents.map((document) => ({ id: document.id, kind: document.kind })), accesos: accesosPorUsuario.get(kyc.userId) ?? { total: 0, ultimos: [] } };
   });
   const serializedAds = ads.map((ad) => ({ slot: ad.slot, title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, tipo: ad.tipo === "profesional" ? "profesional" as const : "oficio" as const, enabled: ad.enabled, reencuadrar: necesitaReencuadre(ad) }));
   const categoryGroups = categories.filter((category) => !category.parentId);

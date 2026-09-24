@@ -2,13 +2,15 @@ import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { readKycDocument } from "@/lib/kyc";
+import { esPrimerPedazo, registrarAcceso } from "@/lib/accesos-documentos";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!(await isAdminAuthenticated())) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   const { id } = await params;
-  const document = await prisma.kycDocument.findUnique({ where: { id } });
+  const document = await prisma.kycDocument.findUnique({ where: { id }, include: { kycCase: { select: { userId: true } } } });
   if (!document) return NextResponse.json({ error: "Documento inexistente." }, { status: 404 });
   try {
+    if (esPrimerPedazo(req)) await registrarAcceso(req, { source: "kyc", documentId: document.id, documentKind: document.kind, ownerUserId: document.kycCase.userId });
     const data = await readKycDocument(document.filename);
     const commonHeaders = { "Content-Type": document.mimeType, "Cache-Control": "private, no-store", "Content-Disposition": `inline; filename="${document.kind}.${document.filename.split(".").pop()}"`, "Accept-Ranges": "bytes", "X-Content-Type-Options": "nosniff" };
     const range = req.headers.get("range");

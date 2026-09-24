@@ -13,6 +13,7 @@
     "db:categorizar": "tsx prisma/categorizar-rubros.ts",
     "migrate:servired": "tsx prisma/migrate-servired.ts",
     "placas:reubicar": "tsx prisma/reubicar-placas.ts",
+    "kyc:cifrar": "tsx prisma/cifrar-archivos-kyc.ts",
     "db:studio": "prisma studio",
     "test": "tsx --test tests/**/*.test.ts",
     "postinstall": "prisma generate"

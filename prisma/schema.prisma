@@ -733,3 +733,21 @@ model SiteText {
   version   Int      @default(1)
   updatedAt DateTime @updatedAt
 }
+
+/// Cada vez que administración abre un DNI, video o matrícula queda una fila.
+/// Sin relaciones a propósito: si la cuenta se da de baja, el registro de
+/// quién miró sus documentos sigue estando.
+model DocumentAccessLog {
+  id           String   @id @default(cuid())
+  source       String // kyc | credential
+  documentId   String
+  documentKind String // dni_front | dni_back | identity_video | el kind de la matrícula
+  ownerUserId  String?
+  viewer       String
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([ownerUserId])
+  @@index([createdAt])
+}
