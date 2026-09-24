@@ -15,7 +15,7 @@ export function OfertasDependencia({ inicial }: { inicial: boolean }) {
       </div>
       <label className="flex items-start gap-3 text-sm text-slate-700">
         <input type="checkbox" name="ofertasDependencia" defaultChecked={valor} className="mt-0.5 size-5 shrink-0" />
-        Me gustaría recibir ofertas por privado en relación de dependencia.
+        ¿Además de las oportunidades vinculadas a tu oficio, te gustaría recibir ofertas laborales en relación de dependencia?
       </label>
       <div className="flex items-center gap-3">
         <button disabled={pending} className="glass-btn px-4 py-2 text-sm disabled:opacity-60">{pending ? "Guardando…" : "Guardar"}</button>

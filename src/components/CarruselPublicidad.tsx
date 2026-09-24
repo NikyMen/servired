@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { AdPlate } from "@/components/AdPlate";
 
-type Ad = { title: string; imageUrl: string | null; whatsappPhone: string | null; whatsappMessage: string | null; enabled: boolean };
+type Ad = { slot: string; title: string; imageUrl: string | null; whatsappPhone: string | null; whatsappMessage: string | null; enabled: boolean };
 /** ad null = lugar libre: invita a publicitar (hace falta invitarHref). */
 export type ItemCarrusel = { key: string; ad: Ad | null; label: string };
 

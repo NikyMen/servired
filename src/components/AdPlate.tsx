@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { waLink } from "@/lib/whatsapp";
 
-type Ad = { title: string; imageUrl: string | null; whatsappPhone: string | null; whatsappMessage: string | null; enabled: boolean } | null;
+type Ad = { slot: string; title: string; imageUrl: string | null; whatsappPhone: string | null; whatsappMessage: string | null; enabled: boolean } | null;
 
 /** El lugar libre: en vez de un cartel muerto, invita a contratarlo. */
 function Disponible() {
@@ -37,9 +36,14 @@ export function AdPlate({ ad, label, className = "", lazy = false, invitarHref =
 
   const borde = libre && invitarHref ? "border-dashed border-slate-300 bg-white/60 hover:border-emerald-400 hover:bg-emerald-50/70" : "border-slate-200 bg-white/70";
   const style = `relative flex aspect-square overflow-hidden items-center justify-center rounded-[1.5rem] border shadow-sm ${borde} ${libre ? "opacity-50 transition-opacity hover:opacity-75" : ""} ${className}`;
-  const href = conAviso && ad!.whatsappPhone ? waLink(ad!.whatsappPhone, ad!.whatsappMessage) : libre ? invitarHref : null;
-  const aria = conAviso ? `${label}: abre WhatsApp` : `${label}: espacio disponible, abre WhatsApp`;
+  // Un aviso con WhatsApp pasa por /publicidad/<slot>: pide entrar si no hay
+  // sesión y recién después abre el WhatsApp del anunciante. Es un <a> común,
+  // no <Link>: la ruta es un route handler que redirige afuera.
+  if (conAviso && ad!.whatsappPhone) {
+    return <a href={`/publicidad/${encodeURIComponent(ad!.slot)}`} aria-label={`${label}: abre WhatsApp`} className={style}>{content}</a>;
+  }
+  const href = libre ? invitarHref : null;
   return href
-    ? <Link href={href} target="_blank" rel="noopener noreferrer" aria-label={aria} className={style}>{content}</Link>
+    ? <Link href={href} target="_blank" rel="noopener noreferrer" aria-label={`${label}: espacio disponible, abre WhatsApp`} className={style}>{content}</Link>
     : <aside aria-label={label} className={style}>{content}</aside>;
 }

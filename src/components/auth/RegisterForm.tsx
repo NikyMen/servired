@@ -34,7 +34,7 @@ export function RegisterForm({ next, providerType, localities }: { next?: string
         {paraOfrecer && (
           <label className="flex items-start gap-3 text-sm text-slate-700">
             <input type="checkbox" name="ofertasDependencia" defaultChecked={values.ofertasDependencia === "on"} className="mt-0.5 size-5 shrink-0" />
-            <span>Me gustaría recibir ofertas por privado en relación de dependencia.</span>
+            <span>¿Además de las oportunidades vinculadas a tu oficio, te gustaría recibir ofertas laborales en relación de dependencia?</span>
           </label>
         )}
         {/* Nunca tildada de antemano; el enlace abre aparte para no perder lo escrito. */}

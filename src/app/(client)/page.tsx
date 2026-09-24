@@ -92,7 +92,7 @@ export default async function HomePage({
       const ad = adMap.get(placa.slot);
       const activa = ad && ad.enabled && (ad.imageUrl || ad.title);
       if (!activa || (ad.tipo === "profesional" ? "profesional" : "oficio") !== tipo) return [];
-      return [{ key: placa.slot, label: `Publicidad ${placa.nombre}`, ad: { title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, enabled: ad.enabled } }];
+      return [{ key: placa.slot, label: `Publicidad ${placa.nombre}`, ad: { slot: ad.slot, title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, enabled: ad.enabled } }];
     });
     return activas.length ? activas : [{ key: `libre-${tipo}`, ad: null, label: `Publicidad de ${tipo === "oficio" ? "oficios" : "profesionales"}` }];
   };

@@ -80,7 +80,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     { tab: "matriculas", nombre: "Matrículas", titulo: "Matrículas y certificados", descripcion: "Aprobada, el perfil muestra la insignia “Matriculado”. Rechazar pide motivo.", icono: "🎓", grupo: "Revisión", pendientes: pendingCredentials },
     { tab: "denuncias", nombre: "Denuncias", titulo: "Denuncias", descripcion: "Imágenes y conversaciones reportadas por la comunidad.", icono: "🚩", grupo: "Revisión", pendientes: pendingReports },
     { tab: "usuarios", nombre: "Usuarios", titulo: "Usuarios y oferentes", descripcion: "Las últimas 50 altas, con su estado de cuenta.", icono: "👥", grupo: "Comunidad" },
-    { tab: "empleo", nombre: "Empleo", titulo: "Ofertas en relación de dependencia", descripcion: `${buscanEmpleo.length} ${buscanEmpleo.length === 1 ? "persona quiere" : "personas quieren"} recibir por privado ofertas de trabajo en relación de dependencia.`, icono: "💼", grupo: "Comunidad" },
+    { tab: "empleo", nombre: "Aceptan dependencia", titulo: "Perfiles que aceptan ofertas en relación de dependencia", descripcion: `${buscanEmpleo.length} ${buscanEmpleo.length === 1 ? "perfil tildó" : "perfiles tildaron"} que, además de las oportunidades de su oficio, quieren recibir ofertas laborales en relación de dependencia.`, icono: "💼", grupo: "Comunidad" },
     { tab: "trabajos", nombre: "Trabajos", titulo: "Trabajos y propuestas", descripcion: "Actividad reciente del marketplace y estados comerciales.", icono: "🧰", grupo: "Comunidad" },
     { tab: "preinscripciones", nombre: "Preinscripciones", titulo: "Preinscripciones", descripcion: `${preinscriptions.length} contactos únicos captados antes del lanzamiento.`, icono: "📇", grupo: "Comunidad" },
     { tab: "publicidad", nombre: "Publicidad", titulo: "Publicidad del sitio", descripcion: "12 lugares y son todos: 3 al costado izquierdo, 3 al derecho y 6 debajo de la portada. Todas las placas son iguales; cambiar una de lugar es un botón.", icono: "🖼️", grupo: "Portada" },
@@ -150,7 +150,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       {tab === "empleo" && (
         buscanEmpleo.length === 0 ? (
-          <div className="adm-card adm-card-pad text-sm text-slate-500">Todavía nadie tildó «Me gustaría recibir ofertas por privado en relación de dependencia». Aparece al registrarse como oficio o profesional, al completar el alta pro y en Mi perfil del pro.</div>
+          <div className="adm-card adm-card-pad text-sm text-slate-500">Todavía ningún perfil tildó «¿Además de las oportunidades vinculadas a tu oficio, te gustaría recibir ofertas laborales en relación de dependencia?». Aparece al registrarse como oficio o profesional, al completar el alta pro y en Mi perfil del pro.</div>
         ) : (
           <div className="adm-card overflow-x-auto">
             <table className="adm-table min-w-[860px]">
