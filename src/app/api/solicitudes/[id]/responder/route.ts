@@ -43,10 +43,11 @@ export async function POST(
       expiresAt: true,
       categoryId: true,
       category: { select: { name: true } },
-      user: { select: { name: true } },
+      user: { select: { name: true, solicitudesOcultas: true } },
     },
   });
-  if (!request) {
+  // Oculta por el admin = como si no existiera.
+  if (!request || request.user.solicitudesOcultas) {
     return NextResponse.json({ error: "La solicitud no existe." }, { status: 404 });
   }
   if (request.status !== "abierta" || request.expiresAt <= new Date()) {

@@ -55,6 +55,8 @@ export function openRequestsWhere(professionalId?: string | null) {
   return {
     status: "abierta",
     expiresAt: { gt: new Date() },
+    // Las que el admin ocultó no aparecen en ningún listado.
+    user: { solicitudesOcultas: false },
     ...(professionalId ? { dismissals: { none: { professionalId } } } : {}),
   };
 }

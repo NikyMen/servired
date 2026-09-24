@@ -148,6 +148,22 @@ export async function unbanUserAction(formData: FormData) {
   revalidatePath("/");
 }
 
+/**
+ * Oculta o vuelve a mostrar el perfil de Ofrezco o las solicitudes de un
+ * usuario. Cada botón es su propio form con campos ocultos (React 19 no manda
+ * el name/value del botón a un Server Action).
+ */
+export async function ocultarUsuarioAction(formData: FormData) {
+  await requireAdmin();
+  const id = text(formData, "id");
+  const que = text(formData, "que");
+  if (!id || (que !== "perfil" && que !== "solicitudes")) return;
+  const ocultar = text(formData, "ocultar") === "si";
+  await prisma.user.update({ where: { id }, data: que === "perfil" ? { perfilOculto: ocultar } : { solicitudesOcultas: ocultar } });
+  revalidatePath("/admin");
+  revalidatePath("/");
+}
+
 export async function logoutAdminAction() {
   await destroyAdminSession();
   redirect("/admin/entrar");

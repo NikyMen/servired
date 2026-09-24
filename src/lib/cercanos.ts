@@ -10,7 +10,7 @@ export type Filtros = { q?: string; categoria?: string; tipo?: "profesional" | "
 export function filtroProfesionales({ categoria, tipo }: Filtros): Prisma.ProfessionalWhereInput {
   const filters: Prisma.ProfessionalWhereInput[] = [
     { profileStatus: "approved" },
-    { OR: [{ userId: null }, { user: { accountStatus: "approved" } }] },
+    { OR: [{ userId: null }, { user: { accountStatus: "approved", perfilOculto: false } }] },
   ];
   if (categoria) filters.push({ OR: [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }, { categoryLinks: { some: { category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }], approvalStatus: "approved" } } } }] });
   if (tipo) filters.push({ providerType: tipo });

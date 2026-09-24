@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 async function getPro(id: string) {
   return prisma.professional.findFirst({
-    where: { id, profileStatus: "approved", OR: [{ userId: null }, { user: { accountStatus: "approved" } }] },
+    where: { id, profileStatus: "approved", OR: [{ userId: null }, { user: { accountStatus: "approved", perfilOculto: false } }] },
     include: {
       category: true,
       services: { where: { status: "activo" }, orderBy: { createdAt: "asc" } },

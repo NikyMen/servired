@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { createCategoryAction, deleteCategoryAction, saveSiteTextAction, unbanUserAction, updateCategoryAction } from "@/app/admin/actions";
+import { createCategoryAction, deleteCategoryAction, ocultarUsuarioAction, saveSiteTextAction, unbanUserAction, updateCategoryAction } from "@/app/admin/actions";
 import { AdminShell, type AdminSeccion } from "@/components/AdminShell";
 import { AdminPreinscriptions } from "@/components/AdminPreinscriptions";
 import { AdminPublicidad } from "@/components/AdminPublicidad";
@@ -35,7 +35,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const [preinscriptions, kycCases, users, bookings, categories, ads, terminos, reports, userCount, verifiedProviderCount, activeJobCount, soporte, localidades, credenciales, buscanEmpleo] = await Promise.all([
     listPreinscriptions(),
     prisma.kycCase.findMany({ orderBy: { updatedAt: "desc" }, include: { documents: true, user: { include: { oauthAccounts: true, professional: true } } } }),
-    prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, include: { professional: { select: { providerType: true, profileStatus: true, verified: true } }, oauthAccounts: { select: { provider: true } } } }),
+    prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, include: { professional: { select: { providerType: true, profileStatus: true, verified: true } }, oauthAccounts: { select: { provider: true } }, _count: { select: { requests: true } } } }),
     prisma.booking.findMany({ orderBy: { updatedAt: "desc" }, take: 50, include: { user: { select: { name: true } }, professional: { select: { name: true } }, proposals: { orderBy: { createdAt: "desc" }, take: 1 } } }),
     prisma.category.findMany({ orderBy: [{ kind: "asc" }, { name: "asc" }], include: { _count: { select: { professionals: true, requests: true } } } }),
     prisma.ad.findMany({ orderBy: { slot: "asc" } }),
@@ -79,7 +79,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     { tab: "kyc", nombre: "Identidad", titulo: "Verificación de identidad", descripcion: "Documentos y datos de quienes quieren ofrecer servicios.", icono: "🪪", grupo: "Revisión", pendientes: pendingKyc },
     { tab: "matriculas", nombre: "Matrículas", titulo: "Matrículas y certificados", descripcion: "Aprobada, el perfil muestra la insignia “Matriculado”. Rechazar pide motivo.", icono: "🎓", grupo: "Revisión", pendientes: pendingCredentials },
     { tab: "denuncias", nombre: "Denuncias", titulo: "Denuncias", descripcion: "Imágenes y conversaciones reportadas por la comunidad.", icono: "🚩", grupo: "Revisión", pendientes: pendingReports },
-    { tab: "usuarios", nombre: "Usuarios", titulo: "Usuarios y oferentes", descripcion: "Las últimas 50 altas, con su estado de cuenta.", icono: "👥", grupo: "Comunidad" },
+    { tab: "usuarios", nombre: "Usuarios", titulo: "Usuarios y oferentes", descripcion: "Las últimas 50 altas, con su estado de cuenta. Ocultar saca su perfil o sus solicitudes de todo el sitio, sin borrar nada.", icono: "👥", grupo: "Comunidad" },
     { tab: "empleo", nombre: "Aceptan dependencia", titulo: "Perfiles que aceptan ofertas en relación de dependencia", descripcion: `${buscanEmpleo.length} ${buscanEmpleo.length === 1 ? "perfil tildó" : "perfiles tildaron"} que, además de las oportunidades de su oficio, quieren recibir ofertas laborales en relación de dependencia.`, icono: "💼", grupo: "Comunidad" },
     { tab: "trabajos", nombre: "Trabajos", titulo: "Trabajos y propuestas", descripcion: "Actividad reciente del marketplace y estados comerciales.", icono: "🧰", grupo: "Comunidad" },
     { tab: "preinscripciones", nombre: "Preinscripciones", titulo: "Preinscripciones", descripcion: `${preinscriptions.length} contactos únicos captados antes del lanzamiento.`, icono: "📇", grupo: "Comunidad" },
@@ -116,9 +116,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       {tab === "usuarios" && (
         <div className="adm-card overflow-x-auto">
-          <table className="adm-table min-w-[760px]">
+          <table className="adm-table min-w-[980px]">
             <thead>
-              <tr><th>Usuario</th><th>Acceso</th><th>Email</th><th>Perfil oferente</th><th>Estado</th><th>Alta</th></tr>
+              <tr><th>Usuario</th><th>Acceso</th><th>Email</th><th>Perfil oferente</th><th>Estado</th><th>Visibilidad</th><th>Alta</th></tr>
             </thead>
             <tbody>
               {users.map((user) => (
@@ -139,6 +139,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         {user.accountStatus === "approved" ? "Activa" : "Email pendiente"}
                       </span>
                     )}
+                  </td>
+                  <td>
+                    <div className="flex flex-col items-start gap-1.5">
+                      {user.professional && <OcultarBoton id={user.id} que="perfil" oculto={user.perfilOculto} />}
+                      <OcultarBoton id={user.id} que="solicitudes" oculto={user.solicitudesOcultas} cantidad={user._count.requests} />
+                    </div>
                   </td>
                   <td className="text-slate-500">{formatDate(user.createdAt)}</td>
                 </tr>
@@ -373,6 +379,20 @@ function Resumen({ usuarios, verificados, trabajos, pendientes, placasActivas, l
         <Metric label="Localidades activas" value={localidadesActivas} note="Se ofrecen al darse de alta" />
       </section>
     </div>
+  );
+}
+
+/** Ocultar / mostrar el perfil o las solicitudes de un usuario, desde Usuarios. */
+function OcultarBoton({ id, que, oculto, cantidad }: { id: string; que: "perfil" | "solicitudes"; oculto: boolean; cantidad?: number }) {
+  const nombre = que === "perfil" ? "perfil" : `solicitudes${cantidad !== undefined ? ` (${cantidad})` : ""}`;
+  return (
+    <form action={ocultarUsuarioAction} className="flex items-center gap-2">
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="que" value={que} />
+      <input type="hidden" name="ocultar" value={oculto ? "no" : "si"} />
+      {oculto && <span className="adm-badge adm-badge-bad">{que === "perfil" ? "Perfil oculto" : "Solicitudes ocultas"}</span>}
+      <button className={`adm-btn adm-btn-sm ${oculto ? "adm-btn-ghost" : "adm-btn-danger"}`}>{oculto ? `Mostrar ${nombre}` : `Ocultar ${nombre}`}</button>
+    </form>
   );
 }
 

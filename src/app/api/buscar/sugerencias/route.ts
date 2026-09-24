@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       where: {
         profileStatus: "approved",
         ...(tipo ? { providerType: tipo } : {}),
-        OR: [{ userId: null }, { user: { accountStatus: "approved" } }],
+        OR: [{ userId: null }, { user: { accountStatus: "approved", perfilOculto: false } }],
       },
       include: {
         category: { select: { slug: true, name: true } },

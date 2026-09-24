@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Falta el profesional." }, { status: 422 });
   }
 
-  const professional = await prisma.professional.findUnique({ where: { id: professionalId }, include: { user: { select: { accountStatus: true } } } });
-  if (!professional) {
+  const professional = await prisma.professional.findUnique({ where: { id: professionalId }, include: { user: { select: { accountStatus: true, perfilOculto: true } } } });
+  if (!professional || professional.user?.perfilOculto) {
     return NextResponse.json({ error: "El profesional no existe." }, { status: 404 });
   }
   if (professional.userId === user.id) {

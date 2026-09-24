@@ -39,6 +39,13 @@ model User {
   ofertasDependencia   Boolean   @default(false)
   ofertasDependenciaAt DateTime?
 
+  /// Moderación desde el admin (Usuarios). `perfilOculto` saca su perfil de
+  /// Ofrezco de la portada, el buscador, el mapa y su página pública;
+  /// `solicitudesOcultas` saca sus solicitudes publicadas de todos los listados.
+  /// La cuenta sigue funcionando y lo ya empezado (chats, trabajos) no se toca.
+  perfilOculto       Boolean @default(false)
+  solicitudesOcultas Boolean @default(false)
+
   /// Qué avisos quiere recibir por correo. Arrancan prendidos; cada mail trae
   /// su enlace para apagar ese tipo.
   mailMensajes    Boolean @default(true)

@@ -36,13 +36,14 @@ async function getData({ q, categoria, tipo }: Search) {
     // (ver src/lib/search.ts: LIKE de SQLite no ignora acentos ni tolera typos).
     buscarProfesionales({ q, categoria, tipo }, centro),
     prisma.serviceRequest.findMany({
-      where: { status: "abierta", expiresAt: { gt: new Date() }, user: { accountStatus: "approved" }, AND: [...(categoria ? [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }] : []), ...(tipo ? [{ category: { kind: tipo } }] : [])] },
+      where: { status: "abierta", expiresAt: { gt: new Date() }, user: { accountStatus: "approved", solicitudesOcultas: false }, AND: [...(categoria ? [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }] : []), ...(tipo ? [{ category: { kind: tipo } }] : [])] },
       orderBy: { createdAt: "desc" },
       include: { category: true },
     }),
     user
       ? prisma.workPhoto.findMany({
-          where: { latitude: { not: null }, longitude: { not: null } },
+          // Las fotos de trabajos son parte del perfil: con el perfil oculto, tampoco.
+          where: { latitude: { not: null }, longitude: { not: null }, professional: { OR: [{ userId: null }, { user: { perfilOculto: false } }] } },
           orderBy: { createdAt: "desc" },
           include: { professional: { select: { id: true, name: true, businessName: true } } },
         })
