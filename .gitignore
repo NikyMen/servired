@@ -35,3 +35,6 @@ yarn-error.log*
 *.tsbuildinfo
 /.playwright-cli/
 /output/playwright/
+
+# registro de la invitación a preinscriptos (prisma/invitar-preinscriptos.ts)
+/invitaciones-enviadas.txt
