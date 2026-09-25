@@ -15,6 +15,10 @@ import { telefonoLegible, validSupportPhone, waLink } from "../src/lib/whatsapp"
  *   pnpm preinscriptos:invitar --enviar [--limite=250]
  *
  * - Saltea a quien ya tiene cuenta con ese correo: ya se registró.
+ * - El saludo usa el primer nombre cargado. Si alguien lo cargó con el
+ *   apellido adelante o es una empresa, se corrige en `nombres-invitacion.json`
+ *   (fuera de git): `{ "correo o nombre tal cual": "Lisandro" }`; con "" sale
+ *   "Hola:" sin nombre. La corrida sin opciones lista cómo sale cada saludo.
  * - Anota cada envío en `invitaciones-enviadas.txt` y no le vuelve a mandar a
  *   nadie de esa lista. El plan gratis de Brevo son 300 correos por día y los
  *   códigos de verificación salen de la misma cuota: por eso el límite de 250
@@ -26,6 +30,7 @@ import { telefonoLegible, validSupportPhone, waLink } from "../src/lib/whatsapp"
  */
 
 const REGISTRO = "invitaciones-enviadas.txt";
+const NOMBRES = "nombres-invitacion.json";
 const LIMITE_POR_DEFECTO = 250;
 const PAUSA_MS = 1200;
 
@@ -39,7 +44,7 @@ const FUENTE = "'Segoe UI', Roboto, 'Helvetica Neue', Helvetica, Arial, sans-ser
 type Imagenes = { logo: string; marca: string; isotipo: string };
 
 type Variante = {
-  asunto: (nombre: string) => string;
+  asunto: string;
   preheader: string;
   intro: string;
   beneficios: string[];
@@ -52,7 +57,7 @@ type Variante = {
 
 const VARIANTES: Record<PreinscriptionType, Variante> = {
   cliente: {
-    asunto: (nombre) => `${nombre}, ServiRed ya está en línea: creá tu cuenta`,
+    asunto: "ServiRed ya está en línea: creá tu cuenta",
     preheader: "Gracias por preinscribirte. Ya podés crear tu cuenta y encontrar al profesional que necesitás.",
     intro: "Ya podés encontrar profesionales de confianza para lo que necesites en tu casa, tu negocio o tu día a día.",
     beneficios: [
@@ -68,7 +73,7 @@ const VARIANTES: Record<PreinscriptionType, Variante> = {
     fondo: "#eff6ff",
   },
   profesional: {
-    asunto: (nombre) => `${nombre}, ServiRed ya está en línea: sumate como profesional`,
+    asunto: "ServiRed ya está en línea: sumate como profesional",
     preheader: "Gracias por preinscribirte. Ya podés crear tu cuenta y empezar a recibir clientes.",
     intro: "Ya podés ofrecer tus servicios y conectar con clientes de tu zona que buscan exactamente lo que hacés.",
     beneficios: [
@@ -92,7 +97,7 @@ function escapar(texto: string) {
 /** "maría josé PÉREZ" → "María": el primer nombre, bien escrito. */
 function primerNombre(nombre: string) {
   const primero = nombre.trim().split(/\s+/)[0] ?? "";
-  return primero ? primero.charAt(0).toLocaleUpperCase("es-AR") + primero.slice(1).toLocaleLowerCase("es-AR") : "Hola";
+  return primero ? primero.charAt(0).toLocaleUpperCase("es-AR") + primero.slice(1).toLocaleLowerCase("es-AR") : "";
 }
 
 function soporte() {
@@ -100,9 +105,9 @@ function soporte() {
   return phone ? { href: waLink(phone, "Hola, me preinscribí en ServiRed y tengo una consulta."), telefono: telefonoLegible(phone) } : null;
 }
 
-export function armarCorreo(persona: Pick<Preinscription, "name" | "email" | "type">, imagenes: Imagenes) {
+export function armarCorreo(persona: Pick<Preinscription, "name" | "email" | "type">, imagenes: Imagenes, saludo?: string) {
   const v = VARIANTES[persona.type];
-  const nombre = primerNombre(persona.name);
+  const nombre = (saludo ?? primerNombre(persona.name)).trim();
   const url = `${appUrl()}${v.ruta}`;
   const sitio = appUrl().replace(/^https?:\/\//, "");
   const wa = soporte();
@@ -179,7 +184,7 @@ export function armarCorreo(persona: Pick<Preinscription, "name" | "email" | "ty
           ¡ServiRed ya está funcionando!
         </td></tr>
         <tr><td style="padding:0 0 14px 0;font-family:${FUENTE};font-size:16px;line-height:25px;color:${TEXTO};">
-          Hola <strong style="color:${MARINO};">${n}</strong>:
+          ${nombre ? `Hola <strong style="color:${MARINO};">${n}</strong>:` : "Hola:"}
         </td></tr>
         <tr><td style="padding:0 0 14px 0;font-family:${FUENTE};font-size:16px;line-height:25px;color:${TEXTO};">
           Gracias por preinscribirte y acompañarnos desde el principio. Te contamos que la plataforma ya está abierta en <a href="${appUrl()}" style="color:${v.color};font-weight:600;text-decoration:none;">${escapar(sitio)}</a>. ${escapar(v.intro)}
@@ -243,7 +248,7 @@ export function armarCorreo(persona: Pick<Preinscription, "name" | "email" | "ty
 </html>`;
 
   const text = [
-    `Hola ${nombre}:`,
+    nombre ? `Hola ${nombre}:` : "Hola:",
     "",
     `Gracias por preinscribirte en ServiRed. La plataforma ya está abierta en ${sitio}. ${v.intro}`,
     "",
@@ -267,7 +272,7 @@ export function armarCorreo(persona: Pick<Preinscription, "name" | "email" | "ty
     `Recibís este correo porque te preinscribiste en ServiRed con ${persona.email}. Si no querés recibir más novedades, respondé con la palabra BAJA.`,
   ].join("\n");
 
-  return { subject: v.asunto(nombre), html, text };
+  return { subject: nombre ? `${nombre}, ${v.asunto}` : v.asunto, html, text };
 }
 
 const HEADERS = { "List-Unsubscribe": "<mailto:consultas@servired.ar?subject=BAJA>" };
@@ -319,6 +324,8 @@ async function main() {
   }
 
   const registro = valor("--registro") ?? REGISTRO;
+  const correcciones = JSON.parse(await readFile(valor("--nombres") ?? NOMBRES, "utf8").catch(() => "{}")) as Record<string, string>;
+  const saludoDe = (p: Preinscription) => correcciones[p.email.toLowerCase()] ?? correcciones[p.name.trim()];
   const yaEnviados = new Set((await readFile(registro, "utf8").catch(() => "")).split("\n").map((l) => l.trim().toLowerCase()).filter(Boolean));
   const conCuenta = new Set((await prisma.user.findMany({ select: { email: true } })).map((u) => u.email.trim().toLowerCase()));
   const todos = await listPreinscriptions();
@@ -329,6 +336,12 @@ async function main() {
 
   console.log(`[invitar] ${todos.length} preinscriptos · ${registrados.length} ya tienen cuenta · ${enviados.length} ya recibieron la invitación`);
   console.log(`[invitar] ${pendientes.length} por invitar (${porTipo(pendientes, "cliente")} clientes, ${porTipo(pendientes, "profesional")} profesionales)`);
+
+  for (const p of pendientes) {
+    const corregido = saludoDe(p);
+    const saludo = (corregido ?? primerNombre(p.name)) || "(sin nombre)";
+    console.log(`  ${p.type.padEnd(11)} ${ocultar(p.email).padEnd(28)} ${JSON.stringify(p.name)} → Hola ${saludo}${corregido !== undefined ? "  [corregido]" : ""}`);
+  }
 
   if (!args.includes("--enviar")) {
     console.log("[invitar] No se mandó nada. Para mandar: --enviar (o --prueba=tu@correo para verlo antes).");
@@ -341,7 +354,7 @@ async function main() {
   let ok = 0;
   let fallaron = 0;
   for (const persona of tanda) {
-    const { subject, html, text } = armarCorreo(persona, imagenes);
+    const { subject, html, text } = armarCorreo(persona, imagenes, saludoDe(persona));
     try {
       await sendMail({ to: persona.email, subject, html, text, headers: HEADERS });
       await appendFile(registro, `${persona.email.toLowerCase()}\n`);
