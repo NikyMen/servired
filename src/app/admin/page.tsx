@@ -9,6 +9,7 @@ import { AdminReports } from "@/components/AdminReports";
 import { AdminSoporte } from "@/components/AdminSoporte";
 import { AdminLocalidades } from "@/components/AdminLocalidades";
 import { AdminMatriculas } from "@/components/AdminMatriculas";
+import { AdminEliminarUsuario } from "@/components/AdminEliminarUsuario";
 import { requireAdmin } from "@/lib/admin";
 import { listPreinscriptions } from "@/lib/preinscripciones";
 import { prisma } from "@/lib/prisma";
@@ -92,7 +93,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     { tab: "kyc", nombre: "Identidad", titulo: "Verificación de identidad", descripcion: "Documentos y datos de quienes quieren ofrecer servicios.", icono: "🪪", grupo: "Revisión", pendientes: pendingKyc },
     { tab: "matriculas", nombre: "Matrículas", titulo: "Matrículas y certificados", descripcion: "Aprobada, el perfil muestra la insignia “Matriculado”. Rechazar pide motivo.", icono: "🎓", grupo: "Revisión", pendientes: pendingCredentials },
     { tab: "denuncias", nombre: "Denuncias", titulo: "Denuncias", descripcion: "Imágenes y conversaciones reportadas por la comunidad.", icono: "🚩", grupo: "Revisión", pendientes: pendingReports },
-    { tab: "usuarios", nombre: "Usuarios", titulo: "Usuarios y oferentes", descripcion: "Las últimas 50 altas, con su estado de cuenta. Ocultar saca su perfil o sus solicitudes de todo el sitio, sin borrar nada.", icono: "👥", grupo: "Comunidad" },
+    { tab: "usuarios", nombre: "Usuarios", titulo: "Usuarios y oferentes", descripcion: "Las últimas 50 altas, con su estado de cuenta. Ocultar saca su perfil o sus solicitudes de todo el sitio, sin borrar nada; Eliminar borra la cuenta para siempre y pide la contraseña de administración.", icono: "👥", grupo: "Comunidad" },
     { tab: "empleo", nombre: "Aceptan dependencia", titulo: "Perfiles que aceptan ofertas en relación de dependencia", descripcion: `${buscanEmpleo.length} ${buscanEmpleo.length === 1 ? "perfil tildó" : "perfiles tildaron"} que, además de las oportunidades de su oficio, quieren recibir ofertas laborales en relación de dependencia.`, icono: "💼", grupo: "Comunidad" },
     { tab: "trabajos", nombre: "Trabajos", titulo: "Trabajos y propuestas", descripcion: "Actividad reciente del marketplace y estados comerciales.", icono: "🧰", grupo: "Comunidad" },
     { tab: "preinscripciones", nombre: "Preinscripciones", titulo: "Preinscripciones", descripcion: `${preinscriptions.length} contactos únicos captados antes del lanzamiento.`, icono: "📇", grupo: "Comunidad" },
@@ -131,7 +132,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <div className="adm-card overflow-x-auto">
           <table className="adm-table min-w-[980px]">
             <thead>
-              <tr><th>Usuario</th><th>Acceso</th><th>Email</th><th>Perfil oferente</th><th>Estado</th><th>Visibilidad</th><th>Alta</th></tr>
+              <tr><th>Usuario</th><th>Acceso</th><th>Email</th><th>Perfil oferente</th><th>Estado</th><th>Visibilidad</th><th>Alta</th><th></th></tr>
             </thead>
             <tbody>
               {users.map((user) => (
@@ -160,6 +161,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     </div>
                   </td>
                   <td className="text-slate-500">{formatDate(user.createdAt)}</td>
+                  <td><AdminEliminarUsuario id={user.id} nombre={user.name} /></td>
                 </tr>
               ))}
             </tbody>

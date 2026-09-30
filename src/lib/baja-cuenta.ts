@@ -13,8 +13,11 @@ import { ACTIVE_JOB_STATUSES } from "@/lib/workflow";
  *
  * Sobreviven las reseñas que la persona escribió (`Review.userId` es SetNull):
  * son la reputación de otro, y quedan con el nombre que ya tenían guardado.
+ *
+ * `forzar` es para administración: borra aunque haya trabajos en curso o
+ * pagos pendientes. La cascada se los lleva igual que al resto.
  */
-export async function deleteAccount(userId: string) {
+export async function deleteAccount(userId: string, { forzar = false }: { forzar?: boolean } = {}) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -36,7 +39,7 @@ export async function deleteAccount(userId: string) {
 
   // Borrar en medio de un trabajo deja al otro lado sin con quién hablar y sin
   // a quién pagarle: primero hay que terminarlo o cancelarlo.
-  const activos = await prisma.booking.count({
+  const activos = forzar ? 0 : await prisma.booking.count({
     where: {
       status: { in: ACTIVE_JOB_STATUSES },
       OR: [{ userId }, ...(user.professional ? [{ professionalId: user.professional.id }] : [])],

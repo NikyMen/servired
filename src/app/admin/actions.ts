@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash, timingSafeEqual } from "node:crypto";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { FRENO_ADMIN_IP, frenoLogin, ipCliente, mensajeFrenado } from "@/lib/intentos";
@@ -21,6 +22,7 @@ import { guardarTextoLegal } from "@/lib/site-text";
 import { revisarCredencial, type DecisionCredencial } from "@/lib/matriculas";
 import { ENCUADRE_NEUTRO, esSlotDePlaca } from "@/lib/publicidad";
 import { cambiarLocalidadActiva, crearLocalidad, moverLocalidad } from "@/lib/localidades";
+import { deleteAccount } from "@/lib/baja-cuenta";
 
 export type AdminAuthState = { error?: string } | undefined;
 
@@ -162,6 +164,46 @@ export async function ocultarUsuarioAction(formData: FormData) {
   await prisma.user.update({ where: { id }, data: que === "perfil" ? { perfilOculto: ocultar } : { solicitudesOcultas: ocultar } });
   revalidatePath("/admin");
   revalidatePath("/");
+}
+
+export type EliminarUsuarioState = { error?: string } | undefined;
+
+/**
+ * Borra una cuenta para siempre desde Usuarios. Pide de nuevo la contraseña de
+ * administración: la cookie sola no alcanza para algo que no se deshace. A
+ * diferencia de la baja que pide la propia persona, no frena por trabajos en
+ * curso ni pagos pendientes: la cascada se lleva todo.
+ */
+export async function eliminarUsuarioAction(_previous: EliminarUsuarioState, formData: FormData): Promise<EliminarUsuarioState> {
+  await requireAdmin();
+  const id = text(formData, "id");
+  const password = String(formData.get("password") ?? "");
+  if (!id) return { error: "Falta la cuenta." };
+  if (!password) return { error: "Escribí la contraseña de administración." };
+
+  // Mismo freno que el login de /admin, con su propia clave.
+  const clave = `admin-eliminar:ip:${ipCliente(await headers())}`;
+  const espera = frenoLogin.frenado(clave, FRENO_ADMIN_IP);
+  if (espera) return { error: mensajeFrenado(espera) };
+  if (!mismaClave(password, process.env.ADMIN_PASSWORD ?? "")) {
+    frenoLogin.fallo(clave, FRENO_ADMIN_IP);
+    return { error: "Contraseña incorrecta." };
+  }
+  frenoLogin.limpiar(clave);
+
+  const result = await deleteAccount(id, { forzar: true });
+  if (!result.ok) return { error: result.error };
+  console.info(`[admin] cuenta ${id} eliminada por ${process.env.ADMIN_EMAIL || "admin"}`);
+  revalidatePath("/admin");
+  revalidatePath("/");
+  return undefined;
+}
+
+/** Compara en tiempo constante: los hashes igualan el largo. */
+function mismaClave(a: string, b: string) {
+  if (!b) return false;
+  const hash = (valor: string) => createHash("sha256").update(valor).digest();
+  return timingSafeEqual(hash(a), hash(b));
 }
 
 export async function logoutAdminAction() {
