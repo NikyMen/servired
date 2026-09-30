@@ -85,6 +85,8 @@ export function Chat({
   const fileInput = useRef<HTMLInputElement>(null);
   const lista = useRef<HTMLDivElement>(null);
   const [denunciando, setDenunciando] = useState(false);
+  // Conversación cuya foto tiene abierto el globito de "Ver perfil" (una sola a la vez).
+  const [globoPerfil, setGloboPerfil] = useState<string | null>(null);
 
   const isPro = viewer === "profesional";
   const bubbleOwn = isPro ? "bg-pro text-white" : "bg-cliente text-white";
@@ -203,6 +205,13 @@ export function Chat({
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
+  function abrirHilo(id: string) {
+    setGloboPerfil(null);
+    setSelectedId(id);
+    setThreadOpen(true);
+    setError(null);
+  }
+
   function clearFile() {
     setFile(null);
     if (fileInput.current) fileInput.current.value = "";
@@ -298,56 +307,58 @@ export function Chat({
           // Hasta el primer poll manda el número que vino del servidor.
           const sinLeer = porConversacion[c.id] ?? c.noLeidos;
           return (
-            <button
+            <div
               key={c.id}
-              onClick={() => {
-                setSelectedId(c.id);
-                setThreadOpen(true);
-                setError(null);
-              }}
-              className={`flex min-h-[60px] w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+              className={`relative flex min-h-[60px] w-full items-center transition-colors ${
                 active ? "md:bg-[rgb(var(--accent-rgb)/0.12)]" : ""
               } ${sinLeer > 0 ? "bg-[rgb(var(--accent-rgb)/0.06)]" : ""} hover:bg-white/60`}
             >
-              <span className="relative shrink-0">
-                <Avatar name={c.withName} color={c.withColor} src={c.avatarUrl} size={42} />
-                {/* Punto sobre la foto: se ve quién escribió aunque la fila
-                    esté cortada por el ancho de la columna. */}
-                {sinLeer > 0 && (
-                  <span
-                    aria-hidden
-                    className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-red-500 ring-2 ring-white"
-                  />
-                )}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-slate-900">
-                  {c.withName}
-                </span>
-                {last && (
-                  // Sin leer va más oscuro y en negrita, como cualquier bandeja.
-                  <span
-                    className={`block truncate text-xs ${
-                      sinLeer > 0 ? "font-semibold text-slate-700" : "text-slate-500"
-                    }`}
-                  >
-                    {last.text || (last.attachmentType?.startsWith("image/") ? "📷 Foto" : "📎 Archivo")}
+              {/* La foto va aparte del resto de la fila (un botón no puede ir
+                  dentro de otro): tocarla abre el globito de "Ver perfil". */}
+              <FotoConPerfil
+                name={c.withName}
+                color={c.withColor}
+                avatarUrl={c.avatarUrl}
+                profileHref={c.profileHref}
+                sinLeer={sinLeer > 0}
+                open={globoPerfil === c.id}
+                onToggle={() => setGloboPerfil(globoPerfil === c.id ? null : c.id)}
+                onClose={() => setGloboPerfil(null)}
+                onAbrirHilo={() => abrirHilo(c.id)}
+              />
+              <button
+                onClick={() => abrirHilo(c.id)}
+                className="flex min-h-[60px] min-w-0 flex-1 items-center gap-3 py-3 pr-4 text-left"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-slate-900">
+                    {c.withName}
                   </span>
-                )}
-              </span>
-              {/* Acá el número son los mensajes del hilo, no los chats: ya
-                  estás mirando uno solo. */}
-              <NoLeidosBadge
-                n={sinLeer}
-                className="shrink-0"
-                label={sinLeer === 1 ? "1 mensaje sin leer" : `${sinLeer} mensajes sin leer`}
-              />
-              <ChevronLeftIcon
-                width={16}
-                height={16}
-                className="shrink-0 rotate-180 text-slate-300 md:hidden"
-              />
-            </button>
+                  {last && (
+                    // Sin leer va más oscuro y en negrita, como cualquier bandeja.
+                    <span
+                      className={`block truncate text-xs ${
+                        sinLeer > 0 ? "font-semibold text-slate-700" : "text-slate-500"
+                      }`}
+                    >
+                      {last.text || (last.attachmentType?.startsWith("image/") ? "📷 Foto" : "📎 Archivo")}
+                    </span>
+                  )}
+                </span>
+                {/* Acá el número son los mensajes del hilo, no los chats: ya
+                    estás mirando uno solo. */}
+                <NoLeidosBadge
+                  n={sinLeer}
+                  className="shrink-0"
+                  label={sinLeer === 1 ? "1 mensaje sin leer" : `${sinLeer} mensajes sin leer`}
+                />
+                <ChevronLeftIcon
+                  width={16}
+                  height={16}
+                  className="shrink-0 rotate-180 text-slate-300 md:hidden"
+                />
+              </button>
+            </div>
           );
         })}
       </aside>
@@ -557,6 +568,87 @@ function TarjetaAcuerdo({ message: m }: { message: ChatMessage }) {
         </ul>
       )}
       <p className="mt-1 text-right text-[10px] text-amber-700/70">{hora(m.createdAt)}</p>
+    </div>
+  );
+}
+
+/** Foto de la lista de chats. Si la otra parte tiene perfil público, tocarla
+ *  saca un globito que nace de la foto con "Ver perfil"; si no, abre el hilo
+ *  como el resto de la fila. */
+function FotoConPerfil({
+  name,
+  color,
+  avatarUrl,
+  profileHref,
+  sinLeer,
+  open,
+  onToggle,
+  onClose,
+  onAbrirHilo,
+}: {
+  name: string;
+  color: string;
+  avatarUrl?: string | null;
+  profileHref?: string | null;
+  sinLeer: boolean;
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  onAbrirHilo: () => void;
+}) {
+  const caja = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const afuera = (e: PointerEvent) => caja.current && !caja.current.contains(e.target as Node) && onClose();
+    const escape = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("pointerdown", afuera);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", afuera);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open, onClose]);
+
+  return (
+    <div ref={caja} className="relative flex shrink-0 items-center self-stretch pl-4 pr-3">
+      <button
+        type="button"
+        onClick={profileHref ? onToggle : onAbrirHilo}
+        aria-label={profileHref ? `Opciones de ${name}` : `Abrir conversación con ${name}`}
+        aria-expanded={profileHref ? open : undefined}
+        className={`relative rounded-full transition-transform ${
+          profileHref ? "active:scale-95" : ""
+        } ${open ? "ring-2 ring-[rgb(var(--accent-rgb)/0.5)] ring-offset-2" : ""}`}
+      >
+        <Avatar name={name} color={color} src={avatarUrl} size={42} />
+        {/* Punto sobre la foto: se ve quién escribió aunque la fila
+            esté cortada por el ancho de la columna. */}
+        {sinLeer && (
+          <span
+            aria-hidden
+            className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-red-500 ring-2 ring-white"
+          />
+        )}
+      </button>
+      {open && profileHref && (
+        // Queda a la derecha de la foto y dentro del alto de la fila: así la
+        // columna con scroll no lo corta ni en el último chat.
+        <div className="animate-pop-perfil absolute left-[calc(100%-6px)] top-1/2 z-20 -translate-y-1/2">
+          <span
+            aria-hidden
+            className="absolute -left-1.5 top-1/2 size-3 -translate-y-1/2 rotate-45 rounded-[2px] bg-slate-900"
+          />
+          <Link
+            href={profileHref}
+            onClick={onClose}
+            className="relative flex items-center gap-1.5 whitespace-nowrap rounded-full bg-slate-900 px-3.5 py-2 text-xs font-semibold text-white shadow-lg transition-colors hover:bg-slate-800"
+          >
+            Ver perfil
+            <ChevronLeftIcon width={14} height={14} className="rotate-180" />
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

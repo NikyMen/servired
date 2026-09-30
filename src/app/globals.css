@@ -484,6 +484,23 @@
 @utility animate-reveal-down {
   animation: reveal-down 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* El globito de "Ver perfil" de la lista de chats: crece desde la foto.
+   Anima `transform`; el centrado vertical (-translate-y-1/2) va por la
+   propiedad `translate` de Tailwind 4, así que los dos se suman sin pisarse. */
+@keyframes pop-perfil {
+  from {
+    opacity: 0;
+    transform: translateX(-10px) scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@utility animate-pop-perfil {
+  transform-origin: left center;
+  animation: pop-perfil 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
 /* ============================================================
    Cambio de modo (busca <-> ofrece)
