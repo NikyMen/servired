@@ -10,6 +10,7 @@ import { AdminSoporte } from "@/components/AdminSoporte";
 import { AdminLocalidades } from "@/components/AdminLocalidades";
 import { AdminMatriculas } from "@/components/AdminMatriculas";
 import { AdminEliminarUsuario } from "@/components/AdminEliminarUsuario";
+import { AdminOrdenPerfiles } from "@/components/AdminOrdenPerfiles";
 import { requireAdmin } from "@/lib/admin";
 import { listPreinscriptions } from "@/lib/preinscripciones";
 import { prisma } from "@/lib/prisma";
@@ -20,11 +21,12 @@ import { necesitaReencuadre } from "@/lib/publicidad";
 import { TERMS_DEFAULT, TERMS_SLUG, getSiteText } from "@/lib/site-text";
 import { getSoporteConfig, soporteDelEnv } from "@/lib/soporte";
 import { listarLocalidadesAdmin } from "@/lib/localidades";
+import { listarOrdenPerfiles } from "@/lib/orden-perfiles";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Administración" };
 
-const TABS = ["resumen", "kyc", "matriculas", "denuncias", "usuarios", "empleo", "trabajos", "catalogo", "publicidad", "soporte", "localidades", "legales", "preinscripciones"] as const;
+const TABS = ["resumen", "kyc", "matriculas", "denuncias", "usuarios", "empleo", "trabajos", "catalogo", "orden", "publicidad", "soporte", "localidades", "legales", "preinscripciones"] as const;
 type Tab = (typeof TABS)[number];
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -98,6 +100,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     { tab: "trabajos", nombre: "Trabajos", titulo: "Trabajos y propuestas", descripcion: "Actividad reciente del marketplace y estados comerciales.", icono: "🧰", grupo: "Comunidad" },
     { tab: "preinscripciones", nombre: "Preinscripciones", titulo: "Preinscripciones", descripcion: `${preinscriptions.length} contactos únicos captados antes del lanzamiento.`, icono: "📇", grupo: "Comunidad" },
     { tab: "publicidad", nombre: "Publicidad", titulo: "Publicidad del sitio", descripcion: "12 lugares y son todos: 3 al costado izquierdo, 3 al derecho y 6 debajo de la portada. Todas las placas son iguales; cambiar una de lugar es un botón.", icono: "🖼️", grupo: "Portada" },
+    { tab: "orden", nombre: "Orden de perfiles", titulo: "Orden de perfiles", descripcion: "Cómo salen los perfiles en la portada y el mapa cuando no se busca nada. Por defecto, el último aceptado va primero; los que fijes acá van antes que todos.", icono: "↕️", grupo: "Portada" },
     { tab: "catalogo", nombre: "Rubros", titulo: "Categorías y subcategorías", descripcion: "Organizá los rubros por tema sin cambiar sus perfiles ni solicitudes.", icono: "🏷️", grupo: "Portada" },
     { tab: "soporte", nombre: "Soporte", titulo: "Botón “Necesito ayuda”", descripcion: "El WhatsApp al que escribe quien pide ayuda desde cualquier pantalla.", icono: "💬", grupo: "Sitio" },
     { tab: "localidades", nombre: "Localidades", titulo: "Localidades", descripcion: "Las que se pueden elegir al darse de alta, y el punto de cada una en el mapa.", icono: "📍", grupo: "Sitio" },
@@ -303,6 +306,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
       )}
+
+      {tab === "orden" && <AdminOrdenPerfiles rows={await listarOrdenPerfiles()} />}
 
       {tab === "publicidad" && <AdminPublicidad ads={serializedAds} />}
 

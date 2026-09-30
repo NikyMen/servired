@@ -345,6 +345,12 @@ model Professional {
   /// revisión o borrado; está acá para que las tarjetas no hagan joins.
   matriculado     Boolean @default(false)
   profileStatus   String  @default("approved") // pending | approved | changes_requested | rejected
+  /// Primera vez que administración aceptó el perfil. Sin búsqueda, los más
+  /// nuevos van arriba; los perfiles viejos sin fecha caen a `createdAt`.
+  approvedAt      DateTime?
+  /// Lugar fijado a mano desde /admin (1 = primero). Los fijados van antes que
+  /// el orden automático; null = sin fijar.
+  posicionFija    Int?
   featured        Boolean @default(false)
   yearsExperience Int     @default(0)
   providerType    String  @default("oficio") // profesional | oficio

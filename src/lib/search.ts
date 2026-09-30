@@ -16,6 +16,10 @@ export type SearchablePro = {
   rating: number;
   verified: boolean;
   featured: boolean;
+  /** Para el orden sin búsqueda (ver src/lib/orden-perfiles.ts). */
+  posicionFija?: number | null;
+  approvedAt?: Date | null;
+  createdAt?: Date;
   category: { slug: string; name: string };
   categories?: { slug: string; name: string }[];
   services: { title: string; description: string; categoryLabel?: string }[];
@@ -263,17 +267,39 @@ function scorePro(pro: SearchablePro, query: ParsedQuery): number {
 }
 
 /**
- * Ordena por relevancia y descarta lo que no matchea. Sin query, ordena por
- * destacado/rating. `desempate` decide entre dos con el mismo lugar (la
+ * Orden por defecto de los perfiles (portada y mapa sin texto buscado):
+ * primero los que administración fijó a mano, en su lugar; después el resto,
+ * el aceptado más recientemente arriba. Vive acá y no en orden-perfiles.ts
+ * porque SearchBox importa este módulo desde el navegador y aquel trae Prisma.
+ */
+export type Ordenable = { posicionFija?: number | null; approvedAt?: Date | null; createdAt?: Date };
+
+export function compararOrdenPorDefecto(a: Ordenable, b: Ordenable): number {
+  const fijaA = a.posicionFija ?? null;
+  const fijaB = b.posicionFija ?? null;
+  if (fijaA !== null || fijaB !== null) {
+    if (fijaA === null) return 1;
+    if (fijaB === null) return -1;
+    if (fijaA !== fijaB) return fijaA - fijaB;
+  }
+  return fechaDeAlta(b) - fechaDeAlta(a);
+}
+
+/** Los aceptados antes de guardar la fecha usan la de creación del perfil. */
+function fechaDeAlta(pro: Ordenable) {
+  return (pro.approvedAt ?? pro.createdAt)?.getTime() ?? 0;
+}
+
+/**
+ * Ordena por relevancia y descarta lo que no matchea. Sin query, van primero
+ * los fijados desde /admin y después el aceptado más nuevo. `desempate` decide entre dos con el mismo lugar (la
  * portada con sesión pasa la distancia: a igual relevancia, el más cerca).
  */
 export function rankProfessionals<T extends SearchablePro>(pros: T[], raw: string, desempate: (a: T, b: T) => number = () => 0): T[] {
   const query = parseQuery(raw);
 
   if (query.empty) {
-    return [...pros].sort(
-      (a, b) => Number(b.featured) - Number(a.featured) || b.rating - a.rating || desempate(a, b)
-    );
+    return [...pros].sort((a, b) => compararOrdenPorDefecto(a, b) || desempate(a, b));
   }
 
   const scored: { pro: T; score: number }[] = [];
@@ -287,7 +313,7 @@ export function rankProfessionals<T extends SearchablePro>(pros: T[], raw: strin
   if (scored.length === 0 && query.slugs.length > 0) {
     return pros
       .filter((p) => query.slugs.includes(p.category.slug) || (p.categories ?? []).some((category) => query.slugs.includes(category.slug)))
-      .sort((a, b) => Number(b.featured) - Number(a.featured) || b.rating - a.rating || desempate(a, b));
+      .sort((a, b) => compararOrdenPorDefecto(a, b) || desempate(a, b));
   }
 
   return scored.sort((a, b) => b.score - a.score || desempate(a.pro, b.pro)).map((s) => s.pro);

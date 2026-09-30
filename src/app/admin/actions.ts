@@ -22,6 +22,7 @@ import { guardarTextoLegal } from "@/lib/site-text";
 import { revisarCredencial, type DecisionCredencial } from "@/lib/matriculas";
 import { ENCUADRE_NEUTRO, esSlotDePlaca } from "@/lib/publicidad";
 import { cambiarLocalidadActiva, crearLocalidad, moverLocalidad } from "@/lib/localidades";
+import { moverPerfil, type MovimientoPerfil } from "@/lib/orden-perfiles";
 import { deleteAccount } from "@/lib/baja-cuenta";
 
 export type AdminAuthState = { error?: string } | undefined;
@@ -337,6 +338,20 @@ export async function toggleLocalityAction(formData: FormData) {
   revalidatePath("/admin");
 }
 
+const MOVIMIENTOS_PERFIL: MovimientoPerfil[] = ["fijar", "soltar", "subir", "bajar", "primero"];
+
+/** Orden de perfiles en la portada. El movimiento viaja en un hidden: un solo botón por form. */
+export async function moverPerfilAction(formData: FormData) {
+  await requireAdmin();
+  const id = text(formData, "id");
+  const movimiento = text(formData, "movimiento") as MovimientoPerfil;
+  if (!id || !MOVIMIENTOS_PERFIL.includes(movimiento)) return;
+  await moverPerfil(id, movimiento);
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/mapa");
+}
+
 export async function createCategoryAction(formData: FormData) {
   await requireAdmin();
   const name = text(formData, "name");
@@ -415,7 +430,8 @@ export async function reviewKycAction(action: KycDecision, formData: FormData) {
       if (kyc.user.professional) {
         const categoryIds = kyc.user.professional.categoryLinks.map((link) => link.categoryId);
         await tx.category.updateMany({ where: { id: { in: categoryIds }, approvalStatus: "pending", createdByUserId: kyc.userId }, data: { approvalStatus: "approved" } });
-        await tx.professional.update({ where: { id: kyc.user.professional.id }, data: { profileStatus: "approved", verified: true } });
+        // La fecha es la de la primera aceptación: re-aprobar tras editar el KYC no lo vuelve a subir.
+        await tx.professional.update({ where: { id: kyc.user.professional.id }, data: { profileStatus: "approved", verified: true, approvedAt: kyc.user.professional.approvedAt ?? new Date() } });
       }
       await tx.kycCase.update({ where: { id }, data: { status: "approved", reviewReason: null, reviewedBy: reviewer, reviewedAt: new Date() } });
       if (kyc.user.accountStatus !== "suspended") await tx.user.update({ where: { id: kyc.userId }, data: { accountStatus: "approved" } });

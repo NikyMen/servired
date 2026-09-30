@@ -186,3 +186,11 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
   arrancaba y se caía el http de todos los sitios) y se desactivó
   `installer = nginx` en las 8 renovaciones de `/etc/letsencrypt/renewal`,
   para que no vuelva a pasar. Copias en `/root/backups-20260923-nginx443`.
+- **Orden de perfiles (30/09):** sin texto buscado, la portada y el mapa
+  muestran primero el perfil aceptado más recientemente
+  (`Professional.approvedAt`, se pone en la primera aprobación del KYC; volver
+  a aprobar tras editar no lo sube). Nueva pestaña del admin «Orden de
+  perfiles» (grupo Portada): fijar perfiles arriba y moverlos
+  (`Professional.posicionFija`, 1 = primero). Con texto buscado manda la
+  relevancia. Deploy: después del `db push`, correr una vez
+  `npx tsx prisma/fechar-aprobaciones.ts` (fecha a los ya aceptados).
