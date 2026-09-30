@@ -135,12 +135,18 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <div className="adm-card overflow-x-auto">
           <table className="adm-table min-w-[980px]">
             <thead>
-              <tr><th>Usuario</th><th>Acceso</th><th>Email</th><th>Perfil oferente</th><th>Estado</th><th>Visibilidad</th><th>Alta</th><th></th></tr>
+              <tr><th>Usuario</th><th>Acceso</th><th>Email</th><th>Perfil oferente</th><th>Estado</th><th>Visibilidad</th><th>Alta</th></tr>
             </thead>
             <tbody>
               {users.map((user) => (
                 <tr key={user.id}>
-                  <td className="font-semibold text-slate-900">{user.name}</td>
+                  {/* Eliminar va acá y no en una columna al final: la tabla es más ancha que la pantalla y ahí no se veía. */}
+                  <td>
+                    <div className="flex flex-col items-start gap-1.5">
+                      <span className="font-semibold text-slate-900">{user.name}</span>
+                      <AdminEliminarUsuario id={user.id} nombre={user.name} />
+                    </div>
+                  </td>
                   <td>{user.oauthAccounts[0]?.provider || "email"}</td>
                   <td><span className={user.emailVerifiedAt ? "text-emerald-700" : "text-amber-700"}>{user.email}</span></td>
                   <td>{user.professional ? `${user.professional.providerType} · ${user.professional.profileStatus}` : "Solo Busco"}</td>
@@ -164,7 +170,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     </div>
                   </td>
                   <td className="text-slate-500">{formatDate(user.createdAt)}</td>
-                  <td><AdminEliminarUsuario id={user.id} nombre={user.name} /></td>
                 </tr>
               ))}
             </tbody>
