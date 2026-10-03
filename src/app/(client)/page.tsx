@@ -249,6 +249,7 @@ export default async function HomePage({
               centro={ubicacion.punto}
               radioKm={RADIO_KM}
               enVivo
+              editarZona={user?.professionalStatus === "approved"}
               points={[
                 ...pros.map((p) => ({
                   id: p.id, type: "profesional" as const, title: p.businessName || p.name,

@@ -4,15 +4,18 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { idPorDefecto } from "@/lib/localidad-defecto";
+import { ZonaTrabajo } from "@/components/pro/ZonaTrabajo";
+import type { Punto } from "@/lib/geo";
 
 type ProviderType = "profesional" | "oficio";
 type Category = { id: string; name: string; icon: string; kind: string; parent: { name: string } | null };
-type Locality = { id: string; name: string; province: string };
+type Locality = { id: string; name: string; province: string; latitude: number; longitude: number };
 type Initial = {
   name: string; email: string; avatarUrl: string | null; providerType?: ProviderType; status?: string; reason?: string | null;
   categoryIds?: string[]; headline?: string; bio?: string; yearsExperience?: number;
   legalName?: string; phone?: string; birthDate?: string; cuil?: string; address?: string; localityId?: string | null;
   ofertasDependencia?: boolean;
+  zona?: Punto | null;
 };
 
 const FIELD = "glass-field mt-1 w-full px-3 py-2.5 text-sm";
@@ -34,6 +37,7 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
     localityId: initial.localityId ?? idPorDefecto(localities),
   });
   const [ofertasDependencia, setOfertasDependencia] = useState(initial.ofertasDependencia ?? false);
+  const [zona, setZona] = useState<Punto | null>(initial.zona ?? null);
   const [avatar, setAvatar] = useState<File | null>(null);
   const [dniFront, setDniFront] = useState<File | null>(null);
   const [dniBack, setDniBack] = useState<File | null>(null);
@@ -168,6 +172,7 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
     Object.entries(values).forEach(([key, value]) => form.set(key, value));
     form.set("providerType", providerType);
     form.set("ofertasDependencia", ofertasDependencia ? "on" : "");
+    if (zona) { form.set("latitude", String(zona.lat)); form.set("longitude", String(zona.lng)); }
     categoryIds.forEach((id) => form.append("categoryIds", id));
     if (avatar) form.set("avatar", avatar); else form.set("confirmProfilePhoto", "yes");
     form.set("dni_front", dniFront!); form.set("dni_back", dniBack!); form.set("identity_video", video!);
@@ -206,13 +211,14 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
       {step === 2 && <>
         <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Nombre legal<input value={values.legalName} onChange={(e) => update("legalName", e.target.value)} className={FIELD} /></label><label className="text-sm font-medium">Email verificado<input value={initial.email} disabled className={`${FIELD} opacity-70`} /></label><label className="text-sm font-medium">Teléfono<input value={values.phone} onChange={(e) => update("phone", e.target.value)} type="tel" className={FIELD} /></label><label className="text-sm font-medium">Fecha de nacimiento<input value={values.birthDate} onChange={(e) => update("birthDate", e.target.value)} type="date" className={FIELD} /></label><label className="text-sm font-medium">CUIL<input value={values.cuil} onChange={(e) => update("cuil", e.target.value)} inputMode="numeric" placeholder="20-12345678-6" className={FIELD} /></label><label className="text-sm font-medium sm:col-span-2">Domicilio<input value={values.address} onChange={(e) => update("address", e.target.value)} className={FIELD} /></label></div>
         <div className="grid gap-3 sm:grid-cols-3"><label className="text-sm font-medium">Localidad<select value={values.localityId} onChange={(e) => update("localityId", e.target.value)} required className={FIELD}>{!localities.length && <option value="">No pudimos cargar las localidades</option>}{localities.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label><label className="text-sm font-medium">Provincia<input value={selectedLocality?.province ?? ""} disabled className={`${FIELD} opacity-70`} /></label><label className="text-sm font-medium">País<input value="Argentina" disabled className={`${FIELD} opacity-70`} /></label></div>
+        <ZonaTrabajo zona={zona} centro={selectedLocality ? { lat: selectedLocality.latitude, lng: selectedLocality.longitude } : { lat: -27.4692, lng: -58.8306 }} onChange={setZona} />
       </>}
       {step === 3 && <>
         <p className="text-sm text-slate-600">Los documentos y el video son privados: solo administración puede verlos.</p>
         <div className="grid gap-4 sm:grid-cols-3"><FileField label="Foto de perfil" accept="image/jpeg,image/png,image/webp" capture="user" current={initial.avatarUrl ? "Ya tenés una foto cargada" : null} onChange={setAvatar} /><FileField label="DNI frente" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={setDniFront} /><FileField label="DNI dorso" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={setDniBack} /></div>
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"><h2 className="font-bold text-slate-900">Video de identidad</h2><p className="mt-1 text-sm text-slate-600">Mostrá tu cara y el DNI, y leé en voz alta la frase que aparece. Máximo 30 segundos.</p>{challenge && <p className="mt-3 rounded-xl bg-white p-4 text-center text-base leading-relaxed font-bold text-pro-dark sm:text-lg">{challenge}</p>}<video ref={liveVideoRef} autoPlay muted playsInline className={`${recording ? "block" : "hidden"} mt-3 max-h-72 w-full scale-x-[-1] rounded-xl bg-black`} /><div className="mt-3 flex flex-wrap gap-2">{recording ? <button type="button" onClick={stopRecording} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Detener ({seconds}s)</button> : <button type="button" onClick={startRecording} className="glass-btn px-4 py-2 text-sm">{video ? "Volver a grabar" : "Grabar video"}</button>}</div>{videoUrl && !recording && <video src={videoUrl} controls playsInline className="mt-3 max-h-72 w-full rounded-xl bg-black" />}</section>
       </>}
-      {step === 4 && <section className="space-y-3"><h2 className="text-xl font-bold text-slate-900">Revisá antes de enviar</h2><dl className="grid gap-3 text-sm sm:grid-cols-2"><Summary label="Tipo" value={providerType} /><Summary label="Actividad" value={values.headline} /><Summary label="Rubros" value={String(categoryIds.length)} /><Summary label="Años en el oficio" value={values.yearsExperience || "0"} /><Summary label="Ubicación" value={selectedLocality ? `${selectedLocality.name}, ${selectedLocality.province}, Argentina` : "-"} /><Summary label="Cobro" value="Mercado Pago: se vincula después de la aprobación" /><Summary label="Localidad" value={selectedLocality ? `${selectedLocality.name}, ${selectedLocality.province}` : "—"} /><Summary label="Identidad" value="DNI frente, dorso y video listos" /></dl><label className="flex items-start gap-3 rounded-xl bg-white/70 p-3 text-sm text-slate-700"><input type="checkbox" checked={ofertasDependencia} onChange={(e) => setOfertasDependencia(e.target.checked)} className="mt-0.5 size-5 shrink-0" /><span>¿Además de las oportunidades vinculadas a tu oficio, te gustaría recibir ofertas laborales en relación de dependencia?</span></label><p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">El perfil quedará pendiente hasta que administración revise la documentación.</p></section>}
+      {step === 4 && <section className="space-y-3"><h2 className="text-xl font-bold text-slate-900">Revisá antes de enviar</h2><dl className="grid gap-3 text-sm sm:grid-cols-2"><Summary label="Tipo" value={providerType} /><Summary label="Actividad" value={values.headline} /><Summary label="Rubros" value={String(categoryIds.length)} /><Summary label="Años en el oficio" value={values.yearsExperience || "0"} /><Summary label="Ubicación" value={selectedLocality ? `${selectedLocality.name}, ${selectedLocality.province}, Argentina` : "-"} /><Summary label="Cobro" value="Mercado Pago: se vincula después de la aprobación" /><Summary label="Zona de trabajo" value={zona ? "Marcada en el mapa (unas 3 cuadras)" : "Sin marcar: el centro de tu localidad"} /><Summary label="Identidad" value="DNI frente, dorso y video listos" /></dl><label className="flex items-start gap-3 rounded-xl bg-white/70 p-3 text-sm text-slate-700"><input type="checkbox" checked={ofertasDependencia} onChange={(e) => setOfertasDependencia(e.target.checked)} className="mt-0.5 size-5 shrink-0" /><span>¿Además de las oportunidades vinculadas a tu oficio, te gustaría recibir ofertas laborales en relación de dependencia?</span></label><p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">El perfil quedará pendiente hasta que administración revise la documentación.</p></section>}
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between"><div className="flex gap-2"><Link href="/" className="glass-btn glass-btn-ghost px-4 py-2.5 text-sm">Volver a Busco</Link>{step > 1 && <button type="button" onClick={() => { setError(null); setStep((current) => current - 1); }} className="glass-btn glass-btn-ghost px-4 py-2.5 text-sm">Atrás</button>}</div>{step < 4 ? <button type="button" onClick={next} className="glass-btn px-5 py-2.5 text-sm">Continuar</button> : <button type="button" disabled={busy} onClick={submit} className="glass-btn px-5 py-2.5 text-sm disabled:opacity-60">{busy ? "Enviando…" : "Enviar para aprobación"}</button>}</div>
     </div>

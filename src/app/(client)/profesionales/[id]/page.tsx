@@ -9,6 +9,7 @@ import { ContratarBox } from "@/components/ContratarBox";
 import { ContratarSheet } from "@/components/ContratarSheet";
 import { StarIcon, MapPinIcon } from "@/components/icons";
 import { MapView } from "@/components/MapView";
+import { RADIO_ZONA_M } from "@/lib/geo";
 import { DenunciarImagen } from "@/components/DenunciarImagen";
 
 export const dynamic = "force-dynamic";
@@ -124,7 +125,7 @@ export default async function ProfesionalPage({
               {pro.bio}
             </p>
           )}
-          {pro.latitude != null && pro.longitude != null && <div className="mt-4"><MapView className="h-64" points={[{ id: pro.id, type: "profesional", title: pro.businessName || pro.name, subtitle: pro.address || pro.zone, latitude: pro.latitude, longitude: pro.longitude }]} /></div>}
+          {pro.latitude != null && pro.longitude != null && <div className="mt-4"><MapView className="h-64" points={[{ id: pro.id, type: "profesional", title: pro.businessName || pro.name, subtitle: `Zona de trabajo · ${pro.zone}`, latitude: pro.latitude, longitude: pro.longitude, radioM: RADIO_ZONA_M }]} /><p className="mt-1.5 text-xs text-slate-500">Zona donde trabaja, unas 3 cuadras a la redonda.</p></div>}
         </div>
       </section>
 

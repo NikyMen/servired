@@ -7,6 +7,7 @@ import { dniFromCuil, encryptKyc, lookupKyc, normalizeDigits, removeKycDocument,
 import { ACTIVE_JOB_STATUSES } from "@/lib/workflow";
 import { slugify } from "@/lib/format";
 import { resolverLocalidad, zonaDe } from "@/lib/localidades";
+import { leerZona } from "@/lib/geo";
 
 function value(form: FormData, key: string) { return String(form.get(key) ?? "").trim(); }
 
@@ -31,6 +32,9 @@ export async function POST(req: NextRequest) {
   const categoryIds = [...new Set(form.getAll("categoryIds").map(String).filter(Boolean))];
   // Rubro propuesto por la persona cuando ninguno de la lista la representa.
   const customCategory = value(form, "customCategory").slice(0, 60);
+  // Zona de trabajo opcional (unas 3 cuadras). Sin marcar, el mapa usa el punto de la localidad.
+  const zona = leerZona(form.get("latitude"), form.get("longitude"));
+  if (zona === undefined) return NextResponse.json({ error: "La zona marcada en el mapa no es válida." }, { status: 422 });
 
   const legalParts = legalName.split(/\s+/).map((part) => part.replace(/[^\p{L}]/gu, ""));
   if (legalParts.length < 2 || legalParts.some((part) => part.length < 2) || address.length < 5 || !validPhone(phone) || !Number.isFinite(birthDate.getTime()) || birthDate >= new Date()) return NextResponse.json({ error: "Completá correctamente nombre, apellido y datos personales." }, { status: 422 });
@@ -111,8 +115,8 @@ export async function POST(req: NextRequest) {
       }
       const professional = await tx.professional.upsert({
         where: { userId: session.id },
-        create: { userId: session.id, name: legalName, headline, bio, zone: zonaDe(localidad), address, priceFrom: 0, categoryId: linkedCategoryIds[0], avatarUrl, avatarColor: "#059669", profileStatus: "pending", verified: false, providerType, phone, yearsExperience },
-        update: { name: legalName, headline, bio, zone: zonaDe(localidad), address, categoryId: linkedCategoryIds[0], avatarUrl, profileStatus: "pending", verified: false, providerType, phone, yearsExperience },
+        create: { userId: session.id, name: legalName, headline, bio, zone: zonaDe(localidad), address, priceFrom: 0, categoryId: linkedCategoryIds[0], avatarUrl, avatarColor: "#059669", profileStatus: "pending", verified: false, providerType, phone, yearsExperience, latitude: zona?.lat ?? null, longitude: zona?.lng ?? null },
+        update: { name: legalName, headline, bio, zone: zonaDe(localidad), address, categoryId: linkedCategoryIds[0], avatarUrl, profileStatus: "pending", verified: false, providerType, phone, yearsExperience, latitude: zona?.lat ?? null, longitude: zona?.lng ?? null },
       });
       await tx.professionalCategory.deleteMany({ where: { professionalId: professional.id } });
       await tx.professionalCategory.createMany({ data: linkedCategoryIds.map((categoryId, index) => ({ professionalId: professional.id, categoryId, isPrimary: index === 0 })) });

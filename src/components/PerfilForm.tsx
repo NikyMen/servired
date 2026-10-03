@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPicker } from "@/components/MapPicker";
+import { ZonaTrabajo } from "@/components/pro/ZonaTrabajo";
+import type { Punto } from "@/lib/geo";
 
 type Perfil = {
   name: string;
@@ -21,7 +22,7 @@ type Perfil = {
   yearsExperience?: number;
 };
 
-export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; categories?: { id: string; name: string; icon: string; parentId?: string | null; parent?: { name: string } | null }[] }) {
+export function PerfilForm({ perfil, categories = [], centroZona = { lat: -27.4692, lng: -58.8306 } }: { perfil: Perfil; centroZona?: Punto; categories?: { id: string; name: string; icon: string; parentId?: string | null; parent?: { name: string } | null }[] }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const isPro = !!perfil.headline;
@@ -30,11 +31,11 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
     businessName: perfil.businessName ?? "",
     bio: perfil.bio ?? "",
     address: perfil.address ?? "Corrientes, Argentina",
-    latitude: perfil.latitude ?? -27.4692,
-    longitude: perfil.longitude ?? -58.8306,
     phone: perfil.phone ?? "",
     yearsExperience: perfil.yearsExperience ?? 0,
   });
+  // La zona de trabajo es opcional: null = aparece en el punto de su localidad.
+  const [zona, setZona] = useState<Punto | null>(perfil.latitude != null && perfil.longitude != null ? { lat: perfil.latitude, lng: perfil.longitude } : null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [categoryIds, setCategoryIds] = useState<string[]>(perfil.categoryIds?.length ? perfil.categoryIds : perfil.categoryId ? [perfil.categoryId] : []);
   /* Misma preselección que en el alta, para que la actividad no se escriba de
@@ -70,7 +71,7 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
       const res = await fetch("/api/perfil", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, avatarUrl, categoryIds }),
+        body: JSON.stringify({ ...form, latitude: zona?.lat ?? null, longitude: zona?.lng ?? null, avatarUrl, categoryIds }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "No pudimos guardar el perfil.");
@@ -128,9 +129,7 @@ export function PerfilForm({ perfil, categories = [] }: { perfil: Perfil; catego
         <label className="block text-sm font-medium text-slate-900">Descripción de los trabajos que ofrecés
           <textarea required minLength={20} rows={4} value={form.bio ?? ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} className={`${field} mt-1 resize-none`} />
         </label>
-        <div className="space-y-2"><div><p className="text-sm font-medium text-slate-900">Ubicación pública</p><p className="text-xs text-slate-500">Marcá el local o zona de trabajo. Esta ficha aparecerá en el mapa.</p></div>
-          <MapPicker latitude={form.latitude} longitude={form.longitude} onChange={(latitude, longitude) => setForm({ ...form, latitude, longitude })} />
-        </div>
+        <ZonaTrabajo zona={zona} centro={centroZona} onChange={setZona} />
       </>}
 
       {message && <p className="rounded-xl bg-white/70 px-3 py-2 text-sm text-slate-700">{message}</p>}

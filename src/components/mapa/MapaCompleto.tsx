@@ -16,6 +16,8 @@ export type ItemMapa = Punto & {
   distancia: string;
   verified: boolean;
   matriculado: boolean;
+  /** Marcó su zona de trabajo (si no, el punto es el de su localidad). */
+  zona: boolean;
 };
 
 const Inner = dynamic(() => import("@/components/mapa/MapaCompletoInner"), {
@@ -28,7 +30,7 @@ const Inner = dynamic(() => import("@/components/mapa/MapaCompletoInner"), {
  * "Profesionales cerca tuyo" (abajo en el celular, al costado en la compu).
  * Tocar un pin o un ítem muestra el resumen con el acceso al perfil.
  */
-export function MapaCompleto({ items, centro }: { items: ItemMapa[]; centro: Punto }) {
+export function MapaCompleto({ items, centro, editarZona = false }: { items: ItemMapa[]; centro: Punto; editarZona?: boolean }) {
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [hojaAbierta, setHojaAbierta] = useState(false);
   const elegido = items.find((i) => i.id === seleccionado) ?? null;
@@ -71,7 +73,7 @@ export function MapaCompleto({ items, centro }: { items: ItemMapa[]; centro: Pun
         </ul>
       </aside>
 
-      <Inner items={items} centro={centro} seleccionado={seleccionado} onSeleccionar={elegir} className="h-full" />
+      <Inner items={items} centro={centro} seleccionado={seleccionado} onSeleccionar={elegir} editarZona={editarZona} className="h-full" />
 
       {elegido && (
         <div role="dialog" aria-label={elegido.nombre} className="glass glass-solid absolute top-3 right-16 left-14 z-[650] rounded-2xl p-3 shadow-xl sm:right-auto sm:w-80 md:left-[calc(340px+3.5rem)] md:w-[min(20rem,calc(100%-340px-14rem))]">

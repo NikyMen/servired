@@ -11,6 +11,7 @@ import { AdminLocalidades } from "@/components/AdminLocalidades";
 import { AdminMatriculas } from "@/components/AdminMatriculas";
 import { AdminEliminarUsuario } from "@/components/AdminEliminarUsuario";
 import { AdminOrdenPerfiles } from "@/components/AdminOrdenPerfiles";
+import { AdminConversaciones } from "@/components/AdminConversaciones";
 import { requireAdmin } from "@/lib/admin";
 import { listPreinscriptions } from "@/lib/preinscripciones";
 import { prisma } from "@/lib/prisma";
@@ -26,12 +27,12 @@ import { listarOrdenPerfiles } from "@/lib/orden-perfiles";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Administración" };
 
-const TABS = ["resumen", "kyc", "matriculas", "denuncias", "usuarios", "empleo", "trabajos", "catalogo", "orden", "publicidad", "soporte", "localidades", "legales", "preinscripciones"] as const;
+const TABS = ["resumen", "kyc", "matriculas", "denuncias", "usuarios", "conversaciones", "empleo", "trabajos", "catalogo", "orden", "publicidad", "soporte", "localidades", "legales", "preinscripciones"] as const;
 type Tab = (typeof TABS)[number];
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string; c?: string; q?: string }> }) {
   await requireAdmin();
-  const { tab: rawTab } = await searchParams;
+  const { tab: rawTab, c: conversacionId, q: buscarConversacion } = await searchParams;
   // "todo" era la pestaña vieja que mostraba todo junto: ahora cae al resumen.
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "resumen";
 
@@ -96,6 +97,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     { tab: "matriculas", nombre: "Matrículas", titulo: "Matrículas y certificados", descripcion: "Aprobada, el perfil muestra la insignia “Matriculado”. Rechazar pide motivo.", icono: "🎓", grupo: "Revisión", pendientes: pendingCredentials },
     { tab: "denuncias", nombre: "Denuncias", titulo: "Denuncias", descripcion: "Imágenes y conversaciones reportadas por la comunidad.", icono: "🚩", grupo: "Revisión", pendientes: pendingReports },
     { tab: "usuarios", nombre: "Usuarios", titulo: "Usuarios y oferentes", descripcion: "Las últimas 50 altas, con su estado de cuenta. Ocultar saca su perfil o sus solicitudes de todo el sitio, sin borrar nada; Eliminar borra la cuenta para siempre y pide la contraseña de administración.", icono: "👥", grupo: "Comunidad" },
+    { tab: "conversaciones", nombre: "Conversaciones", titulo: "Conversaciones", descripcion: "Los chats entre clientes y oferentes, para leerlos. Es solo lectura: desde acá no se puede mandar ningún mensaje.", icono: "🗨️", grupo: "Comunidad" },
     { tab: "empleo", nombre: "Aceptan dependencia", titulo: "Perfiles que aceptan ofertas en relación de dependencia", descripcion: `${buscanEmpleo.length} ${buscanEmpleo.length === 1 ? "perfil tildó" : "perfiles tildaron"} que, además de las oportunidades de su oficio, quieren recibir ofertas laborales en relación de dependencia.`, icono: "💼", grupo: "Comunidad" },
     { tab: "trabajos", nombre: "Trabajos", titulo: "Trabajos y propuestas", descripcion: "Actividad reciente del marketplace y estados comerciales.", icono: "🧰", grupo: "Comunidad" },
     { tab: "preinscripciones", nombre: "Preinscripciones", titulo: "Preinscripciones", descripcion: `${preinscriptions.length} contactos únicos captados antes del lanzamiento.`, icono: "📇", grupo: "Comunidad" },
@@ -176,6 +178,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </table>
         </div>
       )}
+
+      {tab === "conversaciones" && <AdminConversaciones conversacionId={conversacionId} buscar={buscarConversacion} />}
 
       {tab === "empleo" && (
         buscanEmpleo.length === 0 ? (

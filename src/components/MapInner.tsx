@@ -5,6 +5,7 @@ import { divIcon, latLng, type Map as LeafletMap } from "leaflet";
 import { Circle, MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import type { MapPoint } from "@/components/MapView";
 import { BotonUbicarme, Yo } from "@/components/mapa/Yo";
+import { BotonMiZona } from "@/components/mapa/BotonMiZona";
 
 const COLORS = { profesional: "#059669", solicitud: "#2563eb", trabajo: "#f59e0b" };
 
@@ -27,9 +28,11 @@ type Props = {
   radioKm?: number;
   /** Puntito del usuario y botón "Ubicarme ahora". */
   enVivo?: boolean;
+  /** Quien ofrece servicios ve el acceso a editar su zona de trabajo. */
+  editarZona?: boolean;
 };
 
-export default function MapInner({ points, className, centro, radioKm, enVivo = false }: Props) {
+export default function MapInner({ points, className, centro, radioKm, enVivo = false, editarZona = false }: Props) {
   const [map, setMap] = useState<LeafletMap | null>(null);
   const center: [number, number] = centro
     ? [centro.lat, centro.lng]
@@ -39,7 +42,8 @@ export default function MapInner({ points, className, centro, radioKm, enVivo = 
 
   // Con radio, el mapa arranca encuadrando el círculo entero, sea cual sea el
   // ancho de la pantalla (con un zoom fijo, en el celular quedaba cortado).
-  const encuadre = centro && radioKm ? { bounds: latLng(centro.lat, centro.lng).toBounds(radioKm * 2000), boundsOptions: { padding: [8, 8] as [number, number] } } : { center, zoom: 12 };
+  // Una sola zona (perfil del oferente): de cerca, para que se lean las cuadras.
+  const encuadre = centro && radioKm ? { bounds: latLng(centro.lat, centro.lng).toBounds(radioKm * 2000), boundsOptions: { padding: [8, 8] as [number, number] } } : { center, zoom: points.length === 1 && points[0].radioM ? 15 : 12 };
 
   return (
     // isolate: los paneles de Leaflet (z 400+) y el botón de ubicarme (z 500)
@@ -51,8 +55,8 @@ export default function MapInner({ points, className, centro, radioKm, enVivo = 
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {centro && radioKm && <Circle center={[centro.lat, centro.lng]} radius={radioKm * 1000} pathOptions={{ color: "#2563eb", weight: 1, fillOpacity: 0.04 }} />}
-        {points.map((point) => (
-          <Marker key={`${point.type}-${point.id}`} position={[point.latitude, point.longitude]} icon={markerIcon(point.type)}>
+        {points.map((point) => {
+          const popup = (
             <Popup>
               <div className="min-w-40">
                 <p className="font-semibold">{point.title}</p>
@@ -60,11 +64,17 @@ export default function MapInner({ points, className, centro, radioKm, enVivo = 
                 {point.href && <a href={point.href} className="mt-1 inline-block text-xs font-semibold text-blue-700">Ver ficha</a>}
               </div>
             </Popup>
-          </Marker>
-        ))}
+          );
+          return point.radioM ? (
+            <Circle key={`${point.type}-${point.id}`} center={[point.latitude, point.longitude]} radius={point.radioM} pathOptions={{ color: COLORS[point.type], weight: 2, fillOpacity: 0.18 }}>{popup}</Circle>
+          ) : (
+            <Marker key={`${point.type}-${point.id}`} position={[point.latitude, point.longitude]} icon={markerIcon(point.type)}>{popup}</Marker>
+          );
+        })}
         {enVivo && <Yo />}
       </MapContainer>
       {enVivo && <BotonUbicarme map={map} className="top-3 right-3" />}
+      {editarZona && <BotonMiZona className={enVivo ? "top-16 right-3" : "top-3 right-3"} />}
     </div>
   );
 }

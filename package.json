@@ -15,6 +15,7 @@
     "placas:reubicar": "tsx prisma/reubicar-placas.ts",
     "kyc:cifrar": "tsx prisma/cifrar-archivos-kyc.ts",
     "preinscriptos:invitar": "tsx prisma/invitar-preinscriptos.ts",
+    "perfiles:recordar": "tsx prisma/recordar-perfiles.ts",
     "db:studio": "prisma studio",
     "test": "tsx --test tests/**/*.test.ts",
     "postinstall": "prisma generate"

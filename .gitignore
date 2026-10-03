@@ -39,3 +39,6 @@ yarn-error.log*
 # registro de la invitación a preinscriptos (prisma/invitar-preinscriptos.ts)
 /invitaciones-enviadas.txt
 /nombres-invitacion.json
+
+# registro de los recordatorios de perfil sin terminar (prisma/recordar-perfiles.ts)
+/recordatorios-perfil.txt

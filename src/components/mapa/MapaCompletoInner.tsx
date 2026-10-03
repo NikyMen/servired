@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { divIcon, latLng, type Map as LeafletMap } from "leaflet";
 import { Circle, MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
-import { agruparPuntos, RADIO_KM, type Punto } from "@/lib/geo";
+import { agruparPuntos, RADIO_KM, RADIO_ZONA_M, type Punto } from "@/lib/geo";
 import { BotonUbicarme, Yo } from "@/components/mapa/Yo";
+import { BotonMiZona } from "@/components/mapa/BotonMiZona";
 import type { ItemMapa } from "@/components/mapa/MapaCompleto";
 
 const pinPro = divIcon({ className: "servired-map-marker", html: '<span style="background:#059669"></span>', iconSize: [28, 28], iconAnchor: [14, 28] });
@@ -25,9 +26,10 @@ function Zoom({ onZoom }: { onZoom: (zoom: number) => void }) {
   return null;
 }
 
-type Props = { items: ItemMapa[]; centro: Punto; seleccionado: string | null; onSeleccionar: (id: string) => void; className?: string };
+type Props = { items: ItemMapa[]; centro: Punto; seleccionado: string | null; onSeleccionar: (id: string) => void; editarZona?: boolean; className?: string };
 
-export default function MapaCompletoInner({ items, centro, seleccionado, onSeleccionar, className = "" }: Props) {
+export default function MapaCompletoInner({ items, centro, seleccionado, onSeleccionar, editarZona = false, className = "" }: Props) {
+  const elegido = items.find((i) => i.id === seleccionado);
   const [map, setMap] = useState<LeafletMap | null>(null);
   const [zoom, setZoom] = useState(11);
   // Los grupos se rearman con cada zoom: de lejos se juntan, de cerca se abren.
@@ -69,9 +71,12 @@ export default function MapaCompletoInner({ items, centro, seleccionado, onSelec
             />
           ),
         )}
+        {/* El elegido que marcó su zona: se ve el círculo de unas 3 cuadras. */}
+        {elegido?.zona && <Circle center={[elegido.lat, elegido.lng]} radius={RADIO_ZONA_M} pathOptions={{ color: "#059669", weight: 2, fillOpacity: 0.15 }} />}
         <Yo />
       </MapContainer>
       <BotonUbicarme map={map} className="top-3 right-3" />
+      {editarZona && <BotonMiZona className="top-16 right-3" />}
     </div>
   );
 }

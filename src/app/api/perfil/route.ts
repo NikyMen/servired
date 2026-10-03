@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { UPLOAD_URL } from "@/lib/uploads";
 import { validPhone } from "@/lib/kyc";
 import { zonaDe } from "@/lib/localidades";
+import { leerZona } from "@/lib/geo";
 
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
@@ -28,12 +29,12 @@ export async function PATCH(req: NextRequest) {
   if (!professional) return NextResponse.json({ error: "El perfil no existe." }, { status: 404 });
   if (user.professionalStatus !== "approved") return NextResponse.json({ error: "El perfil todavía no está aprobado." }, { status: 403 });
   if (name !== professional.name) return NextResponse.json({ error: "El nombre legal se cambia desde la nueva verificación KYC." }, { status: 409 });
-  const latitude = Number(body.latitude);
-  const longitude = Number(body.longitude);
+  // Zona de trabajo opcional: sin marcar, el mapa usa el punto de su localidad.
+  const zona = leerZona(body.latitude, body.longitude);
   const categoryIds = Array.isArray(body.categoryIds) ? [...new Set(body.categoryIds.filter((id): id is string => typeof id === "string"))] : [];
   const requestedCategories = categoryIds.length ? categoryIds : typeof body.categoryId === "string" ? [body.categoryId] : [];
   const categoryId = requestedCategories[0];
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return NextResponse.json({ error: "Marcá una ubicación válida." }, { status: 422 });
+  if (zona === undefined) return NextResponse.json({ error: "La zona marcada en el mapa no es válida." }, { status: 422 });
   const validCategories = await prisma.category.findMany({ where: { id: { in: requestedCategories }, approvalStatus: "approved", kind: professional.providerType, parentId: { not: null } }, select: { id: true } });
   if (!categoryId || validCategories.length !== requestedCategories.length) return NextResponse.json({ error: "Elegí al menos un rubro válido." }, { status: 422 });
   const headline = String(body.headline ?? "").trim().slice(0, 100);
@@ -51,7 +52,7 @@ export async function PATCH(req: NextRequest) {
       // La zona sale de la localidad de la cuenta; si todavía no tiene, queda la que había.
       address: String(body.address ?? "").trim().slice(0, 180) || "Corrientes, Argentina", ...(localidad ? { zone: zonaDe(localidad) } : {}),
       phone, yearsExperience,
-      latitude, longitude, categoryId,
+      latitude: zona?.lat ?? null, longitude: zona?.lng ?? null, categoryId,
     } });
     await tx.professionalCategory.deleteMany({ where: { professionalId: user.professionalId! } });
     await tx.professionalCategory.createMany({ data: validCategories.map((category, index) => ({ professionalId: user.professionalId!, categoryId: category.id, isPrimary: index === 0 })) });

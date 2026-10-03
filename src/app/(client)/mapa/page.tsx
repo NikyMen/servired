@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { buscarProfesionales } from "@/lib/cercanos";
 import { formatoDistancia } from "@/lib/geo";
@@ -7,14 +6,18 @@ import { resolverUbicacion } from "@/lib/ubicacion";
 import { AvisoUbicacion } from "@/components/AvisoUbicacion";
 import { MapaCompleto } from "@/components/mapa/MapaCompleto";
 import { SearchIcon } from "@/components/icons";
+import { MapaBloqueado } from "@/components/mapa/MapaBloqueado";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mapa" };
 
-/** La sección Mapa. Es de quien tiene cuenta: el invitado va a entrar y vuelve acá. */
+/**
+ * La sección Mapa. Es de quien tiene cuenta: el invitado ve el mapa
+ * difuminado, sin ninguna ubicación real, y la invitación a entrar.
+ */
 export default async function MapaPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const user = await getSessionUser();
-  if (!user) redirect("/entrar?next=/mapa");
+  if (!user) return <MapaBloqueado className="h-[calc(100dvh-15.5rem)] min-h-[440px] md:h-[calc(100dvh-11rem)]" />;
   const { q = "" } = await searchParams;
   const ubicacion = await resolverUbicacion(user);
   const pros = await buscarProfesionales({ q }, ubicacion.punto);
@@ -31,6 +34,7 @@ export default async function MapaPage({ searchParams }: { searchParams: Promise
       <div className="min-h-0 flex-1">
         <MapaCompleto
           centro={ubicacion.punto}
+          editarZona={user.professionalStatus === "approved"}
           items={pros.map((p) => ({
             id: p.id,
             nombre: p.businessName || p.name,
@@ -41,6 +45,7 @@ export default async function MapaPage({ searchParams }: { searchParams: Promise
             distancia: formatoDistancia(p.distanciaKm ?? 0),
             verified: p.verified,
             matriculado: p.matriculado,
+            zona: p.latitude != null && p.longitude != null,
             lat: p.punto.lat,
             lng: p.punto.lng,
           }))}

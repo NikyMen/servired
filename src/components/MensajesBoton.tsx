@@ -92,7 +92,8 @@ export function MensajesBoton({ mode }: { mode: Mode }) {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-label={etiqueta} aria-expanded={open} title="Mensajes" className={boton}>
+      {/* Tocarlo con el chat abierto lo vuelve a esconder, en Busco y en Ofrezco. */}
+      <button type="button" onClick={() => setOpen((abierto) => !abierto)} aria-label={etiqueta} aria-expanded={open} title="Mensajes" className={boton}>
         {icono}
       </button>
 

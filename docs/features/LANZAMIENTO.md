@@ -194,3 +194,15 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
   (`Professional.posicionFija`, 1 = primero). Con texto buscado manda la
   relevancia. Deploy: después del `db push`, correr una vez
   `npx tsx prisma/fechar-aprobaciones.ts` (fecha a los ya aceptados).
+- **Zona, conversaciones y recordatorios (02/10):** el oferente puede marcar
+  (opcional) su zona de trabajo, un círculo de unas 3 cuadras
+  (`RADIO_ZONA_M`), en el alta de Ofrezco y en Mi perfil (`#ubicacion`); sin
+  marcar aparece en el punto de su localidad. El perfil público la muestra
+  como círculo, sin pin. Quien ofrece ve en los mapas el botón «Mi zona de
+  trabajo». El invitado ve el mapa de verdad difuminado (pines de adorno, sin
+  ubicaciones reales), también en `/mapa`. Nueva pestaña del admin
+  «Conversaciones», de solo lectura. El botón de mensajes abre y cierra el
+  chat. Mi perfil del pro explica cómo pedir la plata «al instante» en Mercado
+  Pago (es opción de la cuenta de cada oferente; la API no deja elegirla).
+  Recordatorio por correo a perfiles sin terminar: `pnpm perfiles:recordar`
+  (en seco cuenta; `--prueba=`, `--vista-previa`, `--enviar`).

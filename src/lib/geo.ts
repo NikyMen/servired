@@ -8,6 +8,24 @@ export type Punto = { lat: number; lng: number };
 /** Radio fijo de la búsqueda y del mapa del cliente. */
 export const RADIO_KM = 10;
 
+/**
+ * Zona de trabajo que marca el oferente: unas 3 cuadras a la redonda. Se
+ * dibuja como círculo, no como pin, para que el punto exacto no se lea como
+ * "acá vive".
+ */
+export const RADIO_ZONA_M = 300;
+
+/**
+ * La zona que manda un formulario: las dos coordenadas o ninguna. Vacío =
+ * "no quiero marcar" (null); cualquier otra cosa rara = undefined (inválida).
+ */
+export function leerZona(latitude: unknown, longitude: unknown): Punto | null | undefined {
+  const vacio = (v: unknown) => v == null || v === "";
+  if (vacio(latitude) && vacio(longitude)) return null;
+  const punto = { lat: Number(latitude), lng: Number(longitude) };
+  return dentroDeArgentina(punto) ? punto : undefined;
+}
+
 /** Cookie donde el navegador deja la ubicación en tiempo real, redondeada. */
 export const COOKIE_UBICACION = "servired_ubic";
 
