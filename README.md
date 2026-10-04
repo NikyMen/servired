@@ -110,10 +110,24 @@ comparación de beneficios, selección de ejemplo y precios mensuales/anuales en
 ARS (anual: diez mensualidades, abonadas juntas). Precios y beneficios son una
 propuesta para validar, no tarifas publicadas ni funciones ya habilitadas.
 
+Todo lo que muestra (textos, planes, precios, íconos, pago anual, tabla
+comparativa y preguntas) se edita en `/admin` → **Planes** y se guarda como JSON
+en `SiteText` (clave `planes`); sin guardar nada, va la maqueta original.
+
 Disponible con `pnpm dev`, sin enlaces en la navegación. En producción devuelve
-404 por defecto; solo un entorno de preview debe configurar
-`PLANES_PREVIEW_ENABLED=true`. La ruta no se indexa. No modifica perfiles,
-permisos, Mercado Pago ni la base de datos, y no genera suscripciones o cobros.
+404 salvo que administración tilde **Publicar** en esa pestaña (o el servidor
+tenga `PLANES_PREVIEW_ENABLED=true`); sin publicar, el admin logueado la ve
+igual para revisar. Sin publicar no se indexa. No modifica perfiles, permisos
+ni Mercado Pago, y no genera suscripciones o cobros.
+
+## Estadísticas
+
+`/admin` → **Estadísticas** muestra el tráfico del sitio por período (hoy, 7,
+30 o 90 días). Los datos los manda `AnalyticsTracker` a `/api/metricas`
+(visitas anónimas, sin IP ni datos personales). La ciudad de cada visita sale
+de una base GeoIP local: bajar la "IP to City Lite" de https://db-ip.com
+(.mmdb, gratis, CC BY 4.0), y apuntar `GEOIP_DB` a ese archivo. Sin la base,
+la pestaña funciona igual y avisa que falta la ubicación.
 
 ## Cuentas
 

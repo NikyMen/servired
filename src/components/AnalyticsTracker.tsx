@@ -22,6 +22,8 @@ export function AnalyticsTracker() {
     sessionStorage.setItem("servired_session", sessionKey);
     sessionStorage.setItem("servired_started", startedAt);
 
+    // La primera llamada de cada navegación cuenta la página vista y la búsqueda;
+    // las demás (cada 15 s y al esconder la pestaña) solo dicen que sigue ahí.
     const send = (includeSearch = false) => {
       const params = new URLSearchParams(query);
       const payload = JSON.stringify({
@@ -32,6 +34,7 @@ export function AnalyticsTracker() {
         durationSeconds: Math.floor((Date.now() - Number(startedAt)) / 1000),
         term: includeSearch ? params.get("q") || undefined : undefined,
         categorySlug: includeSearch ? params.get("categoria") || undefined : undefined,
+        view: includeSearch || undefined,
       });
       navigator.sendBeacon?.("/api/metricas", new Blob([payload], { type: "application/json" })) ||
         fetch("/api/metricas", { method: "POST", headers: { "content-type": "application/json" }, body: payload, keepalive: true });

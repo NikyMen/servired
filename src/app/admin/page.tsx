@@ -12,6 +12,8 @@ import { AdminMatriculas } from "@/components/AdminMatriculas";
 import { AdminEliminarUsuario } from "@/components/AdminEliminarUsuario";
 import { AdminOrdenPerfiles } from "@/components/AdminOrdenPerfiles";
 import { AdminConversaciones } from "@/components/AdminConversaciones";
+import { AdminPlanes } from "@/components/AdminPlanes";
+import { AdminEstadisticas } from "@/components/estadisticas/AdminEstadisticas";
 import { requireAdmin } from "@/lib/admin";
 import { listPreinscriptions } from "@/lib/preinscripciones";
 import { prisma } from "@/lib/prisma";
@@ -23,16 +25,19 @@ import { TERMS_DEFAULT, TERMS_SLUG, getSiteText } from "@/lib/site-text";
 import { getSoporteConfig, soporteDelEnv } from "@/lib/soporte";
 import { listarLocalidadesAdmin } from "@/lib/localidades";
 import { listarOrdenPerfiles } from "@/lib/orden-perfiles";
+import { getPlanesConfig } from "@/lib/planes";
+import { PERIODOS, calcularEstadisticas, enLineaAhora, type Periodo } from "@/lib/estadisticas";
+import { geoipConfigurado } from "@/lib/geoip";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Administración" };
 
-const TABS = ["resumen", "kyc", "matriculas", "denuncias", "usuarios", "conversaciones", "empleo", "trabajos", "catalogo", "orden", "publicidad", "soporte", "localidades", "legales", "preinscripciones"] as const;
+const TABS = ["resumen", "estadisticas", "kyc", "matriculas", "denuncias", "usuarios", "conversaciones", "empleo", "trabajos", "catalogo", "orden", "publicidad", "soporte", "localidades", "legales", "planes", "preinscripciones"] as const;
 type Tab = (typeof TABS)[number];
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string; c?: string; q?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string; c?: string; q?: string; p?: string }> }) {
   await requireAdmin();
-  const { tab: rawTab, c: conversacionId, q: buscarConversacion } = await searchParams;
+  const { tab: rawTab, c: conversacionId, q: buscarConversacion, p: rawPeriodo } = await searchParams;
   // "todo" era la pestaña vieja que mostraba todo junto: ahora cae al resumen.
   const tab: Tab = (TABS as readonly string[]).includes(rawTab ?? "") ? (rawTab as Tab) : "resumen";
 
@@ -90,9 +95,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   });
   const serializedAds = ads.map((ad) => ({ slot: ad.slot, title: ad.title, imageUrl: ad.imageUrl, whatsappPhone: ad.whatsappPhone, whatsappMessage: ad.whatsappMessage, tipo: ad.tipo === "profesional" ? "profesional" as const : "oficio" as const, enabled: ad.enabled, reencuadrar: necesitaReencuadre(ad) }));
   const categoryGroups = categories.filter((category) => !category.parentId);
+  const periodo: Periodo = rawPeriodo && rawPeriodo in PERIODOS ? (rawPeriodo as Periodo) : "7";
+  const estadisticas = tab === "estadisticas" ? await Promise.all([calcularEstadisticas(periodo), enLineaAhora()]) : null;
+  const planes = tab === "planes" ? await getPlanesConfig().then(({ updatedAt, ...config }) => ({ config, updatedAt })) : null;
 
   const secciones: AdminSeccion[] = [
     { tab: "resumen", nombre: "Resumen", titulo: "Resumen", descripcion: "Cómo viene la plataforma y qué está esperando una decisión.", icono: "◧", grupo: "Panel" },
+    { tab: "estadisticas", nombre: "Estadísticas", titulo: "Estadísticas del sitio", descripcion: "Quién entra, de dónde viene, a qué hora, dónde está, qué busca y qué perfiles mira. Visitas anónimas: no se guardan IP ni datos personales.", icono: "📈", grupo: "Panel" },
     { tab: "kyc", nombre: "Identidad", titulo: "Verificación de identidad", descripcion: "Documentos y datos de quienes quieren ofrecer servicios.", icono: "🪪", grupo: "Revisión", pendientes: pendingKyc },
     { tab: "matriculas", nombre: "Matrículas", titulo: "Matrículas y certificados", descripcion: "Aprobada, el perfil muestra la insignia “Matriculado”. Rechazar pide motivo.", icono: "🎓", grupo: "Revisión", pendientes: pendingCredentials },
     { tab: "denuncias", nombre: "Denuncias", titulo: "Denuncias", descripcion: "Imágenes y conversaciones reportadas por la comunidad.", icono: "🚩", grupo: "Revisión", pendientes: pendingReports },
@@ -107,6 +116,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     { tab: "soporte", nombre: "Soporte", titulo: "Botón “Necesito ayuda”", descripcion: "El WhatsApp al que escribe quien pide ayuda desde cualquier pantalla.", icono: "💬", grupo: "Sitio" },
     { tab: "localidades", nombre: "Localidades", titulo: "Localidades", descripcion: "Las que se pueden elegir al darse de alta, y el punto de cada una en el mapa.", icono: "📍", grupo: "Sitio" },
     { tab: "legales", nombre: "Legales", titulo: "Términos y condiciones", descripcion: "El texto que acepta toda cuenta al entrar.", icono: "📜", grupo: "Sitio" },
+    { tab: "planes", nombre: "Planes", titulo: "Planes para oferentes", descripcion: "Todo lo que muestra /planes: textos, planes, precios, la tabla comparativa y las preguntas. Se guarda todo junto y no cobra nada: la página es informativa.", icono: "💳", grupo: "Sitio" },
   ];
 
   return (
@@ -361,6 +371,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </div>
         </form>
       )}
+
+      {estadisticas && <AdminEstadisticas datos={estadisticas[0]} enLinea={estadisticas[1]} geoip={geoipConfigurado()} />}
+
+      {planes && <AdminPlanes initial={planes.config} editado={planes.updatedAt ? formatDateTime(planes.updatedAt) : null} />}
 
       {tab === "preinscripciones" && <AdminPreinscriptions initialRows={serializedPreinscriptions} />}
     </AdminShell>

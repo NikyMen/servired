@@ -25,6 +25,9 @@ import { cambiarLocalidadActiva, crearLocalidad, moverLocalidad } from "@/lib/lo
 import { guardarOrdenPerfiles, moverPerfil, type MovimientoPerfil } from "@/lib/orden-perfiles";
 import type { OrdenPerfilesInput } from "@/lib/orden-perfiles-utils";
 import { deleteAccount } from "@/lib/baja-cuenta";
+import { guardarPlanes, restaurarPlanes } from "@/lib/planes";
+import type { PlanesConfig } from "@/lib/planes-config";
+import { enLineaAhora, type EnLinea } from "@/lib/estadisticas";
 
 export type AdminAuthState = { error?: string } | undefined;
 
@@ -466,4 +469,41 @@ export async function reviewKycAction(action: KycDecision, formData: FormData) {
   });
   revalidatePath("/admin");
   revalidatePath("/");
+}
+
+export type PlanesState = { error?: string; ok?: boolean; config?: PlanesConfig } | undefined;
+
+/**
+ * Guarda todo lo de /planes de una vez. El editor manda la configuración
+ * entera como JSON; `guardarPlanes` la sanea y devuelve cómo quedó, para que
+ * el panel muestre lo guardado y no lo tipeado.
+ */
+export async function savePlanesAction(json: string): Promise<PlanesState> {
+  await requireAdmin();
+  let crudo: unknown;
+  try {
+    crudo = JSON.parse(json);
+  } catch {
+    return { error: "No se pudo leer lo que mandaste. Recargá la página y probá de nuevo." };
+  }
+  const result = await guardarPlanes(crudo);
+  if ("error" in result) return { error: result.error };
+  revalidatePath("/planes");
+  revalidatePath("/admin");
+  return { ok: true, config: result.config };
+}
+
+/** Borra lo editado y vuelve a la maqueta original. */
+export async function restorePlanesAction(): Promise<PlanesState> {
+  await requireAdmin();
+  await restaurarPlanes();
+  revalidatePath("/planes");
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Contador «en línea ahora» de Estadísticas: lo pide el panel cada 20 segundos. */
+export async function enLineaAction(): Promise<EnLinea> {
+  await requireAdmin();
+  return enLineaAhora();
 }

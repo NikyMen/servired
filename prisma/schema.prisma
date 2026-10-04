@@ -257,12 +257,41 @@ model AnalyticsSession {
   source          String
   country         String?
   city            String?
+  /// Provincia y punto aproximado de la ciudad, por la IP (base GeoIP del
+  /// server). La IP no se guarda.
+  region          String?
+  latitude        Float?
+  longitude       Float?
+  device          String? // celular | tablet | compu
+  /// Si en el último aviso tenía la sesión iniciada.
+  conCuenta       Boolean  @default(false)
+  /// Página que tenía abierta en el último aviso: "en línea ahora".
+  lastPath        String?
   firstPath       String
   durationSeconds Int      @default(0)
   startedAt       DateTime @default(now())
   lastSeenAt      DateTime @default(now())
 
-  searches SearchMetric[]
+  searches  SearchMetric[]
+  pageViews PageView[]
+
+  @@index([startedAt])
+  @@index([lastSeenAt])
+}
+
+/// Cada página que se abre dentro de una visita. `professionalId` se completa
+/// en los perfiles públicos, para el ranking de perfiles más vistos.
+model PageView {
+  id             String   @id @default(cuid())
+  path           String
+  professionalId String?
+  createdAt      DateTime @default(now())
+
+  sessionId String
+  session   AnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([professionalId, createdAt])
 }
 
 /// Búsquedas y usos de categorías para rankings del panel.
@@ -276,6 +305,8 @@ model SearchMetric {
 
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
 }
 
 /// Solicitud de presupuesto publicada por un cliente

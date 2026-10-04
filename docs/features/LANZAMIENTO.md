@@ -206,3 +206,15 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
   Pago (es opción de la cuenta de cada oferente; la API no deja elegirla).
   Recordatorio por correo a perfiles sin terminar: `pnpm perfiles:recordar`
   (en seco cuenta; `--prueba=`, `--vista-previa`, `--enviar`).
+- **Planes editables (04/10):** nueva pestaña del admin «Planes» que edita todo
+  lo de `/planes` (textos, planes, precios, íconos, anual, comparación y
+  preguntas). Se guarda en `SiteText` con clave `planes`, sin cambio de
+  esquema. Tildar «Publicar» la abre en producción; si no, solo la ve el admin.
+- **Estadísticas (04/10):** nueva pestaña del admin «Estadísticas»: en línea
+  ahora (se refresca sola), visitas, personas nuevas y que vuelven, páginas
+  vistas, rebote, tiempo, actividad del negocio, visitas por día / hora / día
+  de la semana, fuentes, dispositivo, ciudades (mapa), usuarios por localidad,
+  palabras y rubros buscados, rubros pedidos, perfiles y páginas más vistos.
+  Esquema: campos nuevos en `AnalyticsSession` y tabla `PageView` (solo
+  agrega, `db push` seguro). Ubicación por IP con la base DB-IP City Lite en
+  `GEOIP_DB` (la IP no se guarda); sin la base, el resto anda igual.

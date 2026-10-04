@@ -10,7 +10,7 @@ import { getTermsVersion } from "@/lib/site-text";
  * El hasheo de contraseñas vive en src/lib/password.ts.
  */
 
-const COOKIE_NAME = "servired_session";
+export const COOKIE_NAME = "servired_session";
 const SESSION_DAYS = 30;
 
 export type Role = "cliente" | "profesional";
