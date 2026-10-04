@@ -22,7 +22,8 @@ import { guardarTextoLegal } from "@/lib/site-text";
 import { revisarCredencial, type DecisionCredencial } from "@/lib/matriculas";
 import { ENCUADRE_NEUTRO, esSlotDePlaca } from "@/lib/publicidad";
 import { cambiarLocalidadActiva, crearLocalidad, moverLocalidad } from "@/lib/localidades";
-import { moverPerfil, type MovimientoPerfil } from "@/lib/orden-perfiles";
+import { guardarOrdenPerfiles, moverPerfil, type MovimientoPerfil } from "@/lib/orden-perfiles";
+import type { OrdenPerfilesInput } from "@/lib/orden-perfiles-utils";
 import { deleteAccount } from "@/lib/baja-cuenta";
 
 export type AdminAuthState = { error?: string } | undefined;
@@ -350,6 +351,21 @@ export async function moverPerfilAction(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/");
   revalidatePath("/mapa");
+}
+
+export async function guardarOrdenPerfilesAction(input: OrdenPerfilesInput) {
+  await requireAdmin();
+  try {
+    const resultado = await guardarOrdenPerfiles(input);
+    if (resultado.ok) {
+      revalidatePath("/admin");
+      revalidatePath("/");
+      revalidatePath("/mapa");
+    }
+    return resultado;
+  } catch {
+    return { ok: false, error: "No pudimos guardar el orden. Tus cambios siguen acá; intentá nuevamente." } as const;
+  }
 }
 
 export async function createCategoryAction(formData: FormData) {

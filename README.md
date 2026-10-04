@@ -102,10 +102,30 @@ verificar la cuenta ni cambiar la contraseña. El `From` sí puede ser
 Después de tocar el `.env.local` del VPS: `pm2 restart servired --update-env`
 — sin `--update-env` pm2 se queda con las variables viejas.
 
+## Vista previa de planes
+
+`/planes` presenta cuatro planes tentativos para oferentes: Gratis, Contacto,
+Impulso y Negocio. Clientes y herramientas esenciales continúan gratis. Incluye
+comparación de beneficios, selección de ejemplo y precios mensuales/anuales en
+ARS (anual: diez mensualidades, abonadas juntas). Precios y beneficios son una
+propuesta para validar, no tarifas publicadas ni funciones ya habilitadas.
+
+Disponible con `pnpm dev`, sin enlaces en la navegación. En producción devuelve
+404 por defecto; solo un entorno de preview debe configurar
+`PLANES_PREVIEW_ENABLED=true`. La ruta no se indexa. No modifica perfiles,
+permisos, Mercado Pago ni la base de datos, y no genera suscripciones o cobros.
+
 ## Cuentas
 
 El panel administrativo está en `/admin` y permite gestionar KYC, denuncias, usuarios, trabajos, anuncios, categorías, términos y condiciones y preinscripciones. Requiere `ADMIN_EMAIL`, `ADMIN_PASSWORD`
 y `ADMIN_SESSION_SECRET` en `.env.local`.
+
+En **Orden de perfiles**, arrastrá desde el asa para mover perfiles dentro de
+Prioridad manual o entre esa lista y Orden automático (mouse o toque). También
+podés buscar, usar flechas, ingresar una posición, deshacer y descartar cambios.
+**Guardar orden** publica todos los movimientos juntos en la portada y el mapa,
+sin modificar la relevancia de búsquedas ni la visibilidad de perfiles ocultos.
+Si otro administrador cambió el orden, se avisa antes de sobrescribirlo.
 
 Autenticación y aprobación:
 
