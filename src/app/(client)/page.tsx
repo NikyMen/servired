@@ -268,7 +268,7 @@ export default async function HomePage({
                 })),
               ]}
             />
-            <div className="flex flex-wrap gap-3 text-xs text-slate-500"><span>🟩 Profesionales (tocá su zona para ver el perfil)</span><span>🟦 Trabajos abiertos</span><span>🟧 Trabajos realizados</span></div>
+            <div className="flex flex-wrap gap-3 text-xs text-slate-500"><span>🟢 Profesionales (tocá su zona para ver el perfil)</span><span>🔵 Trabajos abiertos</span><span>🟠 Trabajos realizados</span></div>
           </>
         ) : (
           <MapaBloqueado />

@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { divIcon, latLng, latLngBounds, type Map as LeafletMap } from "leaflet";
-import { Circle, MapContainer, Marker, Popup, Rectangle, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { Circle, MapContainer, Marker, Popup, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import type { Encuadre, MapPoint } from "@/components/MapView";
 import { Avatar } from "@/components/ui";
 import { BotonUbicarme, Yo } from "@/components/mapa/Yo";
 import { BotonMiZona } from "@/components/mapa/BotonMiZona";
-import { LADO_ZONA_M } from "@/lib/geo";
+import { DIAMETRO_ZONA_M } from "@/lib/geo";
 
 const COLORS = { profesional: "#059669", solicitud: "#2563eb", trabajo: "#f59e0b" };
 
@@ -36,7 +36,7 @@ type Props = {
   enVivo?: boolean;
   /** Quien ofrece servicios ve el acceso a editar su zona de trabajo. */
   editarZona?: boolean;
-  /** Cada punto es un cuadrado de unas 3 x 3 cuadras en vez de un pin. */
+  /** Cada punto es un círculo de unas 3 cuadras y media en vez de un pin. */
   zonas?: boolean;
   /** Encuadre inicial fijo (p. ej. Corrientes Capital); le gana al del círculo. */
   encuadre?: Encuadre | null;
@@ -55,7 +55,7 @@ function Popupcito({ point }: { point: MapPoint }) {
 }
 
 /**
- * Las zonas de 3 x 3 cuadras. La del profesional muestra su foto y nombre, y
+ * Las zonas circulares de cada uno. La del profesional muestra su foto y nombre, y
  * un toque (en la zona o en la etiqueta) lleva a su perfil. Las solicitudes y
  * los trabajos siguen abriendo su ficha chica.
  */
@@ -67,19 +67,19 @@ function Zonas({ points }: { points: MapPoint[] }) {
   const fijas = zoom >= ZOOM_ETIQUETAS;
 
   return points.map((point) => {
-    const bounds = latLng(point.latitude, point.longitude).toBounds(LADO_ZONA_M);
+    const center: [number, number] = [point.latitude, point.longitude];
     const color = COLORS[point.type];
     const key = `${point.type}-${point.id}`;
     if (point.type !== "profesional") {
       return (
-        <Rectangle key={key} bounds={bounds} pathOptions={{ color, weight: 2, fillOpacity: 0.22 }}>
+        <Circle key={key} center={center} radius={DIAMETRO_ZONA_M / 2} pathOptions={{ color, weight: 2, fillOpacity: 0.22 }}>
           <Popupcito point={point} />
-        </Rectangle>
+        </Circle>
       );
     }
     const irAlPerfil = () => point.href && router.push(point.href);
     return (
-      <Rectangle key={key} bounds={bounds} pathOptions={{ color, weight: 2, fillOpacity: 0.22 }} eventHandlers={{ click: irAlPerfil }}>
+      <Circle key={key} center={center} radius={DIAMETRO_ZONA_M / 2} pathOptions={{ color, weight: 2, fillOpacity: 0.22 }} eventHandlers={{ click: irAlPerfil }}>
         {/* permanent solo se lee al crear el tooltip: la key lo rearma al cruzar el zoom. */}
         <Tooltip key={fijas ? "fija" : "hover"} permanent={fijas} interactive direction="top" offset={[0, -6]} className="servired-zona-label">
           <a
@@ -95,7 +95,7 @@ function Zonas({ points }: { points: MapPoint[] }) {
             <span className="max-w-32 truncate text-xs font-semibold text-slate-800">{point.title}</span>
           </a>
         </Tooltip>
-      </Rectangle>
+      </Circle>
     );
   });
 }

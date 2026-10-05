@@ -15,8 +15,8 @@ export const RADIO_KM = 10;
  */
 export const RADIO_ZONA_M = 300;
 
-/** Lado del cuadrado con que el mapa de la home marca a cada uno: unas 3 x 3 cuadras. */
-export const LADO_ZONA_M = 300;
+/** Diámetro del círculo con que el mapa de la home marca a cada uno: unas 3 cuadras y media. */
+export const DIAMETRO_ZONA_M = 375;
 
 /**
  * Cómo arranca el mapa de la home en Corrientes Capital: la ciudad entera,
