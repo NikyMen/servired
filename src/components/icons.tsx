@@ -218,6 +218,23 @@ export const PlusIcon = (p: IconProps) => (
   </svg>
 );
 
+/** Los tres nodos unidos: es el "compartir" que se lee igual en cualquier lado. */
+export const ShareIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <circle cx="18" cy="5" r="2.6" />
+    <circle cx="6" cy="12" r="2.6" />
+    <circle cx="18" cy="19" r="2.6" />
+    <path d="m8.4 10.7 7.2-4.2M8.4 13.3l7.2 4.2" />
+  </svg>
+);
+
+export const LinkIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M10.6 13.4a3.6 3.6 0 0 0 5.1 0l2.8-2.8a3.6 3.6 0 0 0-5.1-5.1l-1 1" />
+    <path d="M13.4 10.6a3.6 3.6 0 0 0-5.1 0l-2.8 2.8a3.6 3.6 0 0 0 5.1 5.1l1-1" />
+  </svg>
+);
+
 export const BellIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M18 8a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6" />

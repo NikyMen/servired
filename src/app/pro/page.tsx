@@ -9,6 +9,7 @@ import { TrabajosParticulares } from "@/components/pro/TrabajosParticulares";
 import { BookingActions } from "@/components/BookingActions";
 import { SolicitudCard } from "@/components/pro/SolicitudCard";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
+import { CompartirPerfil } from "@/components/CompartirPerfil";
 import { ChatIcon, ChevronLeftIcon, MercadoPagoIcon } from "@/components/icons";
 import { expirePendingProposals, expireServiceRequests, openRequestsWhere } from "@/lib/workflow";
 import { ProfessionalOnboardingForm } from "@/components/ProfessionalOnboardingForm";
@@ -208,12 +209,23 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
         </ul>
         )}
         {pro && (
-          <p className="text-xs text-slate-400">
-            Tu perfil público:{" "}
-            <Link href={`/profesionales/${pro.id}`} className="font-medium text-pro hover:underline">
-              ver cómo te ven los clientes
-            </Link>
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-xs text-slate-400">
+              Tu perfil público:{" "}
+              <Link href={`/profesionales/${pro.id}`} className="font-medium text-pro hover:underline">
+                ver cómo te ven los clientes
+              </Link>
+            </p>
+            {/* El enlace para pasarle a un cliente. Solo con el perfil aprobado:
+                antes de eso la página pública todavía no existe. */}
+            {pro.profileStatus === "approved" && (
+              <CompartirPerfil
+                ruta={`/profesionales/${pro.id}`}
+                titulo={pro.businessName || pro.name}
+                texto={`${pro.headline} — mirá mi perfil en ServiRed`}
+              />
+            )}
+          </div>
         )}
       </section>
 

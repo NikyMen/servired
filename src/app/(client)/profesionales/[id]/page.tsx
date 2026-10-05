@@ -11,6 +11,7 @@ import { StarIcon, MapPinIcon } from "@/components/icons";
 import { MapView } from "@/components/MapView";
 import { RADIO_ZONA_M } from "@/lib/geo";
 import { DenunciarImagen } from "@/components/DenunciarImagen";
+import { CompartirPerfil } from "@/components/CompartirPerfil";
 
 export const dynamic = "force-dynamic";
 
@@ -118,6 +119,15 @@ export default async function ProfesionalPage({
                   </span>
                 )}
               </div>
+            </div>
+            {/* Compartir: el perfil es la carta de presentación, así que el
+                botón va arriba, al lado del nombre. */}
+            <div className="shrink-0">
+              <CompartirPerfil
+                ruta={`/profesionales/${pro.id}`}
+                titulo={pro.businessName || pro.name}
+                texto={`${pro.headline} · ${pro.category.name} en ${pro.zone} — mirá su perfil en ServiRed`}
+              />
             </div>
           </div>
           {pro.bio && (
