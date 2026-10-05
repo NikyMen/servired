@@ -12,7 +12,7 @@ import { PLACAS, SLOTS, nombreDeSlot } from "@/lib/publicidad";
 import { getPublicitarHref } from "@/lib/soporte";
 import { getSessionUser } from "@/lib/auth";
 import { buscarProfesionales } from "@/lib/cercanos";
-import { RADIO_KM, formatoDistancia, haversineKm } from "@/lib/geo";
+import { ENCUADRE_CORRIENTES, RADIO_KM, enCorrientesCapital, formatoDistancia, haversineKm } from "@/lib/geo";
 import { resolverUbicacion } from "@/lib/ubicacion";
 import { AvisoUbicacion } from "@/components/AvisoUbicacion";
 import { MapaBloqueado } from "@/components/mapa/MapaBloqueado";
@@ -250,10 +250,13 @@ export default async function HomePage({
               radioKm={RADIO_KM}
               enVivo
               editarZona={user?.professionalStatus === "approved"}
+              zonas
+              encuadre={enCorrientesCapital(ubicacion.punto) ? ENCUADRE_CORRIENTES : null}
               points={[
                 ...pros.map((p) => ({
                   id: p.id, type: "profesional" as const, title: p.businessName || p.name,
                   subtitle: `${p.headline} · ${p.localidadNombre ?? p.zone}${p.distanciaKm != null ? ` · ${formatoDistancia(p.distanciaKm)}` : ""}`, latitude: p.punto.lat, longitude: p.punto.lng, href: `/profesionales/${p.id}`,
+                  avatar: { url: p.avatarUrl, color: p.avatarColor },
                 })),
                 ...requests.map((r) => ({
                   id: r.id, type: "solicitud" as const, title: r.title,
@@ -265,7 +268,7 @@ export default async function HomePage({
                 })),
               ]}
             />
-            <div className="flex flex-wrap gap-3 text-xs text-slate-500"><span>🟢 Profesionales</span><span>🔵 Trabajos abiertos</span><span>🟠 Trabajos realizados</span></div>
+            <div className="flex flex-wrap gap-3 text-xs text-slate-500"><span>🟩 Profesionales (tocá su zona para ver el perfil)</span><span>🟦 Trabajos abiertos</span><span>🟧 Trabajos realizados</span></div>
           </>
         ) : (
           <MapaBloqueado />

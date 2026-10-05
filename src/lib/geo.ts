@@ -15,6 +15,22 @@ export const RADIO_KM = 10;
  */
 export const RADIO_ZONA_M = 300;
 
+/** Lado del cuadrado con que el mapa de la home marca a cada uno: unas 3 x 3 cuadras. */
+export const LADO_ZONA_M = 300;
+
+/**
+ * Cómo arranca el mapa de la home en Corrientes Capital: la ciudad entera,
+ * del puente a Laguna Brava. En pantalla ancha cae justo en zoom 13; en el
+ * celular se aleja lo necesario para que entre igual.
+ */
+export const ENCUADRE_CORRIENTES = { sur: -27.506, oeste: -58.872, norte: -27.448, este: -58.712 };
+const CENTRO_CORRIENTES: Punto = { lat: -27.4692, lng: -58.8306 };
+
+/** Está en Corrientes Capital (o en sus barrios de borde). */
+export function enCorrientesCapital(p: Punto) {
+  return haversineKm(p, CENTRO_CORRIENTES) <= 8;
+}
+
 /**
  * La zona que manda un formulario: las dos coordenadas o ninguna. Vacío =
  * "no quiero marcar" (null); cualquier otra cosa rara = undefined (inválida).
