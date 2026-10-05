@@ -143,17 +143,20 @@ const AYUDA_PLAZOS = "https://www.mercadopago.com.ar/ayuda/como-elegir-modificar
 /**
  * Cuándo queda disponible la plata (al instante, 10, 18 o 35 días) no lo
  * decide ServiRed: es una opción de la cuenta de Mercado Pago de cada
- * oferente, y la API no deja elegirla por cobro. Acá solo se explica dónde
- * cambiarla.
+ * oferente, y la API no deja elegirla por cobro. Por eso va como aviso a la
+ * vista, para que cada uno lo cambie en su cuenta.
  */
 function PlataAlInstante({ claro = false }: { claro?: boolean }) {
   return (
-    <details className={`mt-4 rounded-xl px-3 py-2 text-sm ${claro ? "bg-sky-50 text-slate-700 ring-1 ring-sky-100" : "bg-white/15 text-white/90 backdrop-blur-sm"}`}>
-      <summary className="cursor-pointer font-semibold">¿Querés la plata disponible al instante?</summary>
-      <p className="mt-2">
-        El plazo lo elegís vos en tu cuenta de Mercado Pago: <strong>Tu negocio → Costos → Por cobro → Configurar costos por cobro</strong>, y ahí elegís «Al instante». Cuanto más corto el plazo, más alto el costo que cobra Mercado Pago.
-      </p>
-      <a href={AYUDA_PLAZOS} target="_blank" rel="noopener noreferrer" className={`mt-1 inline-block font-semibold underline ${claro ? "text-[#009EE3]" : "text-white"}`}>Ver cómo se cambia en Mercado Pago</a>
-    </details>
+    <div role="note" className={`mt-4 flex gap-3 rounded-xl px-3 py-3 text-sm ${claro ? "bg-amber-50 text-amber-900 ring-1 ring-amber-200" : "bg-white/20 text-white ring-1 ring-white/30 backdrop-blur-sm"}`}>
+      <span aria-hidden className="text-lg leading-none">⏱️</span>
+      <div className="min-w-0">
+        <p className="font-bold">Elegí cuándo te llega la plata</p>
+        <p className={`mt-1 ${claro ? "" : "text-white/90"}`}>
+          Mercado Pago puede retener cada cobro varios días (por ejemplo, 18) antes de que puedas usarlo. Si la querés al instante, cambialo en tu cuenta de Mercado Pago: <strong>Tu negocio → Costos → Por cobro → Configurar costos por cobro</strong> y elegí «Al instante». Ojo: cuanto más corto el plazo, más alto el costo que cobra Mercado Pago.
+        </p>
+        <a href={AYUDA_PLAZOS} target="_blank" rel="noopener noreferrer" className={`mt-2 inline-block font-semibold underline ${claro ? "text-amber-900" : "text-white"}`}>Ver cómo se cambia en Mercado Pago</a>
+      </div>
+    </div>
   );
 }
