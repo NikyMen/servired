@@ -12,6 +12,7 @@ import { PLACAS, SLOTS, nombreDeSlot } from "@/lib/publicidad";
 import { getPublicitarHref } from "@/lib/soporte";
 import { getSessionUser } from "@/lib/auth";
 import { buscarProfesionales } from "@/lib/cercanos";
+import { agruparProfesionales } from "@/lib/grupos-profesionales";
 import { ENCUADRE_CORRIENTES, RADIO_KM, enCorrientesCapital, formatoDistancia, haversineKm } from "@/lib/geo";
 import { resolverUbicacion } from "@/lib/ubicacion";
 import { AvisoUbicacion } from "@/components/AvisoUbicacion";
@@ -32,9 +33,9 @@ async function getData({ q, categoria, tipo }: Search) {
 
   const [categories, pros, requests, workPhotos, ads] = await Promise.all([
     prisma.category.findMany({ where: { approvalStatus: "approved" }, include: { parent: true }, orderBy: [{ parentId: "asc" }, { createdAt: "asc" }] }),
-    // Categoría y ubicación filtran; el texto libre se rankea en memoria
+    // La categoría filtra; el texto libre se rankea en memoria
     // (ver src/lib/search.ts: LIKE de SQLite no ignora acentos ni tolera typos).
-    buscarProfesionales({ q, categoria, tipo }, centro),
+    buscarProfesionales({ q, categoria, tipo }, centro, null),
     prisma.serviceRequest.findMany({
       where: { status: "abierta", expiresAt: { gt: new Date() }, user: { accountStatus: "approved", solicitudesOcultas: false }, AND: [...(categoria ? [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }] : []), ...(tipo ? [{ category: { kind: tipo } }] : [])] },
       orderBy: { createdAt: "desc" },
@@ -102,6 +103,33 @@ export default async function HomePage({
   const seleccionada = categories.find((category) => category.slug === params.categoria);
   const principalSeleccionada = seleccionada?.parentId ? categories.find((category) => category.id === seleccionada.parentId) : seleccionada;
   const principales = categories.filter((category) => !category.parentId && (parentIdsVisibles.has(category.id) || category.id === principalSeleccionada?.id));
+  const grupos = user ? agruparProfesionales(pros, user.localityId) : null;
+  const tarjeta = (p: (typeof pros)[number]) => (
+    <ProfessionalCard
+      key={p.id}
+      pro={{
+        id: p.id,
+        name: p.name,
+        headline: p.headline,
+        category: { slug: p.category.slug, name: p.category.name, icon: p.category.icon },
+        avatarColor: p.avatarColor,
+        avatarUrl: p.avatarUrl,
+        rating: p.rating,
+        reviewsCount: p.reviewsCount,
+        bio: p.bio,
+        zone: p.zone,
+        localidad: p.localidadNombre,
+        distancia: p.distanciaKm != null ? formatoDistancia(p.distanciaKm) : null,
+        completedJobs: p._count.bookings,
+        externalJobs: p._count.workSamples,
+        providerType: p.providerType === "profesional" ? "profesional" : "oficio",
+        verified: p.verified,
+        matriculado: p.matriculado,
+        featured: p.featured,
+        yearsExperience: p.yearsExperience,
+      }}
+    />
+  );
 
   return (
     <NavegacionSuave>
@@ -197,40 +225,34 @@ export default async function HomePage({
       {/* Resultados */}
       {pros.length === 0 ? (
         <div className="glass glass-solid rounded-[1.5rem] p-12 text-center">
-          <p className="text-lg font-semibold text-slate-900">{ubicacion ? `No encontramos profesionales a ${RADIO_KM} km` : "Sin resultados"}</p>
+          <p className="text-lg font-semibold text-slate-900">Sin resultados</p>
           <p className="mt-1 text-slate-500">
             {ubicacion ? "Probá con otra búsqueda, o publicá una solicitud y te contactan." : "Probá con otra categoría o término de búsqueda."}
           </p>
           {ubicacion && <Link href="/publicar-solicitud" className="glass-btn mt-4 inline-flex px-4 py-2 text-sm">Publicar solicitud</Link>}
         </div>
       ) : (
-        <div id="professional-results" className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-          {pros.map((p) => (
-            <ProfessionalCard
-              key={p.id}
-              pro={{
-                id: p.id,
-                name: p.name,
-                headline: p.headline,
-                category: { slug: p.category.slug, name: p.category.name, icon: p.category.icon },
-                avatarColor: p.avatarColor,
-                avatarUrl: p.avatarUrl,
-                rating: p.rating,
-                reviewsCount: p.reviewsCount,
-                bio: p.bio,
-                zone: p.zone,
-                localidad: p.localidadNombre,
-                distancia: p.distanciaKm != null ? formatoDistancia(p.distanciaKm) : null,
-                completedJobs: p._count.bookings,
-                externalJobs: p._count.workSamples,
-                providerType: p.providerType === "profesional" ? "profesional" : "oficio",
-                verified: p.verified,
-                matriculado: p.matriculado,
-                featured: p.featured,
-                yearsExperience: p.yearsExperience,
-              }}
-            />
-          ))}
+        <div id="professional-results" className="space-y-6">
+          {grupos ? (
+            <>
+              <section className="space-y-3">
+                <h2 className="text-xl font-bold text-slate-900">En tu localidad: {ubicacion?.localidad}</h2>
+                {grupos.locales.length ? (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">{grupos.locales.map(tarjeta)}</div>
+                ) : (
+                  <p className="text-sm text-slate-500">Todavía no hay profesionales en tu localidad. Mirá las opciones de otras ciudades.</p>
+                )}
+              </section>
+              {grupos.otras.map((grupo) => (
+                <section key={grupo.titulo} className="space-y-3">
+                  <h2 className="text-xl font-bold text-slate-900">En {grupo.titulo}</h2>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">{grupo.pros.map(tarjeta)}</div>
+                </section>
+              ))}
+            </>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">{pros.map(tarjeta)}</div>
+          )}
         </div>
       )}
       </Atenuable>
@@ -253,7 +275,7 @@ export default async function HomePage({
               zonas
               encuadre={enCorrientesCapital(ubicacion.punto) ? ENCUADRE_CORRIENTES : null}
               points={[
-                ...pros.map((p) => ({
+                ...pros.filter((p) => p.distanciaKm != null && p.distanciaKm <= RADIO_KM).map((p) => ({
                   id: p.id, type: "profesional" as const, title: p.businessName || p.name,
                   subtitle: `${p.headline} · ${p.localidadNombre ?? p.zone}${p.distanciaKm != null ? ` · ${formatoDistancia(p.distanciaKm)}` : ""}`, latitude: p.punto.lat, longitude: p.punto.lng, href: `/profesionales/${p.id}`,
                   avatar: { url: p.avatarUrl, color: p.avatarColor },

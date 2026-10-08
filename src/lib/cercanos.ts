@@ -18,11 +18,10 @@ export function filtroProfesionales({ categoria, tipo }: Filtros): Prisma.Profes
 }
 
 /**
- * Profesionales para la portada y el mapa. Con `centro` (usuario con sesión)
- * se quedan los que están a 10 km o menos, cada uno con su distancia, y a
- * igual relevancia va primero el más cerca. Sin centro (invitado), todos.
+ * Profesionales para la portada y el mapa. La portada puede pedir todos;
+ * el mapa conserva su radio de 10 km. Sin centro (invitado), todos.
  */
-export async function buscarProfesionales(filtros: Filtros, centro: Punto | null) {
+export async function buscarProfesionales(filtros: Filtros, centro: Punto | null, radioKm: number | null = RADIO_KM) {
   const [found, respaldo] = await Promise.all([
     prisma.professional.findMany({
       where: filtroProfesionales(filtros),
@@ -31,7 +30,7 @@ export async function buscarProfesionales(filtros: Filtros, centro: Punto | null
         categoryLinks: { where: { category: { approvalStatus: "approved" } }, include: { category: true } },
         _count: { select: { bookings: { where: { status: "completed" } }, workSamples: true } },
         services: { where: { status: "activo" }, select: { title: true, description: true, categoryLabel: true } },
-        user: { select: { locality: { select: { name: true, latitude: true, longitude: true } } } },
+        user: { select: { locality: { select: { id: true, name: true, province: true, latitude: true, longitude: true } } } },
       },
     }),
     capital(),
@@ -43,10 +42,12 @@ export async function buscarProfesionales(filtros: Filtros, centro: Punto | null
       ...pro,
       categories: pro.categoryLinks.map((link) => link.category),
       punto,
+      localidadId: localidad?.id ?? null,
       localidadNombre: localidad?.name ?? null,
+      provinciaNombre: localidad?.province ?? null,
       distanciaKm: centro ? haversineKm(centro, punto) : null,
     };
   });
-  const dentro = centro ? conPunto.filter((pro) => pro.distanciaKm! <= RADIO_KM) : conPunto;
+  const dentro = centro && radioKm !== null ? conPunto.filter((pro) => pro.distanciaKm! <= radioKm) : conPunto;
   return rankProfessionals(dentro, filtros.q ?? "", (a, b) => (a.distanciaKm ?? 0) - (b.distanciaKm ?? 0));
 }
