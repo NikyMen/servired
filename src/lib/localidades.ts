@@ -14,6 +14,13 @@ export const LOCALIDADES_BASE: Punto[] = [
   { name: "Corrientes Capital", province: "Corrientes", latitude: -27.4692, longitude: -58.8306 },
   { name: "Resistencia", province: "Chaco", latitude: -27.4514, longitude: -58.9867 },
   { name: "Barranqueras", province: "Chaco", latitude: -27.4847, longitude: -58.9353 },
+  { name: "Presidencia Roque Sáenz Peña", province: "Chaco", latitude: -26.79095, longitude: -60.44132 },
+  { name: "Villa Ángela", province: "Chaco", latitude: -27.57679, longitude: -60.71114 },
+  { name: "Charata", province: "Chaco", latitude: -27.21787, longitude: -61.18738 },
+  { name: "Paraná", province: "Entre Ríos", latitude: -31.73271, longitude: -60.52897 },
+  { name: "Concordia", province: "Entre Ríos", latitude: -31.39195, longitude: -58.01706 },
+  { name: "Gualeguaychú", province: "Entre Ríos", latitude: -33.00777, longitude: -58.51836 },
+  { name: "Concepción del Uruguay", province: "Entre Ríos", latitude: -32.48463, longitude: -58.23217 },
   { name: "Alvear", province: "Corrientes", latitude: -29.097, longitude: -56.55 },
   { name: "Bella Vista", province: "Corrientes", latitude: -28.51, longitude: -59.043 },
   { name: "Caá Catí", province: "Corrientes", latitude: -27.75, longitude: -57.62 },
@@ -71,13 +78,14 @@ export function validarPunto(latitude: number, longitude: number): Resultado<{ l
 }
 
 /**
- * Crea la lista base si la tabla está vacía. Upsert uno por uno y no
- * createMany: SQLite no tiene `skipDuplicates`, y dos pedidos simultáneos con
- * la tabla vacía no tienen que tirar error.
+ * Agrega las localidades base que falten, también en instalaciones existentes.
+ * Upsert evita duplicados si dos pedidos llegan a la vez.
  */
 export async function asegurarLocalidades() {
-  if ((await prisma.locality.count()) > 0) return;
+  const existentes = await prisma.locality.findMany({ select: { name: true, province: true } });
+  const claves = new Set(existentes.map((l) => `${l.name}|${l.province}`));
   for (const [index, localidad] of LOCALIDADES_BASE.entries()) {
+    if (claves.has(`${localidad.name}|${localidad.province}`)) continue;
     // Capital primero y el resto por nombre.
     const sortOrder = index === 0 ? 0 : 10;
     await prisma.locality.upsert({

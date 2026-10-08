@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { completarAltaAction, logoutAction, type CompletarAltaState } from "@/app/(auth)/actions";
 import { TextoLegal } from "@/components/TextoLegal";
 import type { Bloque } from "@/lib/site-text";
-import { idPorDefecto } from "@/lib/localidad-defecto";
+import { LocalidadSelect } from "@/components/LocalidadSelect";
 
 type Props = {
   titulo: string;
@@ -60,12 +60,7 @@ export function CompletarAlta({ titulo, pedirTerminos, textoTitulo, bloques, ver
           <form action={formAction} className="space-y-3">
             <input type="hidden" name="version" value={version} />
             {localidades.length > 0 && (
-              <label className="block text-sm font-medium text-slate-700">
-                Tu localidad
-                <select name="localityId" required defaultValue={idPorDefecto(localidades)} className="glass-field mt-1 w-full px-3 py-2.5 text-sm">
-                  {localidades.map((l) => <option key={l.id} value={l.id}>{l.name}, {l.province}</option>)}
-                </select>
-              </label>
+              <LocalidadSelect localities={localidades} className="glass-field mt-1 w-full px-3 py-2.5 text-sm" />
             )}
             {pedirTerminos && (
               <label className="flex items-start gap-3 rounded-xl bg-white/60 p-3 text-sm text-slate-700">

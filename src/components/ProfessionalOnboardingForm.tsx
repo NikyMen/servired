@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { idPorDefecto } from "@/lib/localidad-defecto";
+import { LocalidadSelect } from "@/components/LocalidadSelect";
 import { ZonaTrabajo } from "@/components/pro/ZonaTrabajo";
 import type { Punto } from "@/lib/geo";
 
@@ -210,7 +211,7 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
       </>}
       {step === 2 && <>
         <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Nombre legal<input value={values.legalName} onChange={(e) => update("legalName", e.target.value)} className={FIELD} /></label><label className="text-sm font-medium">Email verificado<input value={initial.email} disabled className={`${FIELD} opacity-70`} /></label><label className="text-sm font-medium">Teléfono<input value={values.phone} onChange={(e) => update("phone", e.target.value)} type="tel" className={FIELD} /></label><label className="text-sm font-medium">Fecha de nacimiento<input value={values.birthDate} onChange={(e) => update("birthDate", e.target.value)} type="date" className={FIELD} /></label><label className="text-sm font-medium">CUIL<input value={values.cuil} onChange={(e) => update("cuil", e.target.value)} inputMode="numeric" placeholder="20-12345678-6" className={FIELD} /></label><label className="text-sm font-medium sm:col-span-2">Domicilio<input value={values.address} onChange={(e) => update("address", e.target.value)} className={FIELD} /></label></div>
-        <div className="grid gap-3 sm:grid-cols-3"><label className="text-sm font-medium">Localidad<select value={values.localityId} onChange={(e) => update("localityId", e.target.value)} required className={FIELD}>{!localities.length && <option value="">No pudimos cargar las localidades</option>}{localities.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label><label className="text-sm font-medium">Provincia<input value={selectedLocality?.province ?? ""} disabled className={`${FIELD} opacity-70`} /></label><label className="text-sm font-medium">País<input value="Argentina" disabled className={`${FIELD} opacity-70`} /></label></div>
+        <div className="grid gap-3 sm:grid-cols-3"><div className="sm:col-span-2"><LocalidadSelect localities={localities} value={values.localityId} onChange={(id) => { update("localityId", id); setZona(null); }} className={FIELD} /></div><label className="text-sm font-medium">País<input value="Argentina" disabled className={`${FIELD} opacity-70`} /></label></div>
         <ZonaTrabajo zona={zona} centro={selectedLocality ? { lat: selectedLocality.latitude, lng: selectedLocality.longitude } : { lat: -27.4692, lng: -58.8306 }} onChange={setZona} />
       </>}
       {step === 3 && <>

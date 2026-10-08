@@ -164,10 +164,10 @@ test("la lista base de localidades arranca por Capital, sin repetidos y con punt
   assert.deepEqual({ name: LOCALIDADES_BASE[0].name, province: LOCALIDADES_BASE[0].province }, CAPITAL);
   const claves = LOCALIDADES_BASE.map((l) => `${l.name}|${l.province}`);
   assert.equal(new Set(claves).size, claves.length);
-  // Corrientes y el Gran Resistencia caen entre estos límites.
+  assert.deepEqual([...new Set(LOCALIDADES_BASE.map((l) => l.province))].sort(), ["Chaco", "Corrientes", "Entre Ríos"]);
   for (const l of LOCALIDADES_BASE) {
-    assert.ok(l.latitude < -27 && l.latitude > -30.5, l.name);
-    assert.ok(l.longitude < -55.9 && l.longitude > -59.7, l.name);
+    assert.ok(l.latitude < -26 && l.latitude > -34, l.name);
+    assert.ok(l.longitude < -55.9 && l.longitude > -62, l.name);
   }
   assert.equal(zonaDe(CAPITAL), "Corrientes Capital, Corrientes");
 });
