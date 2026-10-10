@@ -24,7 +24,7 @@ export function Footer({ mode, soporte }: { mode: Mode; soporte?: { href: string
 
   return (
     <footer className="glass-bar mt-12 border-t border-white/60">
-      <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 pb-28 sm:grid-cols-2 md:grid-cols-3 md:pb-10">
+      <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 sm:grid-cols-2 md:grid-cols-3">
         <div className="space-y-3">
           <Logo accent={mode} href={isPro ? "/pro" : "/"} />
           <p className="max-w-xs text-sm text-slate-500">
@@ -101,8 +101,10 @@ export function Footer({ mode, soporte }: { mode: Mode; soporte?: { href: string
         </div>
       </div>
 
-      <div className="border-t border-white/50">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-slate-400 sm:flex-row">
+      {/* El margen de abajo va en esta última fila (y no en la de arriba): en el
+          celular la barra fija de navegación tapaba justo el link a los términos. */}
+      <div className="border-t border-white/50 pb-28 md:pb-0">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-slate-500 sm:flex-row">
           <p>© {new Date().getFullYear()} ServiRed. Todos los derechos reservados.</p>
           <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             <Link href="/terminos" className="transition-colors hover:text-slate-600">Términos y condiciones</Link>

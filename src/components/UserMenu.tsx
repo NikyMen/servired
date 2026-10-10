@@ -103,6 +103,14 @@ export function UserMenu({ user, mode }: { user: SessionUser | null; mode: Mode 
             >
               Mensajes
             </Link>
+            <Link
+              href="/terminos"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="block px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100"
+            >
+              Términos y condiciones
+            </Link>
           </div>
 
           <form action={logoutAction} className="border-t border-slate-100 p-2">
