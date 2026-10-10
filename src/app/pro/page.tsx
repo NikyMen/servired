@@ -42,7 +42,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
     const cuenta = await prisma.user.findUnique({ where: { id: user.id }, select: { ofertasDependencia: true } });
     return <ProfessionalOnboardingForm categories={categories.map(({ id, name, icon, kind, parent }) => ({ id, name, icon, kind, parent }))} localities={localities.map(({ id, name, province, latitude, longitude }) => ({ id, name, province, latitude, longitude }))} initial={{
       name: user.name, email: user.email, avatarUrl: user.avatarUrl, providerType, status: pro?.profileStatus, reason: existingKyc?.reviewReason,
-      categoryIds: pro?.categoryLinks.map((link) => link.categoryId), headline: pro?.headline, bio: pro?.bio ?? "", yearsExperience: pro?.yearsExperience ?? 0,
+      categoryIds: pro?.categoryLinks.map((link) => link.categoryId), headline: pro?.headline, bio: pro?.bio ?? "", yearsExperience: pro?.yearsExperience ?? 0, urgencias24: pro?.urgencias24 ?? false,
       legalName: existingKyc?.legalName, phone: existingKyc?.phone, birthDate: existingKyc?.birthDate.toISOString().slice(0, 10), cuil: existingKyc ? decryptKyc(existingKyc.cuilEncrypted) : undefined, address: existingKyc?.address, localityId: user.localityId, zona: pro?.latitude != null && pro.longitude != null ? { lat: pro.latitude, lng: pro.longitude } : null, ofertasDependencia: cuenta?.ofertasDependencia ?? false,
     }} />;
   }

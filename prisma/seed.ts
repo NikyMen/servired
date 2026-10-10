@@ -337,6 +337,7 @@ async function main() {
         providerType: categories.find((category) => category.slug === p.categorySlug)?.kind || "oficio",
         featured: p.featured,
         yearsExperience: p.yearsExperience,
+        urgencias24: proIndex % 3 === 0,
         categoryId,
         categoryLinks: { create: { categoryId, isPrimary: true } },
         userId: proUser.id,

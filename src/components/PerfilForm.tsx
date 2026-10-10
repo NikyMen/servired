@@ -20,6 +20,7 @@ type Perfil = {
   providerType?: "profesional" | "oficio";
   phone?: string | null;
   yearsExperience?: number;
+  urgencias24?: boolean;
 };
 
 export function PerfilForm({ perfil, categories = [], centroZona = { lat: -27.4692, lng: -58.8306 } }: { perfil: Perfil; centroZona?: Punto; categories?: { id: string; name: string; icon: string; parentId?: string | null; parent?: { name: string } | null }[] }) {
@@ -33,6 +34,7 @@ export function PerfilForm({ perfil, categories = [], centroZona = { lat: -27.46
     address: perfil.address ?? "Corrientes, Argentina",
     phone: perfil.phone ?? "",
     yearsExperience: perfil.yearsExperience ?? 0,
+    urgencias24: perfil.urgencias24 ?? false,
   });
   // La zona de trabajo es opcional: null = aparece en un punto aproximado de su localidad.
   const [zona, setZona] = useState<Punto | null>(perfil.latitude != null && perfil.longitude != null ? { lat: perfil.latitude, lng: perfil.longitude } : null);
@@ -150,6 +152,10 @@ export function PerfilForm({ perfil, categories = [], centroZona = { lat: -27.46
             <input required value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Calle y altura, Corrientes" className={`${field} mt-1`} />
           </label>
         </div>
+        <label className="flex items-start gap-3 rounded-xl bg-red-50/70 p-3 text-sm text-slate-800 ring-1 ring-red-100">
+          <input type="checkbox" checked={form.urgencias24} onChange={(e) => setForm({ ...form, urgencias24: e.target.checked })} className="mt-0.5 size-5 shrink-0" />
+          <span><strong>🚨 Atiendo urgencias las 24 hs</strong><span className="mt-0.5 block text-xs text-slate-600">Aparecés con la insignia roja y en el filtro «Urgencias 24 hs» de Busco. Tildalo solo si de verdad podés salir a cualquier hora.</span></span>
+        </label>
         <label className="block text-sm font-medium text-slate-900">Descripción de los trabajos que ofrecés
           <textarea required minLength={20} rows={4} value={form.bio ?? ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} className={`${field} mt-1 resize-none`} />
         </label>

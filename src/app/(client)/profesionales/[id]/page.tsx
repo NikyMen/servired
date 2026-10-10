@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatDate, formatMonthYear } from "@/lib/format";
 import { getSessionUser } from "@/lib/auth";
-import { Avatar, MatriculadoBadge, Rating, VerifiedBadge } from "@/components/ui";
+import { Avatar, MatriculadoBadge, Rating, UrgenciasBadge, VerifiedBadge } from "@/components/ui";
 import { ContratarBox } from "@/components/ContratarBox";
 import { ContratarSheet } from "@/components/ContratarSheet";
 import { StarIcon, MapPinIcon } from "@/components/icons";
@@ -107,6 +107,7 @@ export default async function ProfesionalPage({
                   {pro.verified && <VerifiedBadge />}
                 </div>
                 {pro.matriculado && <MatriculadoBadge detalle={rubrosMatricula(pro.credentials)} className="mt-1" />}
+                {pro.urgencias24 && <UrgenciasBadge className="mt-1" />}
                 <p className="text-sm text-slate-500">
                   {pro.headline} · {pro.category.icon} {pro.category.name}
                 </p>
@@ -117,6 +118,7 @@ export default async function ProfesionalPage({
                 <h1 className="text-2xl font-bold text-slate-900">{pro.businessName || pro.name}</h1>
                 {pro.verified && <VerifiedBadge className="[&>svg]:h-6 [&>svg]:w-6" />}
                 {pro.matriculado && <MatriculadoBadge detalle={rubrosMatricula(pro.credentials)} />}
+                {pro.urgencias24 && <UrgenciasBadge />}
               </div>
               <p className="hidden text-slate-500 sm:block">
                 {pro.headline} · {pro.category.icon} {pro.category.name} · {pro.providerType === "profesional" ? "Profesional" : "Oficio"}

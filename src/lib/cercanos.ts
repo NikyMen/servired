@@ -4,16 +4,17 @@ import { RADIO_KM, haversineKm, puntoDePro, type Punto } from "@/lib/geo";
 import { rankProfessionals } from "@/lib/search";
 import { capital } from "@/lib/ubicacion";
 
-export type Filtros = { q?: string; categoria?: string; tipo?: "profesional" | "oficio" };
+export type Filtros = { q?: string; categoria?: string; tipo?: "profesional" | "oficio"; urgencias?: boolean };
 
 /** Mismas condiciones que un perfil tiene que cumplir para aparecer en cualquier búsqueda. */
-export function filtroProfesionales({ categoria, tipo }: Filtros): Prisma.ProfessionalWhereInput {
+export function filtroProfesionales({ categoria, tipo, urgencias }: Filtros): Prisma.ProfessionalWhereInput {
   const filters: Prisma.ProfessionalWhereInput[] = [
     { profileStatus: "approved" },
     { OR: [{ userId: null }, { user: { accountStatus: "approved", perfilOculto: false } }] },
   ];
   if (categoria) filters.push({ OR: [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }, { categoryLinks: { some: { category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }], approvalStatus: "approved" } } } }] });
   if (tipo) filters.push({ providerType: tipo });
+  if (urgencias) filters.push({ urgencias24: true });
   return { AND: filters };
 }
 

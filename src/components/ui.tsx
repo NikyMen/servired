@@ -19,6 +19,15 @@ export function MatriculadoBadge({ detalle, className = "" }: { detalle?: string
   );
 }
 
+/** Atiende urgencias las 24 hs: la marca el propio oferente. */
+export function UrgenciasBadge({ className = "" }: { className?: string }) {
+  return (
+    <span title="Atiende urgencias las 24 hs" className={`inline-flex shrink-0 items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-red-700 ring-1 ring-red-200 ${className}`}>
+      🚨 Urgencias 24 hs
+    </span>
+  );
+}
+
 /** Calificación con estrella. */
 export function Rating({
   value,

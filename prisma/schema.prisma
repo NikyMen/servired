@@ -385,6 +385,9 @@ model Professional {
   featured        Boolean @default(false)
   yearsExperience Int     @default(0)
   providerType    String  @default("oficio") // profesional | oficio
+  /// Atiende urgencias las 24 hs. Lo tilda el propio oferente (alta o Mi
+  /// perfil); muestra la insignia roja y entra en el filtro de Busco.
+  urgencias24     Boolean @default(false)
 
   categoryId    String
   category      Category               @relation(fields: [categoryId], references: [id])

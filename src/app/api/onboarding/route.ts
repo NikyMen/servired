@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
 
   const providerType = value(form, "providerType") === "profesional" ? "profesional" : "oficio";
   const ofertasDependencia = value(form, "ofertasDependencia") === "on";
+  const urgencias24 = value(form, "urgencias24") === "on";
   const legalName = value(form, "legalName");
   const phone = value(form, "phone");
   const birthDate = new Date(value(form, "birthDate"));
@@ -116,8 +117,8 @@ export async function POST(req: NextRequest) {
       }
       const professional = await tx.professional.upsert({
         where: { userId: session.id },
-        create: { userId: session.id, name: legalName, headline, bio, zone: zonaDe(localidad), address, priceFrom: 0, categoryId: linkedCategoryIds[0], avatarUrl, avatarColor: "#059669", profileStatus: "pending", verified: false, providerType, phone, yearsExperience, latitude: zona?.lat ?? null, longitude: zona?.lng ?? null },
-        update: { name: legalName, headline, bio, zone: zonaDe(localidad), address, categoryId: linkedCategoryIds[0], avatarUrl, profileStatus: "pending", verified: false, providerType, phone, yearsExperience, latitude: zona?.lat ?? null, longitude: zona?.lng ?? null },
+        create: { userId: session.id, name: legalName, headline, bio, zone: zonaDe(localidad), address, priceFrom: 0, categoryId: linkedCategoryIds[0], avatarUrl, avatarColor: "#059669", profileStatus: "pending", verified: false, providerType, phone, yearsExperience, urgencias24, latitude: zona?.lat ?? null, longitude: zona?.lng ?? null },
+        update: { name: legalName, headline, bio, zone: zonaDe(localidad), address, categoryId: linkedCategoryIds[0], avatarUrl, profileStatus: "pending", verified: false, providerType, phone, yearsExperience, urgencias24, latitude: zona?.lat ?? null, longitude: zona?.lng ?? null },
       });
       await tx.professionalCategory.deleteMany({ where: { professionalId: professional.id } });
       await tx.professionalCategory.createMany({ data: linkedCategoryIds.map((categoryId, index) => ({ professionalId: professional.id, categoryId, isPrimary: index === 0 })) });

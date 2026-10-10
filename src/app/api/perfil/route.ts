@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest) {
       headline, bio,
       // La zona sale de la localidad de la cuenta; si todavía no tiene, queda la que había.
       address: String(body.address ?? "").trim().slice(0, 180) || "Corrientes, Argentina", ...(localidad ? { zone: zonaDe(localidad) } : {}),
-      phone, yearsExperience,
+      phone, yearsExperience, urgencias24: body.urgencias24 === true,
       latitude: zona?.lat ?? null, longitude: zona?.lng ?? null, categoryId,
     } });
     await tx.professionalCategory.deleteMany({ where: { professionalId: user.professionalId!, categoryId: { notIn: ocultos } } });

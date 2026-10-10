@@ -22,6 +22,8 @@ export type ProCard = {
   verified: boolean;
   /** Matrícula o certificado aprobado. */
   matriculado?: boolean;
+  /** Atiende urgencias las 24 hs. */
+  urgencias24?: boolean;
   featured: boolean;
   yearsExperience: number;
 };

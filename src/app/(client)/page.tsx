@@ -20,10 +20,10 @@ import { MapaBloqueado } from "@/components/mapa/MapaBloqueado";
 
 export const dynamic = "force-dynamic";
 
-type Search = { q?: string; categoria?: string; tipo?: "profesional" | "oficio" };
+type Search = { q?: string; categoria?: string; tipo?: "profesional" | "oficio"; urgencias?: string };
 
 
-async function getData({ q, categoria, tipo }: Search) {
+async function getData({ q, categoria, tipo, urgencias }: Search) {
   const user = await getSessionUser();
   // Con sesión todo se limita a 10 km de su ubicación; el invitado ve todo,
   // pero sin ninguna coordenada (ni mapa ni punto de las solicitudes).
@@ -35,7 +35,7 @@ async function getData({ q, categoria, tipo }: Search) {
     prisma.category.findMany({ where: { approvalStatus: "approved" }, include: { parent: true }, orderBy: [{ parentId: "asc" }, { createdAt: "asc" }] }),
     // La categoría filtra; el texto libre se rankea en memoria
     // (ver src/lib/search.ts: LIKE de SQLite no ignora acentos ni tolera typos).
-    buscarProfesionales({ q, categoria, tipo }, centro, null),
+    buscarProfesionales({ q, categoria, tipo, urgencias: urgencias === "1" }, centro, null),
     prisma.serviceRequest.findMany({
       where: { status: "abierta", expiresAt: { gt: new Date() }, user: { accountStatus: "approved", solicitudesOcultas: false }, AND: [...(categoria ? [{ category: { OR: [{ slug: categoria }, { parent: { slug: categoria } }] } }] : []), ...(tipo ? [{ category: { kind: tipo } }] : [])] },
       orderBy: { createdAt: "desc" },
@@ -66,11 +66,12 @@ async function getData({ q, categoria, tipo }: Search) {
   };
 }
 
-function chipHref(params: Search, categoria: string) {
+function chipHref(params: Search, categoria: string | undefined, urgencias = params.urgencias === "1") {
   const sp = new URLSearchParams();
   if (params.q) sp.set("q", params.q);
   if (params.tipo) sp.set("tipo", params.tipo);
   if (categoria) sp.set("categoria", categoria);
+  if (urgencias) sp.set("urgencias", "1");
   const qs = sp.toString();
   return qs ? `/?${qs}` : "/";
 }
@@ -125,6 +126,7 @@ export default async function HomePage({
         providerType: p.providerType === "profesional" ? "profesional" : "oficio",
         verified: p.verified,
         matriculado: p.matriculado,
+        urgencias24: p.urgencias24,
         featured: p.featured,
         yearsExperience: p.yearsExperience,
       }}
@@ -192,6 +194,15 @@ export default async function HomePage({
       </section>
 
       <section id="categorias" aria-label="Categorías de servicios" className="scroll-mt-28 space-y-3">
+        {/* Prende y apaga el filtro sin perder la categoría ni lo buscado. */}
+        <Link
+          href={chipHref(params, params.categoria, params.urgencias !== "1")}
+          scroll={false}
+          aria-pressed={params.urgencias === "1"}
+          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold shadow-sm ring-1 transition-colors ${params.urgencias === "1" ? "bg-red-600 text-white ring-red-600 hover:bg-red-700" : "bg-white/80 text-red-700 ring-red-200 hover:bg-red-50"}`}
+        >
+          🚨 Urgencias 24 hs{params.urgencias === "1" && <span aria-hidden>✕</span>}
+        </Link>
         <CategoriasMenu
           todos={{ key: "", href: chipHref(params, ""), label: "Todos", active: !params.categoria }}
           principales={principales.map((category) => ({
@@ -277,7 +288,7 @@ export default async function HomePage({
               points={[
                 ...pros.filter((p) => p.distanciaKm != null && p.distanciaKm <= RADIO_KM).map((p) => ({
                   id: p.id, type: "profesional" as const, title: p.businessName || p.name,
-                  subtitle: `${p.headline} · ${p.localidadNombre ?? p.zone}${p.punto.aproximado ? " (zona aproximada)" : ""}${p.distanciaKm != null ? ` · ${formatoDistancia(p.distanciaKm)}` : ""}`, latitude: p.punto.lat, longitude: p.punto.lng, href: `/profesionales/${p.id}`,
+                  subtitle: `${p.urgencias24 ? "🚨 Urgencias 24 hs · " : ""}${p.headline} · ${p.localidadNombre ?? p.zone}${p.punto.aproximado ? " (zona aproximada)" : ""}${p.distanciaKm != null ? ` · ${formatoDistancia(p.distanciaKm)}` : ""}`, latitude: p.punto.lat, longitude: p.punto.lng, href: `/profesionales/${p.id}`,
                   avatar: { url: p.avatarUrl, color: p.avatarColor }, aproximado: p.punto.aproximado,
                 })),
                 ...requests.map((r) => {
