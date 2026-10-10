@@ -8,6 +8,7 @@ import { ACTIVE_JOB_STATUSES } from "@/lib/workflow";
 import { slugify } from "@/lib/format";
 import { resolverLocalidad, zonaDe } from "@/lib/localidades";
 import { leerZona } from "@/lib/geo";
+import { notificar } from "@/lib/notificaciones";
 
 function value(form: FormData, key: string) { return String(form.get(key) ?? "").trim(); }
 
@@ -121,6 +122,14 @@ export async function POST(req: NextRequest) {
       await tx.professionalCategory.deleteMany({ where: { professionalId: professional.id } });
       await tx.professionalCategory.createMany({ data: linkedCategoryIds.map((categoryId, index) => ({ professionalId: professional.id, categoryId, isPrimary: index === 0 })) });
       await tx.user.update({ where: { id: session.id }, data: { name: legalName, avatarUrl, localityId: localidad.id, ofertasDependencia, ofertasDependenciaAt: ofertasDependencia ? new Date() : null } });
+      // Mismo groupKey que la respuesta de administración: la aprobación lo reemplaza.
+      await notificar(tx, session.id, {
+        kind: "kyc",
+        title: "Recibimos tu documentación",
+        body: "Tu perfil aparece en ServiRed cuando administración lo aprueba. Te avisamos acá.",
+        url: "/pro",
+        groupKey: `kyc:${kyc.id}`,
+      });
     });
     committed = true;
     await Promise.all(previousCase?.documents.map((document) => removeKycDocument(document.filename)) ?? []);

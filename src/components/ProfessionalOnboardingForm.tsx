@@ -179,11 +179,19 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
     form.set("dni_front", dniFront!); form.set("dni_back", dniBack!); form.set("identity_video", video!);
     form.set("videoChallenge", challenge); form.set("videoChallengeToken", challengeToken);
     form.set("customCategory", oficio === "otra" ? values.headline.trim() : "");
-    const response = await fetch("/api/onboarding", { method: "POST", body: form });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) setError(data.error || "No pudimos enviar la verificación.");
-    else { localStorage.removeItem(draftKey); router.refresh(); }
-    setBusy(false);
+    /* Si la conexión se corta mientras suben el DNI y el video (red del
+       celular, video pesado), fetch tira en vez de responder: sin el finally
+       el botón quedaba en «Enviando…» para siempre y sin ningún aviso. */
+    try {
+      const response = await fetch("/api/onboarding", { method: "POST", body: form });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) setError(data.error || "No pudimos enviar la verificación.");
+      else { localStorage.removeItem(draftKey); router.refresh(); }
+    } catch {
+      setError("Se cortó la conexión mientras se subían los archivos. Probá de nuevo, mejor con wifi.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return <div className="mx-auto max-w-3xl space-y-5">
