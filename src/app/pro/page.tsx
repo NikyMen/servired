@@ -10,7 +10,7 @@ import { BookingActions } from "@/components/BookingActions";
 import { SolicitudCard } from "@/components/pro/SolicitudCard";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
 import { CompartirPerfil } from "@/components/CompartirPerfil";
-import { ChatIcon, ChevronLeftIcon, MercadoPagoIcon } from "@/components/icons";
+import { ChatIcon, ChevronLeftIcon, MapPinIcon, MercadoPagoIcon } from "@/components/icons";
 import { expirePendingProposals, expireServiceRequests, openRequestsWhere } from "@/lib/workflow";
 import { ProfessionalOnboardingForm } from "@/components/ProfessionalOnboardingForm";
 import { redirect } from "next/navigation";
@@ -126,6 +126,18 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
           <span className="min-w-0 flex-1">
             <span className="block font-bold">{mpEstado.estado === "revincular" ? "Se cortó la conexión con Mercado Pago" : "Vinculá Mercado Pago para cobrar"}</span>
             <span className="block text-sm text-white/85">Lo hacés desde Mi perfil, en un minuto.</span>
+          </span>
+          <span aria-hidden className="text-xl">→</span>
+        </Link>
+      )}
+
+      {/* Sin zona marcada sale en un punto aproximado del mapa: que la marque. */}
+      {pro.latitude == null && (
+        <Link href="/pro/mi-perfil#ubicacion" className="flex items-center gap-3 rounded-2xl bg-amber-50 p-4 text-amber-900 ring-1 ring-amber-200 transition hover:bg-amber-100">
+          <MapPinIcon width={26} height={26} className="shrink-0 text-amber-600" />
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">Marcá tu zona de trabajo</span>
+            <span className="block text-sm text-amber-800">Así aparecés en el mapa donde trabajás de verdad, y no en un lugar aproximado.</span>
           </span>
           <span aria-hidden className="text-xl">→</span>
         </Link>

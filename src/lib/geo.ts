@@ -106,8 +106,56 @@ export function agruparPuntos<T extends Punto>(items: T[], zoom: number, celdaPx
   }));
 }
 
-/** Dónde está un profesional: su punto; si no marcó uno, el de su localidad; si tampoco, el respaldo (Capital). */
-export function puntoDePro(pro: { latitude: number | null; longitude: number | null }, localidad: Punto | null, respaldo: Punto): Punto {
-  if (pro.latitude != null && pro.longitude != null) return { lat: pro.latitude, lng: pro.longitude };
-  return localidad ?? respaldo;
+/**
+ * Cómo se reparten los que no marcaron zona alrededor del centro de su
+ * localidad. Rumbos en grados desde el norte, en sentido horario. En
+ * Corrientes Capital el río queda al norte y al oeste del centro: el reparto
+ * va solo hacia la ciudad (este, sur y sudoeste), y más amplio porque es grande.
+ */
+type Reparto = { minKm: number; maxKm: number; desde: number; hasta: number };
+const REPARTO_GENERAL: Reparto = { minKm: 0.3, maxKm: 1.5, desde: 0, hasta: 360 };
+const REPARTOS_LOCALES: { centro: Punto; reparto: Reparto }[] = [
+  { centro: CENTRO_CORRIENTES, reparto: { minKm: 0.5, maxKm: 3, desde: 90, hasta: 230 } },
+];
+
+/** FNV-1a de 32 bits, pasado a [0, 1): el mismo texto da siempre el mismo número. */
+function azarFijo(texto: string) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < texto.length; i++) {
+    hash ^= texto.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0) / 2 ** 32;
+}
+
+/**
+ * Un punto estable cerca de `centro`, elegido por `id`. Es para los que no
+ * marcaron zona: si todos cayeran justo en el centro de la localidad, el
+ * mapa los apilaba uno encima del otro. Siempre el mismo lugar para el mismo
+ * id (no salta entre visitas), repartido parejo por superficie.
+ */
+export function puntoAproximado(id: string, centro: Punto): Punto {
+  const reparto = REPARTOS_LOCALES.find((r) => haversineKm(r.centro, centro) <= 1)?.reparto ?? REPARTO_GENERAL;
+  const rumbo = ((reparto.desde + azarFijo(`${id}:rumbo`) * (reparto.hasta - reparto.desde)) * Math.PI) / 180;
+  const km = Math.sqrt(reparto.minKm ** 2 + azarFijo(`${id}:distancia`) * (reparto.maxKm ** 2 - reparto.minKm ** 2));
+  const kmPorGradoLat = 111.32;
+  return {
+    lat: centro.lat + (km * Math.cos(rumbo)) / kmPorGradoLat,
+    lng: centro.lng + (km * Math.sin(rumbo)) / (kmPorGradoLat * Math.cos((centro.lat * Math.PI) / 180)),
+  };
+}
+
+/** El pin con el que arranca "Publicar solicitud": si quedó ahí, nadie lo movió. */
+export function esPinPorDefecto(p: Punto) {
+  return Math.abs(p.lat - CENTRO_CORRIENTES.lat) < 1e-6 && Math.abs(p.lng - CENTRO_CORRIENTES.lng) < 1e-6;
+}
+
+/**
+ * Dónde está un profesional: su punto; si no marcó uno, un lugar aproximado
+ * (`puntoAproximado`) alrededor del de su localidad o, sin localidad, del
+ * respaldo (Capital).
+ */
+export function puntoDePro(pro: { id: string; latitude: number | null; longitude: number | null }, localidad: Punto | null, respaldo: Punto): Punto & { aproximado: boolean } {
+  if (pro.latitude != null && pro.longitude != null) return { lat: pro.latitude, lng: pro.longitude, aproximado: false };
+  return { ...puntoAproximado(pro.id, localidad ?? respaldo), aproximado: true };
 }

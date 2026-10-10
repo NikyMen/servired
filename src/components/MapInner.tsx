@@ -70,16 +70,18 @@ function Zonas({ points }: { points: MapPoint[] }) {
     const center: [number, number] = [point.latitude, point.longitude];
     const color = COLORS[point.type];
     const key = `${point.type}-${point.id}`;
+    // Punteada y más tenue: es una zona aproximada, no la que marcó.
+    const trazo = point.aproximado ? { color, weight: 2, fillOpacity: 0.1, dashArray: "4 5" } : { color, weight: 2, fillOpacity: 0.22 };
     if (point.type !== "profesional") {
       return (
-        <Circle key={key} center={center} radius={DIAMETRO_ZONA_M / 2} pathOptions={{ color, weight: 2, fillOpacity: 0.22 }}>
+        <Circle key={key} center={center} radius={DIAMETRO_ZONA_M / 2} pathOptions={trazo}>
           <Popupcito point={point} />
         </Circle>
       );
     }
     const irAlPerfil = () => point.href && router.push(point.href);
     return (
-      <Circle key={key} center={center} radius={DIAMETRO_ZONA_M / 2} pathOptions={{ color, weight: 2, fillOpacity: 0.22 }} eventHandlers={{ click: irAlPerfil }}>
+      <Circle key={key} center={center} radius={DIAMETRO_ZONA_M / 2} pathOptions={trazo} eventHandlers={{ click: irAlPerfil }}>
         {/* permanent solo se lee al crear el tooltip: la key lo rearma al cruzar el zoom. */}
         <Tooltip key={fijas ? "fija" : "hover"} permanent={fijas} interactive direction="top" offset={[0, -6]} className="servired-zona-label">
           <a

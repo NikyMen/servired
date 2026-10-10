@@ -13,7 +13,7 @@ import { pendienteDeAlta } from "../src/lib/auth";
 import { PLAZO_MENSAJES_MS, debeAvisarMensaje, firmaBaja, firmaValida, puedeRecibir } from "../src/lib/avisos-correo";
 import { validarCredencial } from "../src/lib/matriculas";
 import { decryptFile, encryptFile, formatoPorContenido, isEncryptedFile } from "../src/lib/kyc";
-import { RADIO_KM, agruparPuntos, formatoDistancia, haversineKm, leerPuntoCookie, puntoDePro, valorCookieUbicacion } from "../src/lib/geo";
+import { RADIO_KM, agruparPuntos, formatoDistancia, haversineKm, esPinPorDefecto, leerPuntoCookie, puntoAproximado, puntoDePro, valorCookieUbicacion } from "../src/lib/geo";
 import { rankProfessionals } from "../src/lib/search";
 import { crearFreno, ipCliente } from "../src/lib/intentos";
 import { ENCUADRE_NEUTRO, LADO_PLACA, PLACAS, SLOTS, SLOTS_VIEJOS, esSlotDePlaca, necesitaReencuadre, nombreDeSlot, placaDeSlot } from "../src/lib/publicidad";
@@ -265,12 +265,31 @@ test("la cookie de ubicación se lee redondeada y solo si cae en Argentina", () 
   assert.equal(leerPuntoCookie(undefined), null);
 });
 
-test("un profesional sin punto propio se ubica en su localidad, y si no tiene, en el respaldo", () => {
+test("un profesional sin punto propio se ubica cerca de su localidad, y si no tiene, cerca del respaldo", () => {
   const localidad = { lat: -29.14, lng: -59.26 };
   const respaldo = { lat: -27.47, lng: -58.83 };
-  assert.deepEqual(puntoDePro({ latitude: -27.5, longitude: -58.8 }, localidad, respaldo), { lat: -27.5, lng: -58.8 });
-  assert.deepEqual(puntoDePro({ latitude: null, longitude: null }, localidad, respaldo), localidad);
-  assert.deepEqual(puntoDePro({ latitude: null, longitude: null }, null, respaldo), respaldo);
+  assert.deepEqual(puntoDePro({ id: "a", latitude: -27.5, longitude: -58.8 }, localidad, respaldo), { lat: -27.5, lng: -58.8, aproximado: false });
+  const enLocalidad = puntoDePro({ id: "a", latitude: null, longitude: null }, localidad, respaldo);
+  assert.equal(enLocalidad.aproximado, true);
+  assert.ok(haversineKm(enLocalidad, localidad) <= 1.5 + 1e-9);
+  assert.ok(haversineKm(puntoDePro({ id: "a", latitude: null, longitude: null }, null, respaldo), respaldo) <= 3 + 1e-9);
+});
+
+test("los que no marcaron zona se reparten en lugares fijos y distintos, sin caer en el río de Corrientes", () => {
+  const capital = { lat: -27.4692, lng: -58.8306 };
+  const puntos = Array.from({ length: 200 }, (_, i) => puntoAproximado(`pro-${i}`, capital));
+  assert.deepEqual(puntoAproximado("pro-7", capital), puntos[7]);
+  assert.ok(new Set(puntos.map((p) => `${p.lat.toFixed(4)}|${p.lng.toFixed(4)}`)).size > 190);
+  for (const p of puntos) {
+    const km = haversineKm(p, capital);
+    assert.ok(km >= 0.5 - 1e-9 && km <= 3 + 1e-9);
+    // Del lado de la ciudad: nunca al norte del centro (rumbos de 90° a 230°).
+    assert.ok(p.lat <= capital.lat + 1e-9);
+  }
+  const otra = { lat: -29.14, lng: -59.26 };
+  for (let i = 0; i < 50; i++) assert.ok(haversineKm(puntoAproximado(`x${i}`, otra), otra) <= 1.5 + 1e-9);
+  assert.equal(esPinPorDefecto(capital), true);
+  assert.equal(esPinPorDefecto({ lat: -27.47, lng: -58.83 }), false);
 });
 
 test("los pines cercanos se agrupan de lejos y se separan al acercarse", () => {

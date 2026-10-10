@@ -16,7 +16,7 @@ export type ItemMapa = Punto & {
   distancia: string;
   verified: boolean;
   matriculado: boolean;
-  /** Marcó su zona de trabajo (si no, el punto es el de su localidad). */
+  /** Marcó su zona de trabajo (si no, el punto es uno aproximado cerca de su localidad). */
   zona: boolean;
 };
 

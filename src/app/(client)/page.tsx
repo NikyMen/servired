@@ -13,7 +13,7 @@ import { getPublicitarHref } from "@/lib/soporte";
 import { getSessionUser } from "@/lib/auth";
 import { buscarProfesionales } from "@/lib/cercanos";
 import { agruparProfesionales } from "@/lib/grupos-profesionales";
-import { ENCUADRE_CORRIENTES, RADIO_KM, enCorrientesCapital, formatoDistancia, haversineKm } from "@/lib/geo";
+import { ENCUADRE_CORRIENTES, RADIO_KM, enCorrientesCapital, esPinPorDefecto, formatoDistancia, haversineKm, puntoAproximado } from "@/lib/geo";
 import { resolverUbicacion } from "@/lib/ubicacion";
 import { AvisoUbicacion } from "@/components/AvisoUbicacion";
 import { MapaBloqueado } from "@/components/mapa/MapaBloqueado";
@@ -277,13 +277,18 @@ export default async function HomePage({
               points={[
                 ...pros.filter((p) => p.distanciaKm != null && p.distanciaKm <= RADIO_KM).map((p) => ({
                   id: p.id, type: "profesional" as const, title: p.businessName || p.name,
-                  subtitle: `${p.headline} · ${p.localidadNombre ?? p.zone}${p.distanciaKm != null ? ` · ${formatoDistancia(p.distanciaKm)}` : ""}`, latitude: p.punto.lat, longitude: p.punto.lng, href: `/profesionales/${p.id}`,
-                  avatar: { url: p.avatarUrl, color: p.avatarColor },
+                  subtitle: `${p.headline} · ${p.localidadNombre ?? p.zone}${p.punto.aproximado ? " (zona aproximada)" : ""}${p.distanciaKm != null ? ` · ${formatoDistancia(p.distanciaKm)}` : ""}`, latitude: p.punto.lat, longitude: p.punto.lng, href: `/profesionales/${p.id}`,
+                  avatar: { url: p.avatarUrl, color: p.avatarColor }, aproximado: p.punto.aproximado,
                 })),
-                ...requests.map((r) => ({
-                  id: r.id, type: "solicitud" as const, title: r.title,
-                  subtitle: `${r.category?.name ?? "Otro"} · ${r.zone}`, latitude: r.latitude, longitude: r.longitude, href: "/solicitudes",
-                })),
+                ...requests.map((r) => {
+                  // Pin sin mover al publicar: se reparte igual que los perfiles sin zona.
+                  const aproximado = esPinPorDefecto({ lat: r.latitude, lng: r.longitude });
+                  const punto = aproximado ? puntoAproximado(r.id, { lat: r.latitude, lng: r.longitude }) : { lat: r.latitude, lng: r.longitude };
+                  return {
+                    id: r.id, type: "solicitud" as const, title: r.title,
+                    subtitle: `${r.category?.name ?? "Otro"} · ${r.zone}${aproximado ? " (zona aproximada)" : ""}`, latitude: punto.lat, longitude: punto.lng, href: "/solicitudes", aproximado,
+                  };
+                }),
                 ...workPhotos.map((work) => ({
                   id: work.id, type: "trabajo" as const, title: work.title,
                   subtitle: `${work.professional.businessName || work.professional.name} · ${work.address || "Corrientes"}`, latitude: work.latitude!, longitude: work.longitude!, href: `/profesionales/${work.professional.id}`,

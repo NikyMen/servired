@@ -14,6 +14,8 @@ export type MapPoint = {
   radioM?: number;
   /** Foto o iniciales del profesional, para la etiqueta de su zona. */
   avatar?: { url: string | null; color: string };
+  /** No marcó dónde: el punto es uno aproximado de su localidad y se dibuja punteado. */
+  aproximado?: boolean;
 };
 
 export type Encuadre = { sur: number; oeste: number; norte: number; este: number };
