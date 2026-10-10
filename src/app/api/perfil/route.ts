@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest) {
   if (!professional) return NextResponse.json({ error: "El perfil no existe." }, { status: 404 });
   if (user.professionalStatus !== "approved") return NextResponse.json({ error: "El perfil todavía no está aprobado." }, { status: 403 });
   if (name !== professional.name) return NextResponse.json({ error: "El nombre legal se cambia desde la nueva verificación KYC." }, { status: 409 });
-  // Zona de trabajo opcional: sin marcar, el mapa usa el punto de su localidad.
+  // Zona de trabajo opcional: sin marcar, el mapa usa un punto aproximado de su localidad.
   const zona = leerZona(body.latitude, body.longitude);
   const categoryIds = Array.isArray(body.categoryIds) ? [...new Set(body.categoryIds.filter((id): id is string => typeof id === "string"))] : [];
   const requestedCategories = categoryIds.length ? categoryIds : typeof body.categoryId === "string" ? [body.categoryId] : [];

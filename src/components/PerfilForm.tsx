@@ -34,7 +34,7 @@ export function PerfilForm({ perfil, categories = [], centroZona = { lat: -27.46
     phone: perfil.phone ?? "",
     yearsExperience: perfil.yearsExperience ?? 0,
   });
-  // La zona de trabajo es opcional: null = aparece en el punto de su localidad.
+  // La zona de trabajo es opcional: null = aparece en un punto aproximado de su localidad.
   const [zona, setZona] = useState<Punto | null>(perfil.latitude != null && perfil.longitude != null ? { lat: perfil.latitude, lng: perfil.longitude } : null);
   const [categoryIds, setCategoryIds] = useState<string[]>(perfil.categoryIds?.length ? perfil.categoryIds : perfil.categoryId ? [perfil.categoryId] : []);
   /* Misma preselección que en el alta, para que la actividad no se escriba de
