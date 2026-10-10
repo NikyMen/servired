@@ -20,12 +20,18 @@ export async function PATCH(req: NextRequest) {
   if (name.length < 2) return NextResponse.json({ error: "Ingresá tu nombre." }, { status: 422 });
   if (avatarUrl === undefined) return NextResponse.json({ error: "La foto de perfil no es válida." }, { status: 422 });
 
-  if (!user.professionalId) {
+  // Sin datos de Ofrezco (el Mi perfil de la cuenta) solo cambian el nombre y la foto.
+  if (!user.professionalId || !("headline" in body)) {
+    if (user.professionalId) {
+      const pro = await prisma.professional.findUnique({ where: { id: user.professionalId }, select: { name: true } });
+      if (pro && name !== pro.name) return NextResponse.json({ error: "El nombre legal se cambia desde la nueva verificación KYC." }, { status: 409 });
+      await prisma.professional.update({ where: { id: user.professionalId }, data: { avatarUrl } });
+    }
     await prisma.user.update({ where: { id: user.id }, data: { name, avatarUrl } });
     return NextResponse.json({ ok: true });
   }
 
-  const professional = await prisma.professional.findUnique({ where: { id: user.professionalId }, select: { providerType: true, name: true } });
+  const professional = await prisma.professional.findUnique({ where: { id: user.professionalId }, select: { providerType: true, name: true, categoryId: true, categoryLinks: { select: { categoryId: true, category: { select: { approvalStatus: true, kind: true, parentId: true } } } } } });
   if (!professional) return NextResponse.json({ error: "El perfil no existe." }, { status: 404 });
   if (user.professionalStatus !== "approved") return NextResponse.json({ error: "El perfil todavía no está aprobado." }, { status: 403 });
   if (name !== professional.name) return NextResponse.json({ error: "El nombre legal se cambia desde la nueva verificación KYC." }, { status: 409 });
@@ -33,10 +39,19 @@ export async function PATCH(req: NextRequest) {
   const zona = leerZona(body.latitude, body.longitude);
   const categoryIds = Array.isArray(body.categoryIds) ? [...new Set(body.categoryIds.filter((id): id is string => typeof id === "string"))] : [];
   const requestedCategories = categoryIds.length ? categoryIds : typeof body.categoryId === "string" ? [body.categoryId] : [];
-  const categoryId = requestedCategories[0];
   if (zona === undefined) return NextResponse.json({ error: "La zona marcada en el mapa no es válida." }, { status: 422 });
-  const validCategories = await prisma.category.findMany({ where: { id: { in: requestedCategories }, approvalStatus: "approved", kind: professional.providerType, parentId: { not: null } }, select: { id: true } });
-  if (!categoryId || validCategories.length !== requestedCategories.length) return NextResponse.json({ error: "Elegí al menos un rubro válido." }, { status: 422 });
+  /* Los rubros vinculados que el formulario no muestra (propuestos todavía sin
+     aprobar, deshabilitados o de otro tipo) no se pueden destildar: se
+     conservan tal cual y no traban el guardado. Solo se reemplazan los visibles. */
+  const ocultos = professional.categoryLinks
+    .filter(({ category }) => !(category.approvalStatus === "approved" && category.kind === professional.providerType && category.parentId !== null))
+    .map((link) => link.categoryId);
+  const pedidos = requestedCategories.filter((id) => !ocultos.includes(id));
+  const validCategories = await prisma.category.findMany({ where: { id: { in: pedidos }, approvalStatus: "approved", kind: professional.providerType, parentId: { not: null } }, select: { id: true } });
+  // findMany no respeta el orden pedido, y el primero es el rubro principal.
+  validCategories.sort((a, b) => pedidos.indexOf(a.id) - pedidos.indexOf(b.id));
+  if (validCategories.length !== pedidos.length || (!validCategories.length && !ocultos.length)) return NextResponse.json({ error: "Elegí al menos un rubro válido." }, { status: 422 });
+  const categoryId = validCategories[0]?.id ?? (ocultos.includes(professional.categoryId) ? professional.categoryId : ocultos[0]);
   const headline = String(body.headline ?? "").trim().slice(0, 100);
   const bio = String(body.bio ?? "").trim().slice(0, 1200);
   if (headline.length < 3 || bio.length < 20) return NextResponse.json({ error: "Completá la actividad y una descripción de al menos 20 caracteres." }, { status: 422 });
@@ -54,7 +69,8 @@ export async function PATCH(req: NextRequest) {
       phone, yearsExperience,
       latitude: zona?.lat ?? null, longitude: zona?.lng ?? null, categoryId,
     } });
-    await tx.professionalCategory.deleteMany({ where: { professionalId: user.professionalId! } });
+    await tx.professionalCategory.deleteMany({ where: { professionalId: user.professionalId!, categoryId: { notIn: ocultos } } });
+    if (validCategories.length) await tx.professionalCategory.updateMany({ where: { professionalId: user.professionalId! }, data: { isPrimary: false } });
     await tx.professionalCategory.createMany({ data: validCategories.map((category, index) => ({ professionalId: user.professionalId!, categoryId: category.id, isPrimary: index === 0 })) });
     await tx.user.update({ where: { id: user.id }, data: { name, avatarUrl } });
   });

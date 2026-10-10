@@ -36,7 +36,6 @@ export function PerfilForm({ perfil, categories = [], centroZona = { lat: -27.46
   });
   // La zona de trabajo es opcional: null = aparece en el punto de su localidad.
   const [zona, setZona] = useState<Punto | null>(perfil.latitude != null && perfil.longitude != null ? { lat: perfil.latitude, lng: perfil.longitude } : null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [categoryIds, setCategoryIds] = useState<string[]>(perfil.categoryIds?.length ? perfil.categoryIds : perfil.categoryId ? [perfil.categoryId] : []);
   /* Misma preselección que en el alta, para que la actividad no se escriba de
      cuarenta formas distintas. Acá "otra" es solo texto libre: proponer un
@@ -48,30 +47,53 @@ export function PerfilForm({ perfil, categories = [], centroZona = { lat: -27.46
   const [preview, setPreview] = useState<string | null>(perfil.avatarUrl);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [fotoEstado, setFotoEstado] = useState<{ subiendo: boolean; texto: string | null; error: boolean }>({ subiendo: false, texto: null, error: false });
+  const mensajeRef = useRef<HTMLParagraphElement>(null);
   const groupedCategories = [...categories.reduce((groups, category) => {
     const name = category.parent?.name ?? "Otros servicios";
     groups.set(name, [...(groups.get(name) ?? []), category]);
     return groups;
   }, new Map<string, typeof categories>()).entries()];
 
+  /* La foto se guarda sola apenas se elige, sin depender del resto del
+     formulario: antes viajaba con todo el perfil y, si fallaba cualquier otro
+     campo, la vista previa mostraba la foto nueva pero no quedaba guardada. */
+  async function cambiarFoto(file: File | undefined) {
+    if (!file) return;
+    const anterior = preview;
+    setPreview(URL.createObjectURL(file));
+    setFotoEstado({ subiendo: true, texto: "Subiendo foto…", error: false });
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const up = await fetch("/api/upload", { method: "POST", body: fd });
+      const uploaded = await up.json().catch(() => ({}));
+      if (!up.ok) throw new Error(uploaded.error ?? "No pudimos subir la foto.");
+      const res = isPro
+        ? await fetch("/api/pro/perfil", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ avatarUrl: uploaded.url }) })
+        : await fetch("/api/perfil", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: form.name, avatarUrl: uploaded.url }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "No pudimos guardar la foto.");
+      setForm((current) => ({ ...current, avatarUrl: uploaded.url }));
+      setFotoEstado({ subiendo: false, texto: "Foto actualizada.", error: false });
+      router.refresh();
+    } catch (error) {
+      setPreview(anterior);
+      setFotoEstado({ subiendo: false, texto: error instanceof Error ? error.message : "No pudimos cambiar la foto.", error: true });
+    } finally {
+      if (fileInput.current) fileInput.current.value = "";
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setMessage(null);
     try {
-      let avatarUrl = form.avatarUrl;
-      if (avatarFile) {
-        const fd = new FormData();
-        fd.append("file", avatarFile);
-        const up = await fetch("/api/upload", { method: "POST", body: fd });
-        const uploaded = await up.json().catch(() => ({}));
-        if (!up.ok) throw new Error(uploaded.error ?? "No pudimos subir la foto.");
-        avatarUrl = uploaded.url;
-      }
       const res = await fetch("/api/perfil", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, latitude: zona?.lat ?? null, longitude: zona?.lng ?? null, avatarUrl, categoryIds }),
+        body: JSON.stringify({ ...form, latitude: zona?.lat ?? null, longitude: zona?.lng ?? null, categoryIds }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "No pudimos guardar el perfil.");
@@ -81,6 +103,8 @@ export function PerfilForm({ perfil, categories = [], centroZona = { lat: -27.46
       setMessage(error instanceof Error ? error.message : "Ocurrió un error.");
     } finally {
       setSaving(false);
+      // El aviso queda al final de un formulario largo: lo traemos a la vista.
+      requestAnimationFrame(() => mensajeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
     }
   }
 
@@ -88,11 +112,11 @@ export function PerfilForm({ perfil, categories = [], centroZona = { lat: -27.46
   return (
     <form onSubmit={submit} className="glass glass-solid space-y-5 rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-4">
-        <button type="button" onClick={() => fileInput.current?.click()} className="size-20 overflow-hidden rounded-full bg-slate-200 ring-2 ring-white">
+        <button type="button" disabled={fotoEstado.subiendo} onClick={() => fileInput.current?.click()} className="size-20 shrink-0 overflow-hidden rounded-full bg-slate-200 ring-2 ring-white disabled:opacity-60">
           {preview ? <img src={preview} alt="Foto de perfil" className="size-full object-cover" /> : <span className="text-xs text-slate-500">Subir foto</span>}
         </button>
-        <div><p className="font-semibold text-slate-900">Foto de perfil</p><p className="text-xs text-slate-500">JPG, PNG, WEBP o GIF.</p></div>
-        <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) { setAvatarFile(file); setPreview(URL.createObjectURL(file)); } }} />
+        <div><p className="font-semibold text-slate-900">Foto de perfil</p><p className="text-xs text-slate-500">JPG, PNG, WEBP o GIF. Se guarda apenas la elegís.</p>{fotoEstado.texto && <p role="status" className={`mt-1 text-xs font-semibold ${fotoEstado.error ? "text-red-600" : "text-emerald-700"}`}>{fotoEstado.texto}</p>}</div>
+        <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => cambiarFoto(e.target.files?.[0])} />
       </div>
 
       <label className="block text-sm font-medium text-slate-900">Nombre
@@ -132,7 +156,7 @@ export function PerfilForm({ perfil, categories = [], centroZona = { lat: -27.46
         <ZonaTrabajo zona={zona} centro={centroZona} onChange={setZona} />
       </>}
 
-      {message && <p className="rounded-xl bg-white/70 px-3 py-2 text-sm text-slate-700">{message}</p>}
+      {message && <p ref={mensajeRef} role="status" className="rounded-xl bg-white/70 px-3 py-2 text-sm text-slate-700">{message}</p>}
       <button disabled={saving} className="glass-btn px-5 py-2.5 text-sm disabled:opacity-60">{saving ? "Guardando…" : "Guardar perfil"}</button>
     </form>
   );
