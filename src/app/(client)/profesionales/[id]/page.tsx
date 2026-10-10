@@ -15,10 +15,16 @@ import { CompartirPerfil } from "@/components/CompartirPerfil";
 
 export const dynamic = "force-dynamic";
 
-async function getPro(id: string) {
+/**
+ * El perfil público. Con `dueño` se trae aunque no esté visible (pendiente,
+ * con cambios pedidos u oculto): es la vista previa de «cómo me ven los
+ * clientes», que antes le daba un 404 al propio profesional.
+ */
+async function getPro(id: string, dueño = false) {
   return prisma.professional.findFirst({
-    where: { id, profileStatus: "approved", OR: [{ userId: null }, { user: { accountStatus: "approved", perfilOculto: false } }] },
+    where: dueño ? { id } : { id, profileStatus: "approved", OR: [{ userId: null }, { user: { accountStatus: "approved", perfilOculto: false } }] },
     include: {
+      user: { select: { accountStatus: true, perfilOculto: true } },
       category: true,
       services: { where: { status: "activo" }, orderBy: { createdAt: "asc" } },
       reviews: { orderBy: { createdAt: "desc" } },
@@ -46,7 +52,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const pro = await getPro(id);
-  return { title: pro ? `${pro.name} — ${pro.headline}` : "Profesional" };
+  // Sin perfil público (o la vista previa del dueño) no se indexa.
+  return pro ? { title: `${pro.name} — ${pro.headline}` } : { title: "Profesional", robots: { index: false, follow: false } };
 }
 
 export default async function ProfesionalPage({
@@ -55,8 +62,10 @@ export default async function ProfesionalPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [pro, viewer] = await Promise.all([getPro(id), getSessionUser()]);
+  const [publico, viewer] = await Promise.all([getPro(id), getSessionUser()]);
+  const pro = publico ?? (viewer?.professionalId === id ? await getPro(id, true) : null);
   if (!pro) notFound();
+  const vistaPrevia = !publico;
   // El teléfono y el WhatsApp no se muestran: el contacto va por el chat de
   // ServiRed, así la contratación y el pago quedan dentro de la plataforma.
   // Denunciar queda a nombre de alguien, y nadie se denuncia a sí mismo.
@@ -67,6 +76,12 @@ export default async function ProfesionalPage({
       <Link href="/" className="text-sm font-medium text-cliente hover:underline">
         ← Volver a la búsqueda
       </Link>
+
+      {vistaPrevia && (
+        <p role="status" className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
+          <strong>Vista previa: solo la ves vos.</strong> {motivoNoVisible(pro)} Así te van a ver los clientes cuando esté visible.
+        </p>
+      )}
 
       {/* Encabezado del perfil */}
       <section className="glass glass-solid overflow-hidden rounded-2xl">
@@ -320,6 +335,15 @@ export default async function ProfesionalPage({
       />
     </div>
   );
+}
+
+/** Por qué el perfil todavía no es público, en palabras del profesional. */
+function motivoNoVisible(pro: { profileStatus: string; user: { accountStatus: string; perfilOculto: boolean } | null }) {
+  if (pro.profileStatus === "pending") return "Tu perfil está en revisión: aparece en ServiRed cuando administración lo aprueba.";
+  if (pro.profileStatus === "changes_requested") return "Administración te pidió cambios en la verificación; entrá a Ofrezco para verlos.";
+  if (pro.profileStatus === "rejected") return "Tu verificación fue rechazada, así que el perfil no se publica.";
+  if (pro.user?.perfilOculto) return "Administración ocultó tu perfil; escribinos por soporte si creés que es un error.";
+  return "Tu cuenta todavía no está habilitada.";
 }
 
 /** Los rubros de las matrículas aprobadas, sin repetir: "Plomería, Gas". */
