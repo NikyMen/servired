@@ -218,3 +218,19 @@ Pedido directo, sin pasar por spec (cambios chicos sobre grupos ya cerrados):
   Esquema: campos nuevos en `AnalyticsSession` y tabla `PageView` (solo
   agrega, `db push` seguro). Ubicación por IP con la base DB-IP City Lite en
   `GEOIP_DB` (la IP no se guarda); sin la base, el resto anda igual.
+- **Pedidos del cliente (10/10):** el aviso de Mercado Pago dice «18 días» y
+  cómo llegar desde la app («tocá tu perfil → Configurar perfil → Tu
+  negocio → …»). La foto de Mi perfil se guarda sola al elegirla, y los
+  rubros vinculados que el formulario no muestra (propuestos sin aprobar)
+  ya no traban el guardado. El alta de oferente no queda colgada en
+  «Enviando…» si se corta la conexión, y al terminar avisa que espera
+  aprobación (también en la campanita). El dueño de un perfil no visible
+  (pendiente, con cambios u oculto) ve una vista previa con el motivo en vez
+  del 404. Términos y condiciones en el menú, en el último paso del alta y
+  sin quedar tapados por la barra de abajo en el celular. En el mapa, los
+  que no marcaron zona (y las solicitudes con el pin sin mover) se reparten
+  en un lugar fijo aproximado, punteado; en Corrientes Capital, del lado de
+  la ciudad. **Urgencias 24 hs:** tilde del oferente
+  (`Professional.urgencias24`), insignia roja y chip de filtro en Busco
+  (`?urgencias=1`). Deploy: `db push` (solo agrega) y
+  `MP_COMISION_PORCENTAJE="2"` en el `.env` del VPS.
