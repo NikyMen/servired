@@ -153,7 +153,7 @@ function PlataAlInstante({ claro = false }: { claro?: boolean }) {
       <div className="min-w-0">
         <p className="font-bold">Elegí cuándo te llega la plata</p>
         <p className={`mt-1 ${claro ? "" : "text-white/90"}`}>
-          Mercado Pago puede retener cada cobro varios días (por ejemplo, 18) antes de que puedas usarlo. Si la querés al instante, cambialo en tu cuenta de Mercado Pago: <strong>Tu negocio → Costos → Por cobro → Configurar costos por cobro</strong> y elegí «Al instante». Ojo: cuanto más corto el plazo, más alto el costo que cobra Mercado Pago.
+          Mercado Pago te retiene cada cobro <strong>18 días</strong> antes de que puedas usarlo. Si la querés al instante, en la app de Mercado Pago <strong>tocá tu perfil → Configurar perfil → Tu negocio → Costos → Por cobro → Configurar costos por cobro</strong> y elegí «Al instante». Ojo: cuanto más corto el plazo, más alto el costo que cobra Mercado Pago.
         </p>
         <a href={AYUDA_PLAZOS} target="_blank" rel="noopener noreferrer" className={`mt-2 inline-block font-semibold underline ${claro ? "text-amber-900" : "text-white"}`}>Ver cómo se cambia en Mercado Pago</a>
       </div>

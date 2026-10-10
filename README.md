@@ -254,7 +254,7 @@ Todo lo que escribe pide sesión, y **el rol sale de la sesión, nunca del body*
 
 ### Mercado Pago entre clientes y profesionales
 
-El profesional vincula su cuenta desde `/pro` después de que aprueben su perfil. Al terminar un trabajo, el cliente abre Checkout Pro; el dinero se cobra en la cuenta vinculada del profesional. ServiRed no agrega comisión. El pago se confirma sólo con un webhook firmado y una consulta al pago en la API de Mercado Pago. La vinculación es necesaria para cerrar y cobrar trabajos nuevos; los pagos manuales anteriores se conservan como historial.
+El profesional vincula su cuenta desde `/pro` después de que aprueben su perfil. Al terminar un trabajo, el cliente abre Checkout Pro; el dinero se cobra en la cuenta vinculada del profesional. ServiRed retiene la comisión de `MP_COMISION_PORCENTAJE` (porcentaje del cobro, enviado como `marketplace_fee`; sin la variable no cobra comisión). El pago se confirma sólo con un webhook firmado y una consulta al pago en la API de Mercado Pago. La vinculación es necesaria para cerrar y cobrar trabajos nuevos; los pagos manuales anteriores se conservan como historial.
 
 Para activarlo, creá una aplicación **Marketplace / Checkout Pro** en Mercado Pago y configurá en `.env.local` `MP_CLIENT_ID`, `MP_CLIENT_SECRET`, `MP_WEBHOOK_SECRET`, `APP_URL` público y `KYC_ENCRYPTION_KEY` (32 bytes hexadecimales). Registrá `${APP_URL}/api/mercadopago/callback` como Redirect URL y `${APP_URL}/api/mercadopago/webhook` como webhook de **Payments** desde Tus integraciones. Aplicá el esquema con `pnpm db:push` antes de iniciar la versión nueva. Para cuentas de prueba podés usar `MP_SANDBOX=true`.
 
