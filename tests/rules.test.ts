@@ -166,8 +166,8 @@ test("la lista base de localidades arranca por Capital, sin repetidos y con punt
   assert.equal(new Set(claves).size, claves.length);
   assert.deepEqual([...new Set(LOCALIDADES_BASE.map((l) => l.province))].sort(), ["Chaco", "Corrientes", "Entre Ríos"]);
   for (const l of LOCALIDADES_BASE) {
-    assert.ok(l.latitude < -26 && l.latitude > -34, l.name);
-    assert.ok(l.longitude < -55.9 && l.longitude > -62, l.name);
+    assert.ok(l.latitude < -24 && l.latitude > -34, l.name);
+    assert.ok(l.longitude < -55.6 && l.longitude > -63.5, l.name);
   }
   assert.equal(zonaDe(CAPITAL), "Corrientes Capital, Corrientes");
 });
@@ -177,6 +177,7 @@ test("la provincia escrita distinto se unifica con la de la lista", () => {
   assert.deepEqual(canonizar({ name: "Pueblo Nuevo", province: "ENTRE  RIOS" }), { name: "Pueblo Nuevo", province: "Entre Ríos" });
   assert.deepEqual(canonizar({ name: "Paraná", province: "Santa Fe" }), { name: "Paraná", province: "Santa Fe" });
   assert.ok(LOCALIDADES_BASE.filter((l) => l.province === "Entre Ríos").length > 150);
+  assert.deepEqual(canonizar({ name: "Ita Ibate", province: "corrientes" }), { name: "Itá Ibaté", province: "Corrientes" });
 });
 
 test("una localidad nueva necesita nombre, provincia y un punto en Argentina", () => {

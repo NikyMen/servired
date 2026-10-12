@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { LOCALIDADES_CHACO } from "@/lib/localidades-chaco";
+import { LOCALIDADES_CORRIENTES } from "@/lib/localidades-corrientes";
 import { LOCALIDADES_ENTRE_RIOS } from "@/lib/localidades-entre-rios";
 
 type Punto = { name: string; province: string; latitude: number; longitude: number };
@@ -26,7 +28,7 @@ export const LOCALIDADES_BASE: Punto[] = [
   { name: "Esquina", province: "Corrientes", latitude: -30.0144, longitude: -59.5272 },
   { name: "Gobernador Virasoro", province: "Corrientes", latitude: -28.0476, longitude: -56.0197 },
   { name: "Goya", province: "Corrientes", latitude: -29.1439, longitude: -59.2651 },
-  { name: "Ita Ibaté", province: "Corrientes", latitude: -27.427, longitude: -57.337 },
+  { name: "Itá Ibaté", province: "Corrientes", latitude: -27.427, longitude: -57.337 },
   { name: "Itatí", province: "Corrientes", latitude: -27.27, longitude: -58.244 },
   { name: "Ituzaingó", province: "Corrientes", latitude: -27.585, longitude: -56.6886 },
   { name: "La Cruz", province: "Corrientes", latitude: -29.174, longitude: -56.644 },
@@ -45,6 +47,8 @@ export const LOCALIDADES_BASE: Punto[] = [
   { name: "Santo Tomé", province: "Corrientes", latitude: -28.5493, longitude: -56.0413 },
   { name: "Sauce", province: "Corrientes", latitude: -30.086, longitude: -58.787 },
   { name: "Yapeyú", province: "Corrientes", latitude: -29.469, longitude: -56.816 },
+  ...LOCALIDADES_CORRIENTES,
+  ...LOCALIDADES_CHACO,
   ...LOCALIDADES_ENTRE_RIOS,
 ];
 
