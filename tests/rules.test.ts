@@ -7,7 +7,7 @@ import { MAX_REPUBLISH, REQUEST_TTL_MS, requestDaysLeft, requestIsLastDay } from
 import { PROPOSAL_TTL_LABEL, jobProgress, validEstimatedDays } from "../src/lib/trabajo";
 import { parseTexto } from "../src/lib/site-text";
 import { AYUDA_DEFAULT, saludoPerfil, validSupportPhone, waLink } from "../src/lib/whatsapp";
-import { CAPITAL, LOCALIDADES_BASE, validarLocalidad, validarPunto, zonaDe } from "../src/lib/localidades";
+import { CAPITAL, LOCALIDADES_BASE, canonizar, validarLocalidad, validarPunto, zonaDe } from "../src/lib/localidades";
 import { idPorDefecto } from "../src/lib/localidad-defecto";
 import { pendienteDeAlta } from "../src/lib/auth";
 import { PLAZO_MENSAJES_MS, debeAvisarMensaje, firmaBaja, firmaValida, puedeRecibir } from "../src/lib/avisos-correo";
@@ -170,6 +170,13 @@ test("la lista base de localidades arranca por Capital, sin repetidos y con punt
     assert.ok(l.longitude < -55.9 && l.longitude > -62, l.name);
   }
   assert.equal(zonaDe(CAPITAL), "Corrientes Capital, Corrientes");
+});
+
+test("la provincia escrita distinto se unifica con la de la lista", () => {
+  assert.deepEqual(canonizar({ name: "Nogoya", province: "Entre rios" }), { name: "Nogoyá", province: "Entre Ríos" });
+  assert.deepEqual(canonizar({ name: "Pueblo Nuevo", province: "ENTRE  RIOS" }), { name: "Pueblo Nuevo", province: "Entre Ríos" });
+  assert.deepEqual(canonizar({ name: "Paraná", province: "Santa Fe" }), { name: "Paraná", province: "Santa Fe" });
+  assert.ok(LOCALIDADES_BASE.filter((l) => l.province === "Entre Ríos").length > 150);
 });
 
 test("una localidad nueva necesita nombre, provincia y un punto en Argentina", () => {

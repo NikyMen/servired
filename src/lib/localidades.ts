@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { LOCALIDADES_ENTRE_RIOS } from "@/lib/localidades-entre-rios";
 
 type Punto = { name: string; province: string; latitude: number; longitude: number };
 type Resultado<T> = { error: string } | { data: T };
@@ -17,10 +18,6 @@ export const LOCALIDADES_BASE: Punto[] = [
   { name: "Presidencia Roque Sáenz Peña", province: "Chaco", latitude: -26.79095, longitude: -60.44132 },
   { name: "Villa Ángela", province: "Chaco", latitude: -27.57679, longitude: -60.71114 },
   { name: "Charata", province: "Chaco", latitude: -27.21787, longitude: -61.18738 },
-  { name: "Paraná", province: "Entre Ríos", latitude: -31.73271, longitude: -60.52897 },
-  { name: "Concordia", province: "Entre Ríos", latitude: -31.39195, longitude: -58.01706 },
-  { name: "Gualeguaychú", province: "Entre Ríos", latitude: -33.00777, longitude: -58.51836 },
-  { name: "Concepción del Uruguay", province: "Entre Ríos", latitude: -32.48463, longitude: -58.23217 },
   { name: "Alvear", province: "Corrientes", latitude: -29.097, longitude: -56.55 },
   { name: "Bella Vista", province: "Corrientes", latitude: -28.51, longitude: -59.043 },
   { name: "Caá Catí", province: "Corrientes", latitude: -27.75, longitude: -57.62 },
@@ -48,6 +45,7 @@ export const LOCALIDADES_BASE: Punto[] = [
   { name: "Santo Tomé", province: "Corrientes", latitude: -28.5493, longitude: -56.0413 },
   { name: "Sauce", province: "Corrientes", latitude: -30.086, longitude: -58.787 },
   { name: "Yapeyú", province: "Corrientes", latitude: -29.469, longitude: -56.816 },
+  ...LOCALIDADES_ENTRE_RIOS,
 ];
 
 /** Todos los oferentes se dieron de alta acá cuando era la única opción. */
@@ -60,13 +58,37 @@ export function zonaDe(localidad: { name: string; province: string }) {
 
 /** Datos de una localidad nueva: nombre y provincia legibles, punto dentro de Argentina. */
 export function validarLocalidad(input: Punto): Resultado<Punto> {
-  const name = input.name.trim().replace(/\s+/g, " ");
-  const province = input.province.trim().replace(/\s+/g, " ");
+  const { name, province } = canonizar({ name: input.name.trim().replace(/\s+/g, " "), province: input.province.trim().replace(/\s+/g, " ") });
   if (name.length < 2 || name.length > 60) return { error: "El nombre tiene que tener entre 2 y 60 letras." };
   if (province.length < 2 || province.length > 60) return { error: "La provincia tiene que tener entre 2 y 60 letras." };
   const punto = validarPunto(input.latitude, input.longitude);
   if ("error" in punto) return punto;
   return { data: { name, province, ...punto.data } };
+}
+
+const PROVINCIAS = [
+  "Buenos Aires", "Catamarca", "Chaco", "Chubut", "Ciudad Autónoma de Buenos Aires", "Córdoba", "Corrientes", "Entre Ríos",
+  "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén", "Río Negro", "Salta", "San Juan", "San Luis",
+  "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucumán",
+];
+
+/** Para comparar nombres sin que importen mayúsculas, tildes ni espacios: "Entre rios" es "Entre Ríos". */
+export function claveNombre(texto: string) {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+const PROVINCIA_POR_CLAVE = new Map(PROVINCIAS.map((p) => [claveNombre(p), p]));
+const BASE_POR_CLAVE = new Map(LOCALIDADES_BASE.map((l) => [`${claveNombre(l.name)}|${l.province}`, l.name]));
+
+/**
+ * La provincia escrita como corresponde y, si la localidad está en la lista
+ * base, su nombre también: así "Nogoya, Entre rios" pasa a "Nogoyá, Entre Ríos"
+ * y no aparecen dos provincias iguales en el selector.
+ */
+export function canonizar(localidad: { name: string; province: string }) {
+  const province = PROVINCIA_POR_CLAVE.get(claveNombre(localidad.province)) ?? localidad.province;
+  const name = BASE_POR_CLAVE.get(`${claveNombre(localidad.name)}|${province}`) ?? localidad.name;
+  return { name, province };
 }
 
 /** El punto tiene que caer en Argentina: evita un clic suelto en el medio del mar. */
@@ -82,10 +104,11 @@ export function validarPunto(latitude: number, longitude: number): Resultado<{ l
  * Upsert evita duplicados si dos pedidos llegan a la vez.
  */
 export async function asegurarLocalidades() {
-  const existentes = await prisma.locality.findMany({ select: { name: true, province: true } });
-  const claves = new Set(existentes.map((l) => `${l.name}|${l.province}`));
+  let existentes = await prisma.locality.findMany({ select: { id: true, name: true, province: true } });
+  if (await unificarLocalidades(existentes)) existentes = await prisma.locality.findMany({ select: { id: true, name: true, province: true } });
+  const claves = new Set(existentes.map((l) => `${claveNombre(l.name)}|${l.province}`));
   for (const [index, localidad] of LOCALIDADES_BASE.entries()) {
-    if (claves.has(`${localidad.name}|${localidad.province}`)) continue;
+    if (claves.has(`${claveNombre(localidad.name)}|${localidad.province}`)) continue;
     // Capital primero y el resto por nombre.
     const sortOrder = index === 0 ? 0 : 10;
     await prisma.locality.upsert({
@@ -94,6 +117,46 @@ export async function asegurarLocalidades() {
       update: {},
     });
   }
+}
+
+/**
+ * Corrige las localidades cargadas a mano con la provincia (o el nombre)
+ * escritos distinto. Si al corregirla queda igual a otra, sus usuarios pasan a
+ * esa y la repetida se borra. Los expedientes KYC guardan los nombres como
+ * texto, así que se corrigen también. Devuelve si cambió algo.
+ */
+async function unificarLocalidades(existentes: { id: string; name: string; province: string }[]) {
+  const vistas = new Map<string, { id: string; name: string; province: string }>();
+  const esCanonica = (l: { name: string; province: string }) => {
+    const c = canonizar(l);
+    return c.name === l.name && c.province === l.province;
+  };
+  // Las bien escritas primero: son las que sobreviven.
+  const ordenadas = [...existentes].sort((a, b) => Number(!esCanonica(a)) - Number(!esCanonica(b)));
+  let cambio = false;
+  for (const localidad of ordenadas) {
+    const canon = canonizar(localidad);
+    const clave = `${claveNombre(canon.name)}|${canon.province}`;
+    const igual = vistas.get(clave);
+    if (igual) {
+      await prisma.$transaction([
+        prisma.user.updateMany({ where: { localityId: localidad.id }, data: { localityId: igual.id } }),
+        prisma.kycCase.updateMany({ where: { province: localidad.province, locality: localidad.name }, data: { province: igual.province, locality: igual.name } }),
+        prisma.locality.delete({ where: { id: localidad.id } }),
+      ]);
+      cambio = true;
+      continue;
+    }
+    if (canon.name !== localidad.name || canon.province !== localidad.province) {
+      await prisma.$transaction([
+        prisma.locality.update({ where: { id: localidad.id }, data: canon }),
+        prisma.kycCase.updateMany({ where: { province: localidad.province, locality: localidad.name }, data: { province: canon.province, locality: canon.name } }),
+      ]);
+      cambio = true;
+    }
+    vistas.set(clave, { id: localidad.id, ...canon });
+  }
+  return cambio;
 }
 
 /** Las activas, más la que ya tiene la persona aunque se haya desactivado. */
@@ -128,7 +191,8 @@ export async function crearLocalidad(input: Punto): Promise<{ error: string } | 
   if ("error" in valid) return valid;
   const duplicada = { error: `Ya existe ${valid.data.name} en ${valid.data.province}.` };
   // Se mira antes para no ensuciar el log con el error de Prisma; el catch queda por si dos altas iguales llegan juntas.
-  if (await prisma.locality.findUnique({ where: { name_province: { name: valid.data.name, province: valid.data.province } }, select: { id: true } })) return duplicada;
+  const mismaProvincia = await prisma.locality.findMany({ where: { province: valid.data.province }, select: { name: true } });
+  if (mismaProvincia.some((l) => claveNombre(l.name) === claveNombre(valid.data.name))) return duplicada;
   try {
     await prisma.locality.create({ data: { ...valid.data, sortOrder: 10 } });
   } catch (error) {
