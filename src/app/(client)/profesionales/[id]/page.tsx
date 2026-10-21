@@ -10,7 +10,7 @@ import { ContratarSheet } from "@/components/ContratarSheet";
 import { StarIcon, MapPinIcon } from "@/components/icons";
 import { MapView } from "@/components/MapView";
 import { RADIO_ZONA_M } from "@/lib/geo";
-import { DenunciarImagen } from "@/components/DenunciarImagen";
+import { MuestraTrabajos } from "@/components/MuestraTrabajos";
 import { CompartirPerfil } from "@/components/CompartirPerfil";
 
 export const dynamic = "force-dynamic";
@@ -251,25 +251,11 @@ export default async function ProfesionalPage({
                 </span>
               </div>
               <p className="mb-4 text-sm text-slate-500">Trabajos seleccionados por {pro.name} para mostrar su experiencia.</p>
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {pro.workSamples.map((foto) => (
-                  <li key={foto.id} className="glass glass-thin overflow-hidden rounded-2xl">
-                    <div className="grid grid-cols-5 gap-0.5">{foto.images.map((image, index) => (
-                      <div key={image.id} className={`relative ${foto.images.length === 1 ? "col-span-5" : ""}`}>
-                        <img src={image.url} alt={`${foto.title} ${index + 1}`} className="h-32 w-full object-cover sm:h-36" />
-                        <DenunciarImagen targetType="work_sample_image" targetId={image.id} puedeDenunciar={puedeDenunciar} volverA={`/profesionales/${pro.id}`} />
-                      </div>
-                    ))}</div>
-                    <div className="p-3">
-                      <p className="truncate text-sm font-semibold text-slate-900">{foto.title}</p>
-                      {foto.description && (
-                        <p className="line-clamp-3 text-xs text-slate-500">{foto.description}</p>
-                      )}
-                      {foto.address && <p className="mt-1 text-[11px] text-slate-400">📍 {foto.address}</p>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <MuestraTrabajos
+                muestras={pro.workSamples.map((m) => ({ id: m.id, title: m.title, description: m.description, address: m.address, images: m.images.map((img) => ({ id: img.id, url: img.url })) }))}
+                puedeDenunciar={puedeDenunciar}
+                volverA={`/profesionales/${pro.id}`}
+              />
             </section>
           )}
 

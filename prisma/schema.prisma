@@ -618,6 +618,11 @@ model Message {
   attachmentType String? // image/jpeg | image/png | image/webp | application/pdf
   attachmentSize Int? // bytes
 
+  /// Presupuesto que muestra este mensaje (los 💰). Sin relación de Prisma: es
+  /// solo para que el chat pinte la tarjeta con su estado. Los viejos los
+  /// vincula `prisma/vincular-presupuestos.ts`.
+  proposalId String?
+
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 

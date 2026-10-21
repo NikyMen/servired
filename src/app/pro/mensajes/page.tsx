@@ -59,6 +59,7 @@ export default async function ProMensajesPage({ searchParams }: { searchParams: 
             attachmentName: m.attachmentName,
             attachmentType: m.attachmentType,
             attachmentSize: m.attachmentSize,
+            proposalId: m.proposalId,
           })),
         }))}
       />

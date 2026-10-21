@@ -34,10 +34,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const proposal = await prisma.$transaction(async (tx) => {
       const pending = await tx.proposal.findFirst({ where: { bookingId: id, status: "pending", expiresAt: { gt: new Date() } } });
       if (pending) throw new Error("ACTIVE_PROPOSAL");
-      return tx.proposal.create({ data: { bookingId: id, amount, message: proposalMessage, estimatedDays, expiresAt: new Date(Date.now() + PROPOSAL_TTL_MS) } });
+      const created = await tx.proposal.create({ data: { bookingId: id, amount, message: proposalMessage, estimatedDays, expiresAt: new Date(Date.now() + PROPOSAL_TTL_MS) } });
+      // Doble toque: el segundo ve las dos vigentes y se deshace.
+      if (await tx.proposal.count({ where: { bookingId: id, status: "pending", expiresAt: { gt: new Date() } } }) > 1) throw new Error("ACTIVE_PROPOSAL");
+      return created;
     }).catch((error) => { if (error instanceof Error && error.message === "ACTIVE_PROPOSAL") return null; throw error; });
     if (!proposal) return NextResponse.json({ error: "Ya hay una propuesta activa. El cliente debe rechazarla o esperar su vencimiento." }, { status: 409 });
-    if (conversation) await prisma.$transaction([prisma.message.create({ data: { conversationId: conversation.id, sender: "profesional", text: `💰 PROPUESTA · ${messageText(amount)} · ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo · Vence en ${PROPOSAL_TTL_LABEL}${proposalMessage ? ` · ${proposalMessage}` : ""}` } }), prisma.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } })]);
+    if (conversation) await prisma.$transaction([prisma.message.create({ data: { conversationId: conversation.id, sender: "profesional", proposalId: proposal.id, text: `💰 PROPUESTA · ${messageText(amount)} · ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo · Vence en ${PROPOSAL_TTL_LABEL}${proposalMessage ? ` · ${proposalMessage}` : ""}` } }), prisma.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } })]);
     await notificar(prisma, booking.userId, { kind: "propuesta", title: `${booking.professional.name} te mandó una propuesta`, body: `${messageText(amount)} · ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo`, url: "/contrataciones", groupKey: `prop:${booking.id}` });
     after(() => mandarAviso(booking.userId, "propuestas", { asunto: `${booking.professional.name} te mandó un presupuesto`, titulo: `Presupuesto de ${booking.professional.name}`, texto: `${messageText(amount)} por ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo. Tenés ${PROPOSAL_TTL_LABEL} para aceptarlo o rechazarlo.`, url: "/contrataciones", boton: "Ver presupuesto" }));
     return NextResponse.json(proposal, { status: 201 });
@@ -47,7 +50,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (viewer !== "cliente") return NextResponse.json({ error: "Solo el cliente puede rechazar la propuesta." }, { status: 403 });
     const proposal = booking.proposals.find((item) => proposalIsActive(item));
     if (!proposal) return NextResponse.json({ error: "No hay una propuesta activa." }, { status: 409 });
-    await prisma.proposal.update({ where: { id: proposal.id }, data: { status: "rejected", decidedAt: new Date() } });
+    // Solo si sigue pendiente: un segundo toque no repite el mensaje ni el aviso.
+    const rechazada = await prisma.proposal.updateMany({ where: { id: proposal.id, status: "pending", expiresAt: { gt: new Date() } }, data: { status: "rejected", decidedAt: new Date() } });
+    if (rechazada.count === 0) return NextResponse.json({ error: "Ese presupuesto ya fue respondido o venció." }, { status: 409 });
     if (conversation) await prisma.message.create({ data: { conversationId: conversation.id, sender: "cliente", text: "❌ PROPUESTA RECHAZADA · El profesional ya puede enviar una nueva." } });
     if (booking.professional.userId) await notificar(prisma, booking.professional.userId, { kind: "propuesta_resuelta", title: "Rechazaron tu propuesta", body: `${booking.clientName} la rechazó. Podés mandar otra.`, url: "/pro", groupKey: `propres:${booking.id}` });
     if (booking.professional.userId) { const proUserId = booking.professional.userId; after(() => mandarAviso(proUserId, "propuestas", { asunto: "Rechazaron tu presupuesto", titulo: "Rechazaron tu presupuesto", texto: `${booking.clientName} rechazó tu presupuesto de ${messageText(proposal.amount)}. Si querés, podés mandarle otro.`, url: "/pro", boton: "Ir a mi panel" })); }
@@ -61,12 +66,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!proposal) return NextResponse.json({ error: "La propuesta venció o ya no está disponible." }, { status: 409 });
     // Sin tope de trabajos en curso: el oferente decide cuánto puede tomar.
     const updated = await prisma.$transaction(async (tx) => {
-      await tx.proposal.update({ where: { id: proposal.id }, data: { status: "accepted", decidedAt: new Date() } });
+      // Solo si sigue pendiente: con dos toques (o dos pestañas) el segundo no
+      // cambia ninguna fila y sale sin mensaje ni aviso repetidos.
+      const aceptada = await tx.proposal.updateMany({ where: { id: proposal.id, status: "pending", expiresAt: { gt: new Date() } }, data: { status: "accepted", decidedAt: new Date() } });
+      if (aceptada.count === 0) return null;
       // Acá arranca el reloj: el plazo se sella al aceptar, no al proponer.
       const startedAt = new Date();
       const dueAt = proposal.estimatedDays ? new Date(startedAt.getTime() + proposal.estimatedDays * 24 * 60 * 60 * 1000) : null;
       return tx.booking.update({ where: { id }, data: { status: "in_progress", acceptedProposalId: proposal.id, quotedPrice: proposal.amount, startedAt, dueAt } });
     });
+    if (!updated) return NextResponse.json({ error: "Ese presupuesto ya fue respondido o venció." }, { status: 409 });
     if (conversation) await prisma.message.create({ data: { conversationId: conversation.id, sender: "cliente", text: `✅ PROPUESTA ACEPTADA · ${messageText(proposal.amount)} · Trabajo en curso${proposal.estimatedDays ? `, ${proposal.estimatedDays} ${proposal.estimatedDays === 1 ? "día" : "días"} de plazo` : ""}.` } });
     if (booking.professional.userId) await notificar(prisma, booking.professional.userId, { kind: "propuesta_resuelta", title: "Aceptaron tu propuesta", body: `${booking.clientName} aceptó ${messageText(proposal.amount)}${proposal.estimatedDays ? ` · ${proposal.estimatedDays} ${proposal.estimatedDays === 1 ? "día" : "días"} de plazo` : ""}`, url: "/pro", groupKey: `propres:${booking.id}` });
     if (booking.professional.userId) { const proUserId = booking.professional.userId; after(() => mandarAviso(proUserId, "propuestas", { asunto: "¡Aceptaron tu presupuesto!", titulo: "Aceptaron tu presupuesto", texto: `${booking.clientName} aceptó tu presupuesto de ${messageText(proposal.amount)}. El trabajo ya figura en curso.`, url: "/pro", boton: "Ir a mi panel" })); }

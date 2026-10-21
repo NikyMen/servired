@@ -1,0 +1,757 @@
+<title>Presupuesto del chat</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: documento de una columna (≈ 68ch) que se abre a dos columnas
+   donde hay un celular al lado de su explicación. El celu es una foto de la
+   app: siempre en claro, con los colores reales de ServiRed. */
+:root {
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --ink: #141b2b;
+  --ink-2: #4a5568;
+  --ink-3: #7b8597;
+  --line: #dfe4ee;
+  --cliente: #2563eb;
+  --pro: #059669;
+  --amber: #b45309;
+  --amber-bg: #fef3c7;
+  --red: #dc2626;
+  --code-bg: #eef1f7;
+  --bezel: #1b2130;
+
+  --f-display: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-body: "Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  /* La app (siempre clara, como en producción) */
+  --app-bg: #f8fafc;
+  --app-surface: #ffffff;
+  --app-ink: #0f172a;
+  --app-ink-2: #475569;
+  --app-ink-3: #94a3b8;
+  --app-line: #e2e8f0;
+  --app-cliente: #2563eb;
+  --app-cliente-dark: #1d4ed8;
+  --app-cliente-soft: #eff6ff;
+  --app-pro: #059669;
+  --app-pro-dark: #047857;
+  --app-pro-soft: #ecfdf5;
+  --app-amber: #b45309;
+  --app-amber-soft: #fffbeb;
+  --app-amber-line: #fcd34d;
+  --app-amber-strong: #f59e0b;
+  --app-mp: #009ee3;
+  --app-mp-dark: #0087c2;
+  --app-red: #dc2626;
+  --app-red-soft: #fef2f2;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1220; --surface: #151c2e; --ink: #e8ecf5; --ink-2: #b3bccd; --ink-3: #8691a6;
+    --line: #273149; --cliente: #6b9bff; --pro: #34d399; --amber: #fbbf24; --amber-bg: #3a2c0c;
+    --red: #f87171; --code-bg: #1c2438; --bezel: #000000; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1220; --surface: #151c2e; --ink: #e8ecf5; --ink-2: #b3bccd; --ink-3: #8691a6;
+  --line: #273149; --cliente: #6b9bff; --pro: #34d399; --amber: #fbbf24; --amber-bg: #3a2c0c;
+  --red: #f87171; --code-bg: #1c2438; --bezel: #000000; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 17px/1.6 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 48px 96px; display: grid; gap: 72px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; font-weight: 700; }
+h2 { font-size: clamp(1.45rem, 3.2vw, 1.9rem); line-height: 1.2; font-weight: 700; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+p { margin: 0; }
+.prose { max-width: 68ch; display: grid; gap: 14px; color: var(--ink-2); }
+.prose strong { color: var(--ink); font-weight: 600; }
+.eyebrow { font: 600 12px/1 var(--f-display); text-transform: uppercase; letter-spacing: .12em; color: var(--ink-3); }
+code, .mono { font-family: var(--f-mono); font-size: .84em; }
+code { background: var(--code-bg); padding: .1em .35em; border-radius: 5px; color: var(--ink); }
+section { display: grid; gap: 28px; }
+.sec-head { display: grid; gap: 10px; max-width: 68ch; }
+
+header.top { display: grid; gap: 18px; }
+.lead { font-size: 1.2rem; color: var(--ink-2); max-width: 60ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--ink-3); }
+.meta b { color: var(--ink-2); font-weight: 600; }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.sum { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: grid; gap: 4px; align-content: start; }
+.sum .k { font: 700 13px/1.2 var(--f-display); color: var(--ink); }
+.sum p { font-size: 15px; color: var(--ink-2); line-height: 1.45; }
+.sum .tag { font: 600 11px/1 var(--f-mono); color: var(--ink-3); }
+
+/* Dos columnas: celu + texto */
+.split { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 40px; align-items: start; }
+.split.flip { grid-template-columns: minmax(0, 1fr) minmax(0, 380px); }
+@media (max-width: 860px) { .split, .split.flip { grid-template-columns: minmax(0, 1fr); } .split.flip > .phone-col { order: -1; } }
+.phone-col { display: grid; gap: 14px; justify-items: center; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+@media (max-width: 860px) { .phone-col { position: static; } }
+.phones { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
+
+/* Lista de problemas */
+.issues { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
+.issues li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; }
+.num { width: 26px; height: 26px; border-radius: 50%; background: var(--red); color: #fff; font: 700 13px/26px var(--f-display); text-align: center; }
+.issues h3 { font-size: 1rem; margin-bottom: 2px; }
+.issues p { color: var(--ink-2); font-size: 16px; }
+
+/* Controles del prototipo */
+.controls { display: grid; gap: 12px; width: min(380px, 100%); }
+.ctl-row { display: grid; gap: 6px; }
+.ctl-label { font: 600 11px/1 var(--f-display); text-transform: uppercase; letter-spacing: .1em; color: var(--ink-3); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button {
+  font: 500 13px/1 var(--f-display); padding: 9px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.seg button:focus-visible, .app button:focus-visible, .app input:focus-visible, .app textarea:focus-visible { outline: 2px solid var(--app-cliente); outline-offset: 2px; }
+.hint { font-size: 14px; color: var(--ink-3); text-align: center; max-width: 36ch; }
+
+/* ============ Celular ============ */
+.phone {
+  width: min(360px, 100%); border-radius: 44px; padding: 10px; background: var(--bezel);
+  box-shadow: 0 30px 60px -30px rgb(15 23 42 / .5), 0 0 0 1px rgb(255 255 255 / .06) inset;
+}
+.screen {
+  position: relative; height: 700px; border-radius: 34px; overflow: hidden;
+  background: var(--app-bg); color: var(--app-ink); font: 400 14px/1.4 var(--f-display);
+  display: flex; flex-direction: column;
+}
+.screen.small { height: 620px; }
+.notch { height: 26px; flex-shrink: 0; display: flex; justify-content: center; align-items: center; background: var(--app-surface); }
+.notch span { width: 90px; height: 6px; border-radius: 6px; background: #d4d9e2; }
+.app-head { flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px 10px; background: var(--app-surface); border-bottom: 1px solid var(--app-line); }
+.app-head .back { color: var(--app-ink-3); font-size: 22px; line-height: 1; width: 20px; }
+.av { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; color: #fff; font: 600 13px/34px var(--f-display); text-align: center; }
+.who { min-width: 0; flex: 1; }
+.who b { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.who small { display: block; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dots { color: var(--app-ink-3); font-size: 18px; letter-spacing: 1px; }
+.t-slate { color: var(--app-ink-3); } .t-amber { color: var(--app-amber); } .t-green { color: var(--app-pro-dark); } .t-red { color: var(--app-red); }
+
+.msgs { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth; }
+.day { align-self: center; font-size: 11px; color: var(--app-ink-2); background: var(--app-surface); padding: 2px 10px; border-radius: 999px; box-shadow: 0 1px 2px rgb(15 23 42 / .06); }
+.bub { max-width: 82%; padding: 8px 12px; border-radius: 16px; font-size: 13.5px; line-height: 1.4; box-shadow: 0 1px 2px rgb(15 23 42 / .06); }
+.bub .h { display: block; text-align: right; font-size: 10px; margin-top: 2px; opacity: .7; }
+.bub.in { align-self: flex-start; background: var(--app-surface); border-bottom-left-radius: 6px; }
+.bub.out { align-self: flex-end; color: #fff; border-bottom-right-radius: 6px; }
+.bub.out.cliente { background: var(--app-cliente); } .bub.out.pro { background: var(--app-pro); }
+.sys { align-self: center; max-width: 90%; text-align: center; font-size: 12px; color: var(--app-ink-2); background: #eef2f7; border-radius: 10px; padding: 6px 12px; }
+
+/* Composer */
+.composer { flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 8px 8px 14px; background: var(--app-surface); border-top: 1px solid var(--app-line); }
+.icon-btn { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px; border: 0; background: transparent; color: var(--app-ink-3); cursor: pointer; position: relative; }
+.icon-btn svg { width: 22px; height: 22px; }
+.icon-btn.plus { background: #f1f5f9; color: var(--app-ink-2); }
+.icon-btn.plus[aria-expanded="true"] { background: var(--app-ink); color: #fff; }
+.icon-btn.plus[aria-expanded="true"] svg { transform: rotate(45deg); }
+.icon-btn.plus svg { transition: transform .15s; }
+.field { flex: 1; min-width: 0; height: 42px; border-radius: 12px; border: 1px solid var(--app-line); background: #f8fafc; padding: 0 12px; font: 400 15px var(--f-display); color: var(--app-ink-3); display: flex; align-items: center; white-space: nowrap; overflow: hidden; }
+.send { width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; display: grid; place-items: center; color: #fff; opacity: .45; }
+.send svg { width: 18px; height: 18px; }
+.send.cliente { background: var(--app-cliente); } .send.pro { background: var(--app-pro); }
+.reddot { position: absolute; top: 4px; right: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--app-red); box-shadow: 0 0 0 2px #fff; }
+
+/* Menú "+" */
+.plus-menu { position: absolute; left: 8px; bottom: 74px; z-index: 5; background: var(--app-surface); border-radius: 16px; box-shadow: 0 14px 40px -12px rgb(15 23 42 / .35), 0 0 0 1px var(--app-line); padding: 6px; width: 250px; display: grid; }
+.plus-menu button { display: grid; grid-template-columns: 36px 1fr; gap: 10px; align-items: center; text-align: left; border: 0; background: transparent; padding: 8px; border-radius: 12px; cursor: pointer; font: inherit; color: var(--app-ink); min-height: 52px; }
+.plus-menu button:hover:not(:disabled) { background: #f1f5f9; }
+.plus-menu button:disabled { cursor: not-allowed; color: var(--app-ink-3); }
+.plus-menu .ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; }
+.plus-menu .ic svg { width: 19px; height: 19px; }
+.plus-menu b { display: block; font-size: 14px; font-weight: 600; }
+.plus-menu small { display: block; font-size: 11.5px; color: var(--app-ink-3); line-height: 1.3; }
+
+/* Franja */
+.franja { flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--app-line); font-size: 13px; }
+.franja .txt { flex: 1; min-width: 0; line-height: 1.3; }
+.franja .txt b { font-weight: 600; display: block; }
+.franja .txt span { font-size: 12px; opacity: .85; }
+.franja.amber { background: var(--app-amber-soft); color: #78350f; border-bottom-color: var(--app-amber-line); }
+.franja.green { background: var(--app-pro-soft); color: #065f46; }
+.franja.blue { background: var(--app-cliente-soft); color: #1e3a8a; }
+.franja.slate { background: #f1f5f9; color: var(--app-ink-2); }
+.franja.mp { background: #e6f6fd; color: #075985; }
+.franja .bar { height: 5px; border-radius: 5px; background: rgb(5 150 105 / .18); margin-top: 6px; overflow: hidden; }
+.franja .bar i { display: block; height: 100%; background: var(--app-pro); border-radius: inherit; }
+.chip-btn { flex-shrink: 0; min-height: 36px; border: 0; border-radius: 10px; padding: 0 12px; font: 600 12.5px var(--f-display); cursor: pointer; color: #fff; }
+.chip-btn.amber { background: var(--app-amber-strong); color: #fff; }
+.chip-btn.green { background: var(--app-pro); } .chip-btn.blue { background: var(--app-cliente); }
+.chip-btn.mp { background: var(--app-mp); display: inline-flex; align-items: center; gap: 6px; }
+.chip-btn.ghost { background: var(--app-surface); color: var(--app-ink); box-shadow: 0 0 0 1px var(--app-line); }
+
+/* Tarjeta de presupuesto (nueva) */
+.tarjeta { align-self: center; width: 100%; max-width: 300px; background: var(--app-surface); border-radius: 18px; box-shadow: 0 6px 20px -10px rgb(15 23 42 / .3), 0 0 0 1px var(--app-line); overflow: hidden; transition: box-shadow .3s; }
+.tarjeta.flash { box-shadow: 0 0 0 3px var(--app-amber-strong), 0 6px 20px -10px rgb(15 23 42 / .3); }
+.tarjeta .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 14px 0; }
+.tarjeta .lbl { font: 700 11px/1 var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--app-ink-3); }
+.pill { font: 600 11px/1 var(--f-display); padding: 5px 9px; border-radius: 999px; }
+.pill.amber { background: #fef3c7; color: #92400e; } .pill.green { background: #d1fae5; color: #065f46; }
+.pill.slate { background: #f1f5f9; color: #475569; } .pill.red { background: var(--app-red-soft); color: #991b1b; }
+.tarjeta .body { padding: 6px 14px 12px; display: grid; gap: 6px; }
+.monto { font: 700 28px/1.1 var(--f-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.monto.tachado { text-decoration: line-through; color: var(--app-ink-3); }
+.tarjeta .linea { display: flex; gap: 6px; align-items: baseline; font-size: 13px; color: var(--app-ink-2); }
+.tarjeta .linea b { color: var(--app-ink); font-weight: 600; }
+.tarjeta .detalle { font-size: 13px; color: var(--app-ink-2); background: #f8fafc; border-radius: 10px; padding: 8px 10px; white-space: pre-wrap; }
+.tarjeta .pie { display: flex; justify-content: space-between; font-size: 11px; color: var(--app-ink-3); padding: 0 14px 12px; }
+.tarjeta .acciones { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; padding: 0 14px 14px; }
+.btn { min-height: 44px; border-radius: 12px; border: 0; font: 600 14px var(--f-display); cursor: pointer; padding: 0 14px; }
+.btn.primary { background: var(--app-cliente); color: #fff; } .btn.primary.pro { background: var(--app-pro); }
+.btn.outline { background: var(--app-surface); color: var(--app-ink); box-shadow: inset 0 0 0 1px #cbd5e1; }
+.btn.danger { background: var(--app-red); color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.block { width: 100%; }
+
+/* Hojas */
+.layer { position: absolute; inset: 0; z-index: 10; display: flex; align-items: flex-end; background: rgb(15 23 42 / .35); animation: fade .15s ease-out; }
+.sheet { width: 100%; background: var(--app-surface); border-radius: 22px 22px 0 0; padding: 8px 16px 18px; display: grid; gap: 14px; animation: up .2s ease-out; max-height: 100%; overflow-y: auto; }
+.sheet .grab { width: 40px; height: 5px; border-radius: 5px; background: #cbd5e1; justify-self: center; }
+.sheet h4 { margin: 0; font: 700 18px/1.25 var(--f-display); }
+.sheet p { font-size: 13.5px; color: var(--app-ink-2); }
+.resumen { background: #f8fafc; border-radius: 14px; padding: 12px 14px; display: grid; gap: 4px; }
+.resumen .monto { font-size: 26px; }
+.sheet .stack { display: grid; gap: 8px; }
+.stars { display: flex; gap: 6px; justify-content: center; }
+.stars button { width: 48px; height: 48px; border: 0; background: transparent; font-size: 32px; cursor: pointer; color: #cbd5e1; padding: 0; }
+.stars button.on { color: var(--app-amber-strong); }
+
+/* Pantalla completa: nuevo presupuesto */
+.full { position: absolute; inset: 0; z-index: 10; background: var(--app-surface); display: flex; flex-direction: column; animation: up .2s ease-out; }
+.full-head { display: flex; align-items: center; gap: 8px; padding: 34px 12px 10px; border-bottom: 1px solid var(--app-line); }
+.full-head h4 { flex: 1; margin: 0; font: 700 16px var(--f-display); }
+.full-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; display: grid; gap: 18px; align-content: start; }
+.full-foot { flex-shrink: 0; padding: 10px 16px 16px; border-top: 1px solid var(--app-line); display: grid; gap: 8px; background: var(--app-surface); }
+.full-foot p { font-size: 11.5px; color: var(--app-ink-3); text-align: center; }
+.campo { display: grid; gap: 6px; }
+.campo label, .campo .lab { font: 600 13px var(--f-display); color: var(--app-ink); }
+.campo .ayuda { font-size: 12px; color: var(--app-ink-3); }
+.pesos { display: flex; align-items: center; border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 0 14px; height: 58px; background: #fff; }
+.pesos:focus-within { border-color: var(--app-pro); box-shadow: 0 0 0 4px rgb(5 150 105 / .14); }
+.pesos span { font: 600 24px var(--f-display); color: var(--app-ink-3); margin-right: 6px; }
+.pesos input { flex: 1; min-width: 0; border: 0; outline: 0; font: 700 26px var(--f-display); color: var(--app-ink); background: transparent; font-variant-numeric: tabular-nums; }
+.dias { display: flex; flex-wrap: wrap; gap: 8px; }
+.dias button { min-width: 48px; height: 44px; border-radius: 12px; border: 1.5px solid #cbd5e1; background: #fff; font: 600 14px var(--f-display); color: var(--app-ink); cursor: pointer; padding: 0 12px; }
+.dias button[aria-pressed="true"] { border-color: var(--app-pro); background: var(--app-pro-soft); color: var(--app-pro-dark); }
+.dias input { width: 90px; height: 44px; border-radius: 12px; border: 1.5px solid var(--app-pro); padding: 0 10px; font: 600 15px var(--f-display); }
+textarea.det { border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 10px 12px; font: 400 15px/1.4 var(--f-display); resize: none; min-height: 80px; color: var(--app-ink); }
+textarea.det:focus { outline: 0; border-color: var(--app-pro); box-shadow: 0 0 0 4px rgb(5 150 105 / .14); }
+.preview-lbl { font: 600 11px/1 var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--app-ink-3); }
+.preview-box { background: var(--app-bg); border-radius: 16px; padding: 14px 10px; display: flex; }
+
+.toast { position: absolute; left: 50%; bottom: 88px; transform: translateX(-50%); z-index: 20; background: var(--app-ink); color: #fff; font-size: 13px; padding: 10px 14px; border-radius: 12px; width: max-content; max-width: 86%; text-align: center; box-shadow: 0 10px 30px -10px rgb(15 23 42 / .5); animation: fade .2s; }
+
+/* Viejo */
+.old-card { align-self: center; width: 100%; max-width: 280px; border-radius: 16px; border: 1px solid #fde68a; background: #fffbeb; padding: 10px 14px; color: #451a03; }
+.old-card .t { font: 700 11px var(--f-display); letter-spacing: .06em; color: #b45309; text-transform: uppercase; }
+.old-card ul { list-style: none; margin: 4px 0 0; padding: 0; font-size: 13px; }
+.old-card li:first-child { font-size: 16px; font-weight: 700; }
+.old-sheet { width: 100%; background: #fff; border-top: 4px solid var(--app-cliente); border-radius: 22px 22px 0 0; padding: 16px; display: grid; gap: 12px; }
+.old-sheet .tt { font: 700 16px/1.3 var(--f-display); }
+.old-box { background: #f8fafc; border-radius: 14px; padding: 12px; font-size: 13px; }
+.old-actions { text-align: right; display: grid; gap: 4px; justify-items: end; font-size: 12px; color: var(--app-ink-2); }
+.old-actions .row { display: flex; gap: 6px; }
+.tiny { font: 600 11px var(--f-display); padding: 6px 10px; border-radius: 9px; border: 0; }
+.tiny.p { background: var(--app-cliente); color: #fff; } .tiny.o { background: #fff; box-shadow: inset 0 0 0 1px #cbd5e1; color: var(--app-ink); }
+.mark { position: absolute; z-index: 30; width: 24px; height: 24px; border-radius: 50%; background: var(--app-red); color: #fff; font: 700 12px/24px var(--f-display); text-align: center; box-shadow: 0 0 0 3px #fff, 0 4px 10px rgb(220 38 38 / .4); }
+
+/* Lógica */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 15px; }
+th, td { text-align: left; vertical-align: top; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+th { font: 600 12px/1.2 var(--f-display); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); background: var(--code-bg); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; color: var(--ink); white-space: nowrap; }
+td { color: var(--ink-2); }
+td .q { display: block; font-size: 13px; color: var(--ink-3); margin-top: 2px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+.mermaid-box { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; overflow-x: auto; }
+
+.files { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
+.file { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 6px 24px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.file:last-child { border-bottom: 0; }
+.file .path { font: 500 13px/1.45 var(--f-mono); color: var(--ink); overflow-wrap: anywhere; }
+.file .badge { display: inline-block; font: 600 10px/1 var(--f-display); text-transform: uppercase; letter-spacing: .08em; padding: 4px 7px; border-radius: 6px; margin-top: 6px; }
+.badge.new { background: rgb(5 150 105 / .14); color: var(--pro); }
+.badge.mod { background: rgb(37 99 235 / .12); color: var(--cliente); }
+.badge.db { background: var(--amber-bg); color: var(--amber); }
+.file ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 15.5px; display: grid; gap: 4px; }
+@media (max-width: 700px) { .file { grid-template-columns: minmax(0, 1fr); } }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 8px; align-content: start; }
+.box h3 { font-size: 1rem; }
+.box p, .box li { color: var(--ink-2); font-size: 15.5px; }
+.box ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.question { border-left: 3px solid var(--amber); }
+
+@keyframes up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">ServiRed · propuesta de mejora · 20/10/2026</p>
+  <h1>El presupuesto del chat, pensado para el celular</h1>
+  <p class="lead">Hoy el presupuesto está escondido en un ícono, la tarjeta del chat no deja hacer nada y el panel se armó para la compu. La propuesta: que el presupuesto se vea y se maneje <strong>dentro de la conversación</strong>, con botones grandes y un aviso fijo cuando te toca hacer algo.</p>
+  <div class="meta"><span><b>Tamaño:</b> M</span><span><b>Base de datos:</b> una columna opcional (solo agrega)</span><span><b>Se mantiene:</b> la API, los estados y Mercado Pago</span></div>
+  <div class="summary">
+    <div class="sum"><span class="tag">A</span><span class="k">Tarjeta con botones</span><p>Muestra el estado real (pendiente, aceptado, vencido) y el cliente acepta desde ahí.</p></div>
+    <div class="sum"><span class="tag">B</span><span class="k">Franja bajo el encabezado</span><p>Dice qué te toca hacer ahora y tiene el botón. Reemplaza el puntito rojo del maletín.</p></div>
+    <div class="sum"><span class="tag">C</span><span class="k">Formulario a pantalla completa</span><p>Monto con $ y miles, días con botones, vista previa y el botón arriba del teclado.</p></div>
+    <div class="sum"><span class="tag">D</span><span class="k">Botones para el dedo</span><p>44 px de alto, apilados a lo ancho, confirmación antes de aceptar y sin doble envío.</p></div>
+  </div>
+</header>
+
+<!-- ============ ANTES ============ -->
+<section id="antes">
+  <div class="sec-head">
+    <p class="eyebrow">Cómo está hoy</p>
+    <h2>Lo que se ve mal en un celu de 360 px</h2>
+  </div>
+  <div class="split">
+    <div class="phone-col">
+      <div class="phones">
+        <div class="phone" aria-label="Chat actual en el celular">
+          <div class="screen small">
+            <div class="notch"><span></span></div>
+            <div class="app-head">
+              <span class="back">‹</span>
+              <div class="av" style="background:#059669">MG</div>
+              <div class="who"><b>Martín Gómez</b><small class="t-amber">Te propusieron $150.000 · revisala</small></div>
+              <span class="dots">⋮</span>
+            </div>
+            <div class="msgs">
+              <span class="day">Hoy</span>
+              <div class="bub out cliente">Hola, se me rompió la canilla de la cocina, pierde agua por abajo<span class="h">10:12</span></div>
+              <div class="bub in">Hola! Paso mañana a la mañana. Es cambio de cartucho y flexibles<span class="h">10:20</span></div>
+              <div class="old-card" style="position:relative">
+                <span class="mark" style="top:-10px;right:-8px">2</span>
+                <div class="t">💰 PROPUESTA</div>
+                <ul><li>$150.000</li><li>2 días de trabajo</li><li>Vence en 5 días</li><li>Cartucho, flexibles y mano de obra</li></ul>
+              </div>
+            </div>
+            <div class="composer" style="position:relative">
+              <span class="mark" style="top:-12px;left:52px">1</span>
+              <span class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m21 12-8.5 8.5a5 5 0 0 1-7-7L14 5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 8"/></svg></span>
+              <span class="icon-btn" style="background:#f59e0b;color:#fff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span class="reddot"></span></span>
+              <span class="field">Escribí un…</span>
+              <span class="send cliente"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5 21 12 3 3.5v6.5l12 2-12 2z"/></svg></span>
+            </div>
+          </div>
+        </div>
+        <div class="phone" aria-label="Panel del acuerdo actual">
+          <div class="screen small">
+            <div class="notch"><span></span></div>
+            <div style="flex:1;background:rgb(15 23 42 / .35);display:flex;align-items:flex-end;position:relative">
+              <div class="old-sheet" style="position:relative">
+                <div class="tt">Te propusieron $150.000 · revisala</div>
+                <p style="font-size:12px;color:#64748b;margin-top:-8px">Todo el acuerdo queda asociado a este hilo.</p>
+                <div class="old-box"><div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;font-weight:600">PROPUESTA <span style="background:#fef3c7;color:#92400e;border-radius:99px;padding:2px 8px">Solicitada</span></div><p style="margin-top:6px">Cartucho, flexibles y mano de obra</p></div>
+                <div class="old-actions" style="position:relative">
+                  <span class="mark" style="top:-4px;left:0">3</span>
+                  <b style="font-size:13px;color:#0f172a">Propuesta: $150.000</b>
+                  <span>2 días de trabajo desde que la aceptás</span>
+                  <span>Vence 25/10/2026, 10:21</span>
+                  <div class="row"><button class="tiny p" tabindex="-1">Aceptar</button><button class="tiny o" tabindex="-1">Rechazar</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ol class="issues">
+      <li><span class="num">1</span><div><h3>El presupuesto es un maletín sin nombre</h3><p>En el celu el botón no tiene texto (<code>hidden sm:inline</code>) y está metido en la barra de escribir. Con el clip, el maletín y enviar, el campo de texto queda en "Escribí un…".</p></div></li>
+      <li><span class="num">2</span><div><h3>La tarjeta no deja hacer nada y no cambia de estado</h3><p>Se arma partiendo el texto del mensaje por <code>·</code>: si el detalle lleva un punto medio, se rompe. Queda siempre en ámbar aunque ya la hayan aceptado o haya vencido. Para aceptar hay que adivinar que se toca el maletín.</p></div></li>
+      <li><span class="num">3</span><div><h3>El panel es el de la compu</h3><p>Reusa <code>BookingActions</code> de la lista de contrataciones: alineado a la derecha, con anchos fijos (<code>w-64</code>) y botones de unos 30 px de alto, pegados. El monto aparece dos veces y el estado dice "Solicitada", que no es lo que pasa.</p></div></li>
+      <li><span class="num">4</span><div><h3>Cargar el monto cuesta</h3><p>Es un campo de número pelado: "150000" sin $ ni puntos. Los días se escriben a mano. Cuando abre el teclado, "Enviar propuesta" queda tapado abajo.</p></div></li>
+      <li><span class="num">5</span><div><h3>Después de aceptar, el panel tarda en enterarse</h3><p>Las acciones llaman a <code>router.refresh()</code> y no al <code>reload()</code> del chat. Los botones siguen ahí hasta 5 s y dan ganas de tocar otra vez. El servidor tampoco frena el doble toque: chequea el estado afuera de la transacción.</p></div></li>
+      <li><span class="num">6</span><div><h3>Aceptar es un toque, sin vuelta atrás</h3><p>No hay confirmación y el plazo empieza a correr en ese momento. Y cuando un presupuesto se rechaza o vence, el encabezado dice "Acuerdo abierto", que no le dice nada a nadie.</p></div></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ DESPUÉS ============ -->
+<section id="despues">
+  <div class="sec-head">
+    <p class="eyebrow">Cómo queda</p>
+    <h2>Probalo: elegí quién mira y en qué va el trabajo</h2>
+    <p class="prose">El prototipo funciona. Como <strong>oferente</strong>, tocá el <strong>+</strong> de abajo y mandá un presupuesto. Pasá a <strong>cliente</strong> y aceptalo desde la tarjeta. Cada paso avanza el estado como lo haría la app.</p>
+  </div>
+  <div class="split flip">
+    <div class="prose" style="align-content:start">
+      <h3 style="color:var(--ink)">Qué cambia en la pantalla</h3>
+      <p><strong>La franja</strong> aparece debajo del encabezado solo cuando hay algo para decir. Si te toca hacer algo, trae el botón: "Ver presupuesto", "Pagar con Mercado Pago", "Terminé el trabajo", "Calificar". El color dice de quién es el turno, y el texto lo repite para no depender del color.</p>
+      <p><strong>La tarjeta</strong> se dibuja con los datos del presupuesto, no con el texto del mensaje. Por eso cambia sola: pendiente con su vencimiento, aceptada, rechazada con el monto tachado, vencida. Los botones Aceptar y Rechazar van en la tarjeta, solo para el cliente y solo mientras está pendiente.</p>
+      <p><strong>El +</strong> reemplaza al maletín, y solo lo ve el oferente: adentro están "Adjuntar" y "Enviar presupuesto". Si ya hay uno esperando respuesta o un trabajo en curso, la opción aparece apagada y explica por qué. El cliente ve solo el clip. En los dos casos el campo de texto recupera el lugar.</p>
+      <p><strong>El formulario</strong> ocupa toda la pantalla del celu (en la compu sigue siendo una hoja centrada). El monto se escribe con $ y puntos, los días se eligen con botones, y abajo hay una vista previa de cómo lo va a ver el cliente. El botón queda fijo arriba del teclado y dice el monto.</p>
+      <p><strong>Aceptar pide confirmación</strong> con el resumen y la fecha en que termina el plazo. Rechazar también, y avisa que el oferente puede mandar otro.</p>
+      <p><strong>Las líneas del acuerdo</strong> (✅ aceptado, ❌ rechazado, 🏁 terminado) se muestran como avisos del sistema centrados y no como burbujas de alguien. Hoy solo 💰 y 📋 tienen formato propio.</p>
+    </div>
+    <div class="phone-col">
+      <div class="controls">
+        <div class="ctl-row"><span class="ctl-label">Mirás como</span>
+          <div class="seg" id="ctl-viewer">
+            <button type="button" data-viewer="pro" aria-pressed="true">Oferente</button>
+            <button type="button" data-viewer="cliente" aria-pressed="false">Cliente</button>
+          </div></div>
+        <div class="ctl-row"><span class="ctl-label">Estado del trabajo</span>
+          <div class="seg" id="ctl-estado"></div></div>
+      </div>
+      <div class="phone"><div class="screen app" id="screen"></div></div>
+      <p class="hint">Es una maqueta: no manda nada ni guarda nada. "Pagar" simula la vuelta de Mercado Pago.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LÓGICA ============ -->
+<section id="logica">
+  <div class="sec-head">
+    <p class="eyebrow">La lógica</p>
+    <h2>Los mismos estados de hoy, dichos de otra manera</h2>
+    <p class="prose">No cambia el flujo del servidor: <code>Booking.status</code> y <code>Proposal.status</code> siguen como están. Lo nuevo es cómo se traducen a pantalla. <code>estadoAcuerdo()</code> ya hace esa traducción para el encabezado. Se amplía para que también devuelva la franja y separe dos casos que hoy caen juntos en "Acuerdo abierto": <strong>rechazado</strong> y <strong>vencido</strong>.</p>
+  </div>
+  <div class="mermaid-box">
+<pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  state "Sin presupuesto" as S0
+  state "Enviado" as S1
+  state "Rechazado" as SR
+  state "Vencido" as SV
+  state "En curso" as S2
+  state "Terminado" as S3
+  state "Pagado" as S4
+  [*] --> S0
+  S0 --> S1: oferente envía
+  S1 --> S2: cliente acepta
+  S1 --> SR: cliente rechaza
+  S1 --> SV: pasan 5 días
+  SR --> S1: oferente manda otro
+  SV --> S1: oferente manda otro
+  S2 --> S3: oferente lo cierra
+  S3 --> S4: cliente paga con MP
+  S4 --> [*]: cliente califica
+</pre>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Estado en pantalla</th><th>Viene de</th><th>Franja del cliente</th><th>Franja del oferente</th><th>Tarjeta</th></tr></thead>
+      <tbody>
+        <tr><td><span class="dot" style="background:#94a3b8"></span>Sin presupuesto</td><td><code>booking = null</code></td><td>No aparece</td><td>"¿Ya sabés cuánto sale?" · <b>Enviar presupuesto</b></td><td>No hay</td></tr>
+        <tr><td><span class="dot" style="background:#f59e0b"></span>Enviado</td><td><code>requested</code> + propuesta <code>pending</code> sin vencer</td><td>"Presupuesto de $X · vence el …" · <b>Ver</b><span class="q">Lleva a la tarjeta y la resalta</span></td><td>"Esperando que responda · vence el …"</td><td>Pendiente · <b>Aceptar / Rechazar</b> (solo el cliente)</td></tr>
+        <tr><td><span class="dot" style="background:#94a3b8"></span>Rechazado</td><td><code>requested</code> + última propuesta <code>rejected</code></td><td>"Rechazaste el presupuesto. Te puede mandar otro."</td><td>"Rechazó el presupuesto" · <b>Mandar otro</b></td><td>Rechazado, monto tachado</td></tr>
+        <tr><td><span class="dot" style="background:#94a3b8"></span>Vencido</td><td><code>requested</code> + última propuesta <code>expired</code></td><td>"Venció sin respuesta. Pedile uno nuevo."</td><td>"Venció sin respuesta" · <b>Mandar otro</b></td><td>Vencido</td></tr>
+        <tr><td><span class="dot" style="background:#059669"></span>En curso</td><td><code>in_progress</code></td><td>"Día N de M" con barra</td><td>"Día N de M" con barra · <b>Terminé el trabajo</b><span class="q">Sin Mercado Pago vinculado: "Vinculá Mercado Pago"</span></td><td>Aceptado</td></tr>
+        <tr><td><span class="dot" style="background:#009ee3"></span>Terminado</td><td><code>finished</code></td><td>"Total $X" · <b>Pagar con Mercado Pago</b></td><td>"Esperando el pago"</td><td>Aceptado</td></tr>
+        <tr><td><span class="dot" style="background:#2563eb"></span>Pagado</td><td><code>paid_awaiting_review</code></td><td>"¿Cómo fue el trabajo?" · <b>Calificar</b></td><td>"Pagado. Falta que te califique."</td><td>Aceptado</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="cols">
+    <div class="box"><h3>Cómo sabe la tarjeta qué presupuesto es</h3><p>Hoy el mensaje 💰 es solo texto, sin ningún vínculo con la propuesta. Se suma <code>Message.proposalId</code> (opcional) y la tarjeta busca esa propuesta en el acuerdo que el chat ya pide cada 5 s. No hace falta otra consulta.</p><p>Los mensajes viejos no tienen ese vínculo: se muestran con la tarjeta de hoy, sin botones. La franja igual ofrece la acción.</p></div>
+    <div class="box"><h3>Sin doble aceptación</h3><ul><li>En la pantalla: el botón queda apagado mientras se envía, y al volver se llama al <code>reload()</code> del chat, no a <code>router.refresh()</code>.</li><li>En el servidor: aceptar y rechazar pasan a <code>updateMany where status = "pending"</code> dentro de la transacción. Si no actualizó ninguna fila, alguien ya respondió: no se repiten el mensaje ni el aviso.</li></ul></div>
+    <div class="box"><h3>Un solo formulario para mandar</h3><p>Hoy hay dos caminos: el primer presupuesto va por <code>/api/conversaciones/[id]/acuerdo</code> y el segundo, después de un rechazo, por <code>/api/contrataciones/[id]</code>, cada uno con su formulario. La hoja nueva es una sola y elige la ruta según haya acuerdo abierto o no.</p></div>
+  </div>
+</section>
+
+<!-- ============ CÓDIGO ============ -->
+<section id="codigo">
+  <div class="sec-head">
+    <p class="eyebrow">Qué se toca</p>
+    <h2>Archivos y cambios</h2>
+  </div>
+  <div class="files">
+    <div class="file"><div><span class="path">src/components/chat/TarjetaPresupuesto.tsx</span><br><span class="badge new">Nuevo</span></div><ul><li>Tarjeta con los datos del presupuesto: monto, días, detalle, vencimiento y etiqueta de estado con texto.</li><li>Aceptar y Rechazar a lo ancho (44 px), con su hoja de confirmación.</li><li>Sin <code>proposalId</code>, muestra la tarjeta de hoy.</li></ul></div>
+    <div class="file"><div><span class="path">src/components/chat/FranjaAcuerdo.tsx</span><br><span class="badge new">Nuevo</span></div><ul><li>Franja fija bajo el encabezado, según la tabla de estados.</li><li>"Ver" desplaza la lista hasta la tarjeta y la resalta.</li></ul></div>
+    <div class="file"><div><span class="path">src/components/chat/HojaPresupuesto.tsx</span><br><span class="badge new">Nuevo</span></div><ul><li>Pantalla completa en el celu y hoja centrada desde <code>md</code>.</li><li>Monto con $ y puntos (<code>inputMode="numeric"</code>), días 1 · 2 · 3 · 5 · 7 · Otro, detalle y vista previa.</li><li>Botón fijo abajo; con <code>visualViewport</code> queda arriba del teclado en iOS.</li><li>Borrador en <code>sessionStorage</code> por conversación: si se cierra sin querer o se corta la red, no se pierde lo escrito.</li></ul></div>
+    <div class="file"><div><span class="path">src/components/PaymentControls.tsx</span><br><span class="badge mod">Cambia</span></div><ul><li><code>estadoAcuerdo()</code> suma <code>franja</code> y los casos rechazado y vencido.</li><li>El botón sale de la barra de escribir. El panel de detalle queda, se abre desde la franja y le pasa <code>reload</code> a las acciones.</li></ul></div>
+    <div class="file"><div><span class="path">src/components/BookingActions.tsx</span><br><span class="badge mod">Cambia</span></div><ul><li>Prop <code>onDone</code>: en el chat es <code>reload</code> y en <code>/contrataciones</code> sigue siendo <code>router.refresh()</code>.</li><li>Botones de 44 px apilados, sin <code>w-64</code>/<code>w-72</code>, y estrellas como botones en vez del <code>select</code>.</li></ul></div>
+    <div class="file"><div><span class="path">src/components/Chat.tsx</span><br><span class="badge mod">Cambia</span></div><ul><li>El oferente ve el + con su menú (Adjuntar / Enviar presupuesto) y el cliente solo el clip.</li><li>Pone la franja y la tarjeta nueva.</li><li>✅ ❌ 🏁 se muestran como líneas del sistema.</li></ul></div>
+    <div class="file"><div><span class="path">src/app/api/conversaciones/[id]/acuerdo/route.ts<br>src/app/api/contrataciones/[id]/route.ts</span><br><span class="badge mod">Cambia</span></div><ul><li>El mensaje 💰 guarda <code>proposalId</code>.</li><li>Aceptar y rechazar son idempotentes (<code>updateMany</code> + conteo dentro de la transacción).</li><li>La respuesta y los avisos no cambian.</li></ul></div>
+    <div class="file"><div><span class="path">prisma/schema.prisma</span><br><span class="badge db">Base</span></div><ul><li><code>Message.proposalId String?</code>. Solo agrega una columna: <code>npx prisma db push</code> es seguro y no hace falta un script de datos.</li></ul></div>
+  </div>
+</section>
+
+<!-- ============ CELU ============ -->
+<section id="celu">
+  <div class="sec-head">
+    <p class="eyebrow">Casos del celular</p>
+    <h2>Lo que la spec tiene que cubrir</h2>
+    <p class="prose">Sale de <code>docs/MOBILE_GUIDELINES.md</code>, aplicado a este flujo.</p>
+  </div>
+  <div class="cols">
+    <div class="box"><h3>Teclado y pantalla</h3><ul><li>El botón de enviar nunca queda tapado por el teclado.</li><li>Nada con alto fijo: con la letra agrandada del sistema, el texto baja de línea y no se corta.</li><li>Áreas táctiles de 44 px o más; los campos con 16 px para que iOS no haga zoom.</li></ul></div>
+    <div class="box"><h3>Red y estados</h3><ul><li>Enviando: el botón dice "Enviando…" y queda apagado.</li><li>Sin conexión: un error en la hoja con "Reintentar", sin perder lo escrito.</li><li>Si vence mientras lo mirás, el aviso de cada 5 s pasa la tarjeta a "Vencido" y saca los botones.</li></ul></div>
+    <div class="box"><h3>Accesibilidad</h3><ul><li>Las hojas son <code>role="dialog"</code>, ponen el foco al abrirse, cierran con Escape y lo devuelven al cerrarse.</li><li>El estado siempre se dice con texto ("Pendiente", "Vencido"), no solo con el color.</li></ul></div>
+  </div>
+</section>
+
+<!-- ============ PREGUNTAS ============ -->
+<section id="preguntas">
+  <div class="sec-head">
+    <p class="eyebrow">Para cerrar con el cliente</p>
+    <h2>Decisiones que no son nuestras</h2>
+  </div>
+  <div class="cols">
+    <div class="box question"><h3>¿Presupuesto por ítems?</h3><p>Mano de obra, materiales, viáticos, con el total sumado solo. Es lo que más le sirve al oferente, pero suma una tabla, cambia la API y el correo. Propuesta: segunda etapa, si lo pide.</p></div>
+    <div class="box question"><h3>¿El oferente puede retirar un presupuesto?</h3><p>Hoy, si se equivocó en el monto, tiene que esperar que el cliente lo rechace o que pasen 5 días. Un "Retirar y mandar otro" mientras está pendiente es chico y resuelve ese caso.</p></div>
+    <div class="box question"><h3>¿Fotos en el presupuesto?</h3><p>Ya existe <code>ProposalAttachment</code> en la base, pero no se usa en el chat. Se podría sumar al formulario en esta misma tanda o dejarlo para después.</p></div>
+  </div>
+</section>
+
+</div>
+
+<script>
+(() => {
+  const ESTADOS = [
+    ["none", "Sin presupuesto"], ["sent", "Enviado"], ["rejected", "Rechazado"], ["expired", "Vencido"],
+    ["accepted", "En curso"], ["finished", "Terminado"], ["paid", "Pagado"],
+  ];
+  const S = {
+    viewer: "pro", estado: "none", menu: false, layer: null, toast: null,
+    prop: { amount: 150000, days: 2, detail: "Cambio de cartucho y flexibles de la canilla de la cocina. Incluye materiales." },
+    draft: { amount: "", days: null, otro: false, detail: "" },
+    rating: 0, flash: false,
+  };
+  const $screen = document.getElementById("screen");
+  const ars = (n) => "$" + Number(n).toLocaleString("es-AR");
+  const diasTxt = (n) => `${n} ${n === 1 ? "día" : "días"}`;
+  const hoy = new Date();
+  const masDias = (n) => { const d = new Date(hoy); d.setDate(d.getDate() + n); return d; };
+  const fecha = (d) => d.toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "numeric" });
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const isPro = () => S.viewer === "pro";
+  const ORDEN = ["none", "sent", "rejected", "expired", "accepted", "finished", "paid"];
+  const pasado = (e) => ["accepted", "finished", "paid"].includes(S.estado) && ORDEN.indexOf(S.estado) >= ORDEN.indexOf(e);
+
+  const IC = {
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    clip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m21 12-8.5 8.5a5 5 0 0 1-7-7L14 5a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 8"/></svg>',
+    doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
+    send: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5 21 12 3 3.5v6.5l12 2-12 2z"/></svg>',
+    x: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+    mp: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M7 12c2-2 3-2 5 0s3 2 5 0"/></svg>',
+  };
+
+  function encabezado() {
+    const p = S.prop;
+    const m = {
+      none: ["Sin presupuesto todavía", "t-slate"],
+      sent: isPro() ? ["Presupuesto enviado · esperando respuesta", "t-amber"] : [`Te mandó un presupuesto · ${ars(p.amount)}`, "t-amber"],
+      rejected: ["Presupuesto rechazado", "t-slate"],
+      expired: ["El presupuesto venció", "t-slate"],
+      accepted: [`Trabajo en curso · día 1 de ${p.days}`, "t-green"],
+      finished: ["Trabajo terminado · falta el pago", "t-amber"],
+      paid: ["Pagado · falta la calificación", "t-green"],
+    }[S.estado];
+    const nombre = isPro() ? "Laura Pereyra" : "Martín Gómez";
+    const ini = isPro() ? "LP" : "MG";
+    const color = isPro() ? "#2563eb" : "#059669";
+    return `<div class="notch"><span></span></div>
+      <div class="app-head"><span class="back">‹</span><div class="av" style="background:${color}">${ini}</div>
+      <div class="who"><b>${nombre}</b><small class="${m[1]}">${m[0]}</small></div><span class="dots">⋮</span></div>`;
+  }
+
+  function franja() {
+    const p = S.prop, vence = fecha(masDias(5));
+    const pro = isPro();
+    const F = (tono, b, span, btn) => `<div class="franja ${tono}" role="status"><div class="txt"><b>${b}</b>${span ? `<span>${span}</span>` : ""}</div>${btn || ""}</div>`;
+    const barra = `<div class="bar"><i style="width:${Math.round(100 / p.days)}%"></i></div>`;
+    switch (S.estado) {
+      case "none": return pro ? F("slate", "¿Ya sabés cuánto sale?", "Mandale el presupuesto por acá.", `<button class="chip-btn green" data-act="nuevo">Enviar presupuesto</button>`) : "";
+      case "sent": return pro ? F("slate", "Esperando que responda", `Vence el ${vence} si no contesta.`) : F("amber", `Presupuesto de ${ars(p.amount)}`, `${diasTxt(p.days)} de trabajo · vence el ${vence}`, `<button class="chip-btn amber" data-act="ver">Ver</button>`);
+      case "rejected": return pro ? F("slate", "Rechazó el presupuesto", "Podés mandarle otro.", `<button class="chip-btn green" data-act="nuevo">Mandar otro</button>`) : F("slate", "Rechazaste el presupuesto", "Te puede mandar uno nuevo.");
+      case "expired": return pro ? F("slate", "Venció sin respuesta", "Podés mandarle otro.", `<button class="chip-btn green" data-act="nuevo">Mandar otro</button>`) : F("slate", "El presupuesto venció", "Pedile uno nuevo por el chat.");
+      case "accepted": return F("green", `Día 1 de ${p.days}`, `Termina el ${fecha(masDias(p.days))}${barra}`, pro ? `<button class="chip-btn green" data-act="terminar">Terminé</button>` : "");
+      case "finished": return pro ? F("slate", "Esperando el pago", `Total ${ars(p.amount)}`) : F("mp", `Total ${ars(p.amount)}`, "El trabajo está terminado.", `<button class="chip-btn mp" data-act="pagar">${IC.mp}Pagar</button>`);
+      case "paid": return pro ? F("blue", "Pagado", "Falta que te califique.") : F("blue", "¿Cómo fue el trabajo?", "Calificalo para cerrar.", `<button class="chip-btn blue" data-act="calificar">Calificar</button>`);
+    }
+  }
+
+  function tarjeta(p, est, preview) {
+    const pill = { sent: ["amber", "Pendiente"], accepted: ["green", "Aceptado"], rejected: ["slate", "Rechazado"], expired: ["slate", "Vencido"] }[est];
+    const pie = est === "sent" ? `<span>Vence el ${fecha(masDias(5))}</span><span>10:24</span>`
+      : est === "accepted" ? `<span>Aceptado hoy · termina el ${fecha(masDias(p.days))}</span><span>10:24</span>`
+      : est === "rejected" ? `<span>Rechazado hoy</span><span>10:24</span>`
+      : `<span>Venció sin respuesta</span><span>10:24</span>`;
+    const acciones = !preview && est === "sent" && !isPro()
+      ? `<div class="acciones"><button class="btn outline" data-act="rechazar">Rechazar</button><button class="btn primary" data-act="aceptar">Aceptar</button></div>` : "";
+    return `<article class="tarjeta${S.flash && !preview ? " flash" : ""}" id="${preview ? "" : "tarjeta"}" aria-label="Presupuesto ${ars(p.amount)}, ${pill[1]}">
+      <div class="top"><span class="lbl">Presupuesto</span><span class="pill ${pill[0]}">${pill[1]}</span></div>
+      <div class="body"><div class="monto${est === "rejected" || est === "expired" ? " tachado" : ""}">${ars(p.amount || 0)}</div>
+      <div class="linea"><b>${p.days ? diasTxt(p.days) : "— días"}</b> de trabajo · ${est === "sent" ? "arrancan cuando lo aceptás" : "desde que se aceptó"}</div>
+      ${p.detail ? `<div class="detalle">${esc(p.detail)}</div>` : ""}</div>
+      <div class="pie">${pie}</div>${acciones}</article>`;
+  }
+
+  function mensajes() {
+    const yo = S.viewer, otro = isPro() ? "cliente" : "pro";
+    const deCliente = (t, h) => `<div class="bub ${yo === "cliente" ? "out cliente" : "in"}">${t}<span class="h">${h}</span></div>`;
+    const dePro = (t, h) => `<div class="bub ${yo === "pro" ? "out pro" : "in"}">${t}<span class="h">${h}</span></div>`;
+    let h = `<span class="day">Hoy</span>`;
+    h += deCliente("Hola, se me rompió la canilla de la cocina, pierde agua por abajo", "10:12");
+    h += dePro("¡Hola! Paso mañana a la mañana. Es cambio de cartucho y flexibles", "10:20");
+    if (S.estado === "none") return h;
+    const est = ["accepted", "finished", "paid"].includes(S.estado) ? "accepted" : S.estado;
+    h += tarjeta(S.prop, est);
+    if (S.estado === "rejected") h += `<div class="sys">❌ ${isPro() ? "Laura rechazó" : "Rechazaste"} el presupuesto · ${isPro() ? "podés mandar otro" : "te puede mandar uno nuevo"}</div>`;
+    if (S.estado === "expired") h += `<div class="sys">⌛ El presupuesto venció sin respuesta</div>`;
+    if (pasado("accepted")) h += `<div class="sys">✅ ${isPro() ? "Laura aceptó" : "Aceptaste"} el presupuesto · el plazo arrancó hoy</div>`;
+    if (pasado("accepted")) h += deCliente("Genial, te espero mañana a las 9", "10:31");
+    if (pasado("finished")) h += `<div class="sys">🏁 Trabajo terminado · ${ars(S.prop.amount)}</div>`;
+    if (pasado("paid")) h += `<div class="sys">💳 Pago acreditado por Mercado Pago</div>`;
+    return h;
+  }
+
+  function composer() {
+    const pro = isPro();
+    const bloqueo = S.estado === "sent" ? "Ya hay uno esperando respuesta" : ["accepted", "finished", "paid"].includes(S.estado) ? "Hay un trabajo en curso" : "";
+    const menu = pro && S.menu ? `<div class="plus-menu" role="menu">
+        <button role="menuitem" data-act="adjuntar"><span class="ic" style="background:#f1f5f9;color:#475569">${IC.clip}</span><span><b>Adjuntar</b><small>Foto o PDF, hasta 8 MB</small></span></button>
+        <button role="menuitem" data-act="nuevo" ${bloqueo ? "disabled" : ""}><span class="ic" style="background:${bloqueo ? "#f1f5f9" : "#ecfdf5"};color:${bloqueo ? "#94a3b8" : "#059669"}">${IC.doc}</span><span><b>Enviar presupuesto</b><small>${bloqueo || "Monto, días y qué incluye"}</small></span></button>
+      </div>` : "";
+    const btn = pro
+      ? `<button class="icon-btn plus" data-act="menu" aria-label="Más opciones" aria-expanded="${S.menu}">${IC.plus}</button>`
+      : `<button class="icon-btn" data-act="adjuntar" aria-label="Adjuntar foto o PDF">${IC.clip}</button>`;
+    return `${menu}<div class="composer">${btn}<span class="field">Escribí un mensaje…</span><span class="send ${pro ? "pro" : "cliente"}">${IC.send}</span></div>`;
+  }
+
+  function capa() {
+    const p = S.prop;
+    if (S.layer === "nuevo") {
+      const d = S.draft, monto = Number(d.amount.replace(/\D/g, "")) || 0, ok = monto >= 100 && d.days >= 1;
+      const chips = [1, 2, 3, 5, 7].map((n) => `<button type="button" data-dia="${n}" aria-pressed="${!d.otro && d.days === n}">${n}</button>`).join("");
+      return `<div class="full" role="dialog" aria-modal="true" aria-label="Nuevo presupuesto">
+        <div class="full-head"><button class="icon-btn" data-act="cerrar" aria-label="Cerrar">${IC.x}</button><h4>Nuevo presupuesto</h4></div>
+        <div class="full-body">
+          <div class="campo"><label for="f-monto">¿Cuánto cobrás?</label><div class="pesos"><span>$</span><input id="f-monto" inputmode="numeric" autocomplete="off" placeholder="0" value="${esc(d.amount)}"></div><span class="ayuda">Total con materiales y mano de obra.</span></div>
+          <div class="campo"><span class="lab" id="lab-dias">¿En cuántos días lo terminás?</span><div class="dias" role="group" aria-labelledby="lab-dias">${chips}<button type="button" data-dia="otro" aria-pressed="${d.otro}">Otro</button>${d.otro ? `<input id="f-dias" inputmode="numeric" placeholder="días" value="${d.days || ""}" aria-label="Cantidad de días">` : ""}</div><span class="ayuda">Cuentan desde que lo acepta.</span></div>
+          <div class="campo"><label for="f-det">Qué incluye <span style="font-weight:400;color:#94a3b8">(opcional)</span></label><textarea id="f-det" class="det" rows="3" placeholder="Ej.: cambio de cartucho y flexibles, con materiales">${esc(d.detail)}</textarea></div>
+          <div class="campo"><span class="preview-lbl">Así lo ve Laura</span><div class="preview-box" id="preview">${tarjeta({ amount: monto, days: d.days, detail: d.detail }, "sent", true)}</div></div>
+        </div>
+        <div class="full-foot"><button class="btn primary pro block" data-act="enviar" id="f-enviar" ${ok ? "" : "disabled"}>${ok ? `Enviar presupuesto · ${ars(monto)}` : "Completá el monto y los días"}</button><p>Si no responde, vence en 5 días. Uno por vez: el siguiente va cuando lo rechace o venza.</p></div>
+      </div>`;
+    }
+    const hoja = (inner) => `<div class="layer" data-act="fondo"><div class="sheet" role="dialog" aria-modal="true"><span class="grab"></span>${inner}</div></div>`;
+    if (S.layer === "aceptar") return hoja(`<h4>¿Aceptás el presupuesto?</h4>
+      <div class="resumen"><div class="monto">${ars(p.amount)}</div><div class="linea" style="font-size:13px;color:#475569"><b style="color:#0f172a">${diasTxt(p.days)}</b>&nbsp;de trabajo · termina el ${fecha(masDias(p.days))}</div></div>
+      <p>El plazo arranca hoy. Le avisamos a Martín para que empiece. El pago se hace cuando termine, por Mercado Pago.</p>
+      <div class="stack"><button class="btn primary block" data-act="ok-aceptar">Sí, aceptar</button><button class="btn outline block" data-act="cerrar">Volver</button></div>`);
+    if (S.layer === "rechazar") return hoja(`<h4>¿Rechazás el presupuesto de ${ars(p.amount)}?</h4>
+      <p>Le avisamos a Martín. Puede mandarte uno nuevo, y podés seguir charlando por acá.</p>
+      <div class="stack"><button class="btn danger block" data-act="ok-rechazar">Rechazar</button><button class="btn outline block" data-act="cerrar">Volver</button></div>`);
+    if (S.layer === "terminar") return hoja(`<h4>Cerrar el trabajo</h4>
+      <div class="campo"><label for="t-monto">Monto final</label><div class="pesos" style="height:52px"><span>$</span><input id="t-monto" inputmode="numeric" value="${p.amount.toLocaleString("es-AR")}"></div></div>
+      <div class="campo"><label for="t-res">Qué hiciste</label><textarea id="t-res" class="det" rows="2">Cambié el cartucho y los dos flexibles. Probado sin pérdidas.</textarea></div>
+      <div class="stack"><button class="btn primary pro block" data-act="ok-terminar">Marcar como terminado</button><button class="btn outline block" data-act="cerrar">Volver</button></div>`);
+    if (S.layer === "calificar") {
+      const st = [1, 2, 3, 4, 5].map((n) => `<button type="button" data-star="${n}" class="${n <= S.rating ? "on" : ""}" aria-label="${n} ${n === 1 ? "estrella" : "estrellas"}">★</button>`).join("");
+      return hoja(`<h4>¿Cómo fue el trabajo de Martín?</h4><div class="stars">${st}</div>
+        <textarea class="det" rows="2" aria-label="Comentario" placeholder="Contá cómo fue (opcional)"></textarea>
+        <div class="stack"><button class="btn primary block" data-act="ok-calificar" ${S.rating ? "" : "disabled"}>Publicar calificación</button></div>`);
+    }
+    return "";
+  }
+
+  function render(keepScroll) {
+    const old = $screen.querySelector(".msgs");
+    const top = old ? old.scrollTop : 0;
+    $screen.innerHTML = `${encabezado()}${franja()}<div class="msgs" id="msgs">${mensajes()}</div>${composer()}${capa()}${S.toast ? `<div class="toast" role="status">${S.toast}</div>` : ""}`;
+    const m = $screen.querySelector(".msgs");
+    if (keepScroll) m.scrollTop = top; else m.scrollTop = m.scrollHeight;
+    document.querySelectorAll("#ctl-viewer button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.viewer === S.viewer));
+    document.querySelectorAll("#ctl-estado button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.estado === S.estado));
+  }
+
+  let toastTimer;
+  function toast(t) { S.toast = t; clearTimeout(toastTimer); toastTimer = setTimeout(() => { S.toast = null; const el = $screen.querySelector(".toast"); if (el) el.remove(); }, 2600); }
+  function ir(estado, t) { S.estado = estado; S.layer = null; S.menu = false; if (t) toast(t); render(); }
+
+  // Formulario: se actualiza en el lugar para no perder el foco del campo.
+  function refrescarForm() {
+    const d = S.draft, monto = Number(d.amount.replace(/\D/g, "")) || 0, ok = monto >= 100 && d.days >= 1;
+    const prev = $screen.querySelector("#preview");
+    if (prev) prev.innerHTML = tarjeta({ amount: monto, days: d.days, detail: d.detail }, "sent", true);
+    const b = $screen.querySelector("#f-enviar");
+    if (b) { b.disabled = !ok; b.textContent = ok ? `Enviar presupuesto · ${ars(monto)}` : "Completá el monto y los días"; }
+  }
+
+  $screen.addEventListener("input", (e) => {
+    const t = e.target;
+    if (t.id === "f-monto" || t.id === "t-monto") {
+      const dig = t.value.replace(/\D/g, "").slice(0, 9).replace(/^0+/, "");
+      t.value = dig ? Number(dig).toLocaleString("es-AR") : "";
+      if (t.id === "f-monto") { S.draft.amount = t.value; refrescarForm(); }
+    } else if (t.id === "f-dias") {
+      const n = Math.min(365, Number(t.value.replace(/\D/g, "")) || 0); t.value = n || ""; S.draft.days = n || null; refrescarForm();
+    } else if (t.id === "f-det") { S.draft.detail = t.value; refrescarForm(); }
+  });
+
+  $screen.addEventListener("click", (e) => {
+    const dia = e.target.closest("[data-dia]");
+    if (dia) {
+      if (dia.dataset.dia === "otro") { S.draft.otro = true; S.draft.days = null; render(true); const i = $screen.querySelector("#f-dias"); if (i) i.focus(); }
+      else { S.draft.otro = false; S.draft.days = Number(dia.dataset.dia); $screen.querySelectorAll("[data-dia]").forEach((b) => b.setAttribute("aria-pressed", b === dia)); const i = $screen.querySelector("#f-dias"); if (i) i.remove(); refrescarForm(); }
+      return;
+    }
+    const star = e.target.closest("[data-star]");
+    if (star) { S.rating = Number(star.dataset.star); render(true); return; }
+    const el = e.target.closest("[data-act]");
+    if (!el) { if (S.menu) { S.menu = false; render(true); } return; }
+    const act = el.dataset.act;
+    if (act === "fondo" && e.target !== el) return;
+    switch (act) {
+      case "menu": S.menu = !S.menu; render(true); break;
+      case "adjuntar": S.menu = false; toast("Abre el selector de archivos, como hoy."); render(true); break;
+      case "nuevo": S.menu = false; S.layer = "nuevo"; S.draft = { amount: "", days: null, otro: false, detail: "" }; render(true); setTimeout(() => { const i = $screen.querySelector("#f-monto"); if (i) i.focus({ preventScroll: true }); }, 60); break;
+      case "cerrar": case "fondo": S.layer = null; render(true); break;
+      case "enviar": {
+        const monto = Number(S.draft.amount.replace(/\D/g, ""));
+        S.prop = { amount: monto, days: S.draft.days, detail: S.draft.detail.trim() };
+        ir("sent", "Presupuesto enviado. Le avisamos a Laura."); break;
+      }
+      case "ver": {
+        S.flash = true; render(true);
+        const t = $screen.querySelector("#tarjeta"), m = $screen.querySelector(".msgs");
+        if (t && m) m.scrollTop = t.offsetTop - 20;
+        setTimeout(() => { S.flash = false; const c = $screen.querySelector("#tarjeta"); if (c) c.classList.remove("flash"); }, 1400);
+        break;
+      }
+      case "aceptar": S.layer = "aceptar"; render(true); break;
+      case "rechazar": S.layer = "rechazar"; render(true); break;
+      case "ok-aceptar": ir("accepted", "Aceptado. El trabajo ya está en curso."); break;
+      case "ok-rechazar": ir("rejected", "Rechazado. Le avisamos a Martín."); break;
+      case "terminar": S.layer = "terminar"; render(true); break;
+      case "ok-terminar": ir("finished", "Listo. Laura ya puede pagar."); break;
+      case "pagar": ir("paid", "Volviste de Mercado Pago: pago acreditado."); break;
+      case "calificar": S.rating = 0; S.layer = "calificar"; render(true); break;
+      case "ok-calificar": ir("none", "Gracias. El trabajo quedó cerrado."); break;
+    }
+  });
+  $screen.addEventListener("keydown", (e) => { if (e.key === "Escape" && (S.layer || S.menu)) { S.layer = null; S.menu = false; render(true); } });
+
+  const ctlE = document.getElementById("ctl-estado");
+  ctlE.innerHTML = ESTADOS.map(([k, l]) => `<button type="button" data-estado="${k}" aria-pressed="false">${l}</button>`).join("");
+  ctlE.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) ir(b.dataset.estado); });
+  document.getElementById("ctl-viewer").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { S.viewer = b.dataset.viewer; S.layer = null; S.menu = false; render(); } });
+
+  render();
+})();
+</script>

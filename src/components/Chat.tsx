@@ -1,12 +1,17 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui";
 import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
-import { ChevronLeftIcon, PaperclipIcon, SendIcon, FileIcon, XIcon } from "@/components/icons";
+import { ChevronLeftIcon, PaperclipIcon, PlusIcon, SendIcon, FileIcon, ClipboardIcon, XIcon } from "@/components/icons";
 import { formatBytes } from "@/lib/format";
-import { PaymentControls, estadoAcuerdo, useAcuerdo } from "@/components/PaymentControls";
+import { PanelAcuerdo, useAcuerdo } from "@/components/PaymentControls";
+import { FranjaAcuerdo } from "@/components/chat/FranjaAcuerdo";
+import { HojaConfirmar } from "@/components/chat/HojaConfirmar";
+import { HojaPresupuesto } from "@/components/chat/HojaPresupuesto";
+import { TarjetaPresupuesto } from "@/components/chat/TarjetaPresupuesto";
+import { type AccionFranja, type PropuestaVista, ars, dias, esAvisoDelAcuerdo, esMensajeDePresupuesto, estadoAcuerdo, fechaCorta, motivoSinPresupuesto, propuestaPendiente } from "@/lib/presupuesto";
 import { DenunciarConversacion } from "@/components/DenunciarConversacion";
 
 export type ChatMessage = {
@@ -18,6 +23,8 @@ export type ChatMessage = {
   attachmentName?: string | null;
   attachmentType?: string | null;
   attachmentSize?: number | null;
+  /** Los 💰: el presupuesto que muestran, para pintar la tarjeta con su estado. */
+  proposalId?: string | null;
 };
 
 export type ChatConversation = {
@@ -94,8 +101,19 @@ export function Chat({
 
   const selected = conversations.find((c) => c.id === selectedId) ?? conversations[0] ?? null;
   const messages = selected ? (byId[selected.id] ?? selected.messages) : [];
-  const { booking, reload } = useAcuerdo(selected?.id ?? null);
+  const { booking, propuestas, reload } = useAcuerdo(selected?.id ?? null);
   const acuerdo = selected ? estadoAcuerdo(booking, viewer) : null;
+
+  // Presupuesto: formulario, confirmación, panel del acuerdo y menú del +.
+  const [hojaPresupuesto, setHojaPresupuesto] = useState(false);
+  const [confirmar, setConfirmar] = useState<{ tipo: "aceptar" | "rechazar"; propuesta: PropuestaVista } | null>(null);
+  const [panel, setPanel] = useState<{ inicial: "finish" | "review" | null } | null>(null);
+  const [menuMas, setMenuMas] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const [errorAcuerdo, setErrorAcuerdo] = useState<string | null>(null);
+  const [resaltada, setResaltada] = useState<string | null>(null);
+  const tarjetas = useRef<Record<string, HTMLElement | null>>({});
+  const propuestaPorId = Object.fromEntries(propuestas.map((p) => [p.id, p]));
 
   const { porConversacion, marcarLeida, mirandoHilo } = useNoLeidos();
   const dosColumnas = useDosColumnas();
@@ -156,6 +174,19 @@ export function Chat({
     });
   }, [conversations]);
 
+  // Trae los mensajes del hilo. Lo usa el poll y, después de cada acción del
+  // acuerdo, el chat: así el aviso (✅, ❌…) aparece sin esperar 5 segundos.
+  const traerMensajes = useCallback(async (id: string, sigue: () => boolean = () => true) => {
+    try {
+      const res = await fetch(`/api/conversaciones/${id}/mensajes`, { cache: "no-store" });
+      if (!res.ok || !sigue()) return;
+      const data = (await res.json()) as { messages: ChatMessage[] };
+      if (sigue()) setById((prev) => ({ ...prev, [id]: data.messages }));
+    } catch {
+      // Se cayó la red un segundo: el próximo tick reintenta solo.
+    }
+  }, []);
+
   // Polling del hilo abierto. Se corta con la pestaña en segundo plano: nadie
   // está mirando y no tiene sentido pegarle al servidor cada 5 segundos.
   useEffect(() => {
@@ -164,16 +195,7 @@ export function Chat({
 
     async function poll() {
       if (document.visibilityState !== "visible") return;
-      try {
-        const res = await fetch(`/api/conversaciones/${selectedId}/mensajes`, {
-          cache: "no-store",
-        });
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as { messages: ChatMessage[] };
-        if (!cancelled) setById((prev) => ({ ...prev, [selectedId!]: data.messages }));
-      } catch {
-        // Se cayó la red un segundo: el próximo tick reintenta solo.
-      }
+      await traerMensajes(selectedId!, () => !cancelled);
     }
 
     poll();
@@ -184,6 +206,15 @@ export function Chat({
       clearInterval(timer);
       document.removeEventListener("visibilitychange", poll);
     };
+  }, [selectedId, traerMensajes]);
+
+  // Al cambiar de hilo se cierra todo lo del presupuesto del anterior.
+  useEffect(() => {
+    setHojaPresupuesto(false);
+    setConfirmar(null);
+    setPanel(null);
+    setMenuMas(false);
+    setErrorAcuerdo(null);
   }, [selectedId]);
 
   // Seguir el final del hilo cuando entra algo nuevo. Se mueve sólo la lista:
@@ -204,6 +235,76 @@ export function Chat({
     setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
+
+  /** Después de cualquier acción del acuerdo: estado y mensajes, ya. */
+  async function despuesDeAccion() {
+    if (!selected) return;
+    await Promise.all([reload(), traerMensajes(selected.id)]);
+  }
+
+  function irATarjeta(propuestaId: string) {
+    const tarjeta = tarjetas.current[propuestaId];
+    const el = lista.current;
+    if (!tarjeta || !el) return false;
+    el.scrollTo({ top: Math.max(0, tarjeta.offsetTop - el.offsetTop - 16), behavior: "smooth" });
+    setResaltada(propuestaId);
+    window.setTimeout(() => setResaltada((actual) => (actual === propuestaId ? null : actual)), 1600);
+    return true;
+  }
+
+  async function pagar() {
+    if (!booking) return;
+    setOcupado(true);
+    setErrorAcuerdo(null);
+    try {
+      const res = await fetch(`/api/contrataciones/${booking.id}/checkout`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) throw new Error(data.error || "No pudimos iniciar el pago.");
+      window.location.assign(data.url);
+    } catch (cause) {
+      setErrorAcuerdo(cause instanceof Error && cause.message !== "Failed to fetch" ? cause.message : "No hay conexión. Probá de nuevo.");
+      setOcupado(false);
+    }
+  }
+
+  function accionFranja(accion: AccionFranja) {
+    setErrorAcuerdo(null);
+    if (accion === "nuevo") setHojaPresupuesto(true);
+    else if (accion === "ver") {
+      const pendiente = propuestaPendiente(booking);
+      if (!pendiente || !irATarjeta(pendiente.id)) setPanel({ inicial: null });
+    } else if (accion === "pagar") void pagar();
+    else if (accion === "vincular") window.location.assign("/pro/mi-perfil#mercado-pago");
+    else if (accion === "terminar") setPanel({ inicial: "finish" });
+    else if (accion === "calificar") setPanel({ inicial: "review" });
+    else setPanel({ inicial: null });
+  }
+
+  async function responderPresupuesto() {
+    if (!confirmar || !booking) return;
+    setOcupado(true);
+    setErrorAcuerdo(null);
+    try {
+      const res = await fetch(`/api/contrataciones/${booking.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: confirmar.tipo === "aceptar" ? "accept_proposal" : "reject_proposal" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrorAcuerdo(data.error ?? "No pudimos responder el presupuesto.");
+        // 409: alguien ya respondió o venció. La tarjeta pasa al estado real.
+        if (res.status === 409) await despuesDeAccion();
+      } else {
+        setConfirmar(null);
+        await despuesDeAccion();
+      }
+    } catch {
+      setErrorAcuerdo("No hay conexión. Probá de nuevo.");
+    } finally {
+      setOcupado(false);
+    }
+  }
 
   function abrirHilo(id: string) {
     setGloboPerfil(null);
@@ -378,7 +479,13 @@ export function Chat({
               <Avatar name={selected.withName} color={selected.withColor} src={selected.avatarUrl} size={36} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-slate-900">{selected.withName}</p>
-                {acuerdo && <p className={`truncate text-xs font-medium ${acuerdo.tono}`}>{acuerdo.label}</p>}
+                {acuerdo && (booking ? (
+                  <button type="button" onClick={() => setPanel({ inicial: null })} className={`block max-w-full truncate text-left text-xs font-medium underline decoration-dotted underline-offset-2 ${acuerdo.tono}`} aria-label={`${acuerdo.label}. Ver el detalle del acuerdo`}>
+                    {acuerdo.label}
+                  </button>
+                ) : (
+                  <p className={`truncate text-xs font-medium ${acuerdo.tono}`}>{acuerdo.label}</p>
+                ))}
               </div>
               <MenuHilo
                 profileHref={selected.profileHref}
@@ -386,20 +493,42 @@ export function Chat({
               />
             </div>
 
+            {acuerdo?.franja && <FranjaAcuerdo franja={acuerdo.franja} onAccion={accionFranja} ocupado={ocupado} />}
+            {errorAcuerdo && !confirmar && (
+              <p role="alert" className="mx-3 mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{errorAcuerdo}</p>
+            )}
+
             <div ref={lista} className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 py-4 sm:px-4">
               {messages.map((m, i) => {
                 const own = m.sender === viewer;
                 const system = m.sender === "sistema";
-                const acuerdoMsg = m.text.startsWith("📋") || m.text.startsWith("💰");
+                const acuerdoMsg = esMensajeDePresupuesto(m.text);
+                const aviso = !acuerdoMsg && esAvisoDelAcuerdo(m.text);
+                const propuesta = m.proposalId ? propuestaPorId[m.proposalId] : undefined;
+                const puedeResponder = Boolean(propuesta && booking?.status === "requested" && propuesta.bookingId === booking.id);
                 const dia = diaDe(m.createdAt);
                 const nuevoDia = i === 0 || diaDe(messages[i - 1].createdAt) !== dia;
                 return (
                   <Fragment key={m.id}>
                     {nuevoDia && <SeparadorDia fecha={m.createdAt} />}
                     {divisor[selected.id] === m.id && <SeparadorNuevos />}
-                    <div className={`flex ${system || acuerdoMsg ? "justify-center" : own ? "justify-end" : "justify-start"}`}>
-                      {acuerdoMsg ? (
+                    <div className={`flex ${system || acuerdoMsg || aviso ? "justify-center" : own ? "justify-end" : "justify-start"}`}>
+                      {acuerdoMsg && propuesta ? (
+                        <TarjetaPresupuesto
+                          ref={(el) => { tarjetas.current[propuesta.id] = el; }}
+                          propuesta={propuesta}
+                          viewer={viewer}
+                          hora={hora(m.createdAt)}
+                          resaltada={resaltada === propuesta.id}
+                          onAceptar={puedeResponder ? () => { setErrorAcuerdo(null); setConfirmar({ tipo: "aceptar", propuesta }); } : undefined}
+                          onRechazar={puedeResponder ? () => { setErrorAcuerdo(null); setConfirmar({ tipo: "rechazar", propuesta }); } : undefined}
+                        />
+                      ) : acuerdoMsg ? (
                         <TarjetaAcuerdo message={m} />
+                      ) : aviso ? (
+                        <p className="max-w-[92%] rounded-xl border border-slate-200 bg-slate-100 px-4 py-1.5 text-center text-xs text-slate-600">
+                          {m.text} <span className="text-[10px] text-slate-400">· {hora(m.createdAt)}</span>
+                        </p>
                       ) : (
                         <div
                           className={`max-w-[85%] break-words rounded-2xl px-3.5 py-2 text-sm shadow-sm sm:max-w-[75%] ${
@@ -488,16 +617,25 @@ export function Chat({
                   setFile(f);
                 }}
               />
-              <button
-                type="button"
-                onClick={() => fileInput.current?.click()}
-                aria-label="Adjuntar imagen o PDF"
-                title="Adjuntar imagen o PDF"
-                className="shrink-0 rounded-xl p-2 text-slate-400 transition-colors hover:bg-white/70 hover:text-slate-600 sm:p-2.5"
-              >
-                <PaperclipIcon width={20} height={20} />
-              </button>
-              <PaymentControls conversationId={selected.id} viewer={viewer} booking={booking} reload={reload} />
+              {isPro ? (
+                <MenuMas
+                  open={menuMas}
+                  setOpen={setMenuMas}
+                  onAdjuntar={() => fileInput.current?.click()}
+                  onPresupuesto={() => setHojaPresupuesto(true)}
+                  motivo={motivoSinPresupuesto(booking)}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInput.current?.click()}
+                  aria-label="Adjuntar imagen o PDF"
+                  title="Adjuntar imagen o PDF"
+                  className="grid size-11 shrink-0 place-items-center rounded-xl text-slate-400 transition-colors hover:bg-white/70 hover:text-slate-600"
+                >
+                  <PaperclipIcon width={20} height={20} />
+                </button>
+              )}
               <input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -515,6 +653,56 @@ export function Chat({
                 <SendIcon width={18} height={18} />
               </button>
             </form>
+            {hojaPresupuesto && (
+              <HojaPresupuesto
+                conversationId={selected.id}
+                bookingId={booking?.status === "requested" ? booking.id : null}
+                para={selected.withName}
+                onCerrar={() => setHojaPresupuesto(false)}
+                onEnviado={async () => {
+                  setHojaPresupuesto(false);
+                  await despuesDeAccion();
+                }}
+              />
+            )}
+            {confirmar && (
+              <HojaConfirmar
+                titulo={confirmar.tipo === "aceptar" ? "¿Aceptás el presupuesto?" : `¿Rechazás el presupuesto de ${ars(confirmar.propuesta.amount)}?`}
+                confirmar={confirmar.tipo === "aceptar" ? "Sí, aceptar" : "Rechazar"}
+                peligro={confirmar.tipo === "rechazar"}
+                ocupado={ocupado}
+                error={errorAcuerdo}
+                onConfirmar={responderPresupuesto}
+                onCerrar={() => { setConfirmar(null); setErrorAcuerdo(null); }}
+              >
+                {confirmar.tipo === "aceptar" ? (
+                  <>
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <p className="text-2xl font-bold tabular-nums text-slate-900">{ars(confirmar.propuesta.amount)}</p>
+                      {confirmar.propuesta.estimatedDays ? (
+                        <p className="text-sm text-slate-600">
+                          <b className="font-semibold text-slate-900">{dias(confirmar.propuesta.estimatedDays)}</b> de trabajo · termina el {fechaCorta(new Date(Date.now() + confirmar.propuesta.estimatedDays * 86_400_000))}
+                        </p>
+                      ) : null}
+                    </div>
+                    <p className="text-sm text-slate-600">El plazo arranca hoy. Le avisamos a {selected.withName} para que empiece. El pago se hace cuando termine, por Mercado Pago.</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-600">Le avisamos a {selected.withName}. Te puede mandar uno nuevo y pueden seguir charlando por acá.</p>
+                )}
+              </HojaConfirmar>
+            )}
+            <PanelAcuerdo
+              open={panel !== null}
+              onClose={() => setPanel(null)}
+              viewer={viewer}
+              booking={booking}
+              inicial={panel?.inicial ?? null}
+              onDone={async () => {
+                setPanel(null);
+                await despuesDeAccion();
+              }}
+            />
             {denunciando && (
               <DenunciarConversacion
                 conversationId={selected.id}
@@ -654,6 +842,52 @@ function FotoConPerfil({
 }
 
 /** Menú "⋯" del encabezado del hilo. */
+/** El + del oferente: adjuntar o mandar un presupuesto. Si no puede mandar
+ *  otro ahora, la opción queda apagada y dice por qué. */
+function MenuMas({ open, setOpen, onAdjuntar, onPresupuesto, motivo }: { open: boolean; setOpen: (open: boolean) => void; onAdjuntar: () => void; onPresupuesto: () => void; motivo: string | null }) {
+  const caja = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const afuera = (e: PointerEvent) => caja.current && !caja.current.contains(e.target as Node) && setOpen(false);
+    const escape = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", afuera);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", afuera);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [open, setOpen]);
+
+  const opcion = "grid min-h-13 w-full grid-cols-[2.25rem_1fr] items-center gap-3 rounded-xl p-2 text-left transition-colors";
+  return (
+    <div ref={caja} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-label="Adjuntar o enviar presupuesto"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className={`grid size-11 place-items-center rounded-xl transition-colors ${open ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+      >
+        <PlusIcon width={22} height={22} className={`transition-transform ${open ? "rotate-45" : ""}`} />
+      </button>
+      {open && (
+        <div role="menu" className="absolute bottom-full left-0 z-30 mb-2 w-64 rounded-2xl bg-white p-1.5 shadow-xl ring-1 ring-slate-200">
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); onAdjuntar(); }} className={`${opcion} hover:bg-slate-100`}>
+            <span className="grid size-9 place-items-center rounded-lg bg-slate-100 text-slate-600"><PaperclipIcon width={18} height={18} /></span>
+            <span><b className="block text-sm font-semibold text-slate-900">Adjuntar</b><small className="block text-xs text-slate-500">Foto o PDF, hasta 8 MB</small></span>
+          </button>
+          <button type="button" role="menuitem" disabled={Boolean(motivo)} onClick={() => { setOpen(false); onPresupuesto(); }} className={`${opcion} enabled:hover:bg-slate-100 disabled:cursor-not-allowed`}>
+            <span className={`grid size-9 place-items-center rounded-lg ${motivo ? "bg-slate-100 text-slate-400" : "bg-emerald-50 text-pro"}`}><ClipboardIcon width={18} height={18} /></span>
+            <span><b className={`block text-sm font-semibold ${motivo ? "text-slate-400" : "text-slate-900"}`}>Enviar presupuesto</b><small className="block text-xs text-slate-500">{motivo ?? "Monto, días y qué incluye"}</small></span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MenuHilo({ profileHref, onDenunciar }: { profileHref?: string | null; onDenunciar: () => void }) {
   const [open, setOpen] = useState(false);
   const caja = useRef<HTMLDivElement>(null);

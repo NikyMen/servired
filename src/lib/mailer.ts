@@ -19,7 +19,25 @@ export function appUrl() {
   return (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
 }
 
-export async function sendMail({ to, subject, text, html, devNote, headers }: { to: string; subject: string; text: string; html?: string; devNote?: string; headers?: Record<string, string> }) {
+/**
+ * En el entorno de prueba ningún correo puede llegarle a un usuario real: todo
+ * va a `MAIL_REDIRIGIR_A`, con el destinatario original en el asunto. Sin esa
+ * casilla, la prueba no manda nada (falla cerrada).
+ */
+export function destinoReal(to: string, subject: string, env: Record<string, string | undefined> = process.env): { to: string; subject: string } | null {
+  const desvio = env.MAIL_REDIRIGIR_A?.trim();
+  if (desvio) return { to: desvio, subject: `[Prueba → ${to}] ${subject}` };
+  if (env.ENTORNO_PRUEBA === "1") return null;
+  return { to, subject };
+}
+
+export async function sendMail({ to: original, subject: asunto, text, html, devNote, headers }: { to: string; subject: string; text: string; html?: string; devNote?: string; headers?: Record<string, string> }) {
+  const destino = destinoReal(original, asunto);
+  if (!destino) {
+    console.info(`[mailer] entorno de prueba sin MAIL_REDIRIGIR_A: no se manda "${asunto}"`);
+    return;
+  }
+  const { to, subject } = destino;
   const host = process.env.SMTP_HOST;
   if (!host) {
     if (process.env.NODE_ENV !== "production") {

@@ -2,7 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { ModeTransition } from "@/components/ModeTransition";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { Suspense } from "react";
+import { FranjaPrueba } from "@/components/FranjaPrueba";
 import "./globals.css";
+
+const PRUEBA = process.env.ENTORNO_PRUEBA === "1";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -19,6 +22,8 @@ export const metadata: Metadata = {
   },
   description:
     "Marketplace de servicios que conecta personas con profesionales verificados: plomería, electricidad, limpieza, jardinería y más.",
+  // La copia de prueba no tiene que aparecer en Google.
+  ...(PRUEBA ? { robots: { index: false, follow: false } } : {}),
 };
 
 export default function RootLayout({
@@ -34,6 +39,7 @@ export default function RootLayout({
         <ModeTransition />
         <Suspense><AnalyticsTracker /></Suspense>
         {children}
+        {PRUEBA && <FranjaPrueba />}
       </body>
     </html>
   );

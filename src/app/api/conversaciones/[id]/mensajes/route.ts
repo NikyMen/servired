@@ -44,6 +44,7 @@ export async function GET(
       attachmentName: m.attachmentName,
       attachmentType: m.attachmentType,
       attachmentSize: m.attachmentSize,
+      proposalId: m.proposalId,
     })),
   });
 }

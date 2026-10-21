@@ -19,6 +19,8 @@ const DOMINIO = "servired.ar";
 const REDIRIGEN = new Set(["www.servired.ar", "servired.consultoriadigital.io"]);
 
 export function middleware(request: NextRequest) {
+  // La copia de prueba vive en servired.consultoriadigital.io: ahí no se redirige.
+  if (process.env.ENTORNO_PRUEBA === "1") return NextResponse.next();
   const hostname = (request.headers.get("host") ?? request.nextUrl.host).split(":")[0].toLowerCase();
   if (!REDIRIGEN.has(hostname)) return NextResponse.next();
   return NextResponse.redirect(new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, `https://${DOMINIO}`), 308);

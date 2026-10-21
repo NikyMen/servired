@@ -19,6 +19,8 @@ export async function POST(req: NextRequest) {
   const form = await req.formData().catch(() => null);
   if (!form) return NextResponse.json({ error: "No pudimos leer el formulario." }, { status: 400 });
 
+  // La casilla de términos es obligatoria en cada envío; el navegador no decide.
+  if (value(form, "aceptaTerminos") !== "on") return NextResponse.json({ error: "Para enviar tenés que aceptar los términos y condiciones." }, { status: 422 });
   const providerType = value(form, "providerType") === "profesional" ? "profesional" : "oficio";
   const ofertasDependencia = value(form, "ofertasDependencia") === "on";
   const urgencias24 = value(form, "urgencias24") === "on";

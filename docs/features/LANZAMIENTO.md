@@ -25,6 +25,12 @@ la aprobación explícita de la anterior. Plantillas: [SPEC_TEMPLATE](../SPEC_TE
 
 La 8 se puede hacer en paralelo con la 7.
 
+## Pedidos posteriores al lanzamiento
+
+| # | Grupo | Pedido | Tamaño | Dónde se publica | Spec | Plan |
+| --- | --- | --- | --- | --- | --- | --- |
+| 9 | [Presupuesto del chat](presupuesto-chat/SPEC.md) | El presupuesto dentro del chat no se ve bien en el celular ([propuesta](presupuesto-chat/propuesta.html)) | M | Primero en servired.consultoriadigital.io (entorno de prueba aparte); servired.ar cuando se apruebe | Aprobada | [Plan](presupuesto-chat/PLAN.md) · [Tareas](presupuesto-chat/TASKS.md) |
+
 ## Autorizaciones
 
 - 2026-09-18: el usuario aprobó el plan del grupo 4 y autorizó seguir **sin

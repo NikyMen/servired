@@ -19,9 +19,17 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: "Sin sesión." }, { status: 401 });
   if (!role || !conversation) return NextResponse.json({ error: "La conversación no existe." }, { status: 404 });
   const booking = await currentBooking(conversation.userId, conversation.professionalId);
-  if (!booking) return NextResponse.json({ booking: null });
+  // Todas las de la pareja, no solo las del acuerdo abierto: cada tarjeta 💰 del
+  // hilo busca acá la suya para mostrar en qué quedó.
+  const propuestas = await prisma.proposal.findMany({
+    where: { booking: { userId: conversation.userId, professionalId: conversation.professionalId } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: { id: true, amount: true, status: true, expiresAt: true, message: true, estimatedDays: true, bookingId: true },
+  });
+  if (!booking) return NextResponse.json({ booking: null, propuestas });
   const { professional, ...safeBooking } = booking;
-  return NextResponse.json({ booking: { ...safeBooking, mercadoPagoAvailable: mercadoPagoConfigured() && Boolean(professional.mercadoPago) } });
+  return NextResponse.json({ booking: { ...safeBooking, mercadoPagoAvailable: mercadoPagoConfigured() && Boolean(professional.mercadoPago) }, propuestas });
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -49,8 +57,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (await currentBooking(conversation.userId, conversation.professionalId)) return NextResponse.json({ error: "Ya hay un acuerdo activo en esta conversación." }, { status: 409 });
   const booking = await prisma.$transaction(async (tx) => {
     const created = await tx.booking.create({ data: { userId: conversation.userId, clientName: conversation.clientName, professionalId: conversation.professionalId, note: detail || null, quotedPrice: amount, status: "requested" } });
-    await tx.proposal.create({ data: { bookingId: created.id, amount, message: detail || null, estimatedDays, expiresAt: new Date(Date.now() + PROPOSAL_TTL_MS) } });
-    await tx.message.create({ data: { conversationId: conversation.id, sender: "profesional", text: `💰 PROPUESTA · $${amount.toLocaleString("es-AR")} · ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo · Vence en ${PROPOSAL_TTL_LABEL}${detail ? ` · ${detail}` : ""}` } });
+    // Doble toque: si otro pedido abrió un acuerdo al mismo tiempo, este se
+    // deshace entero (SQLite serializa las escrituras, así que el segundo ve los dos).
+    const abiertos = await tx.booking.count({ where: { userId: conversation.userId, professionalId: conversation.professionalId, status: { in: OPEN_BOOKING_STATUSES } } });
+    if (abiertos > 1) throw new Error("ACUERDO_DUPLICADO");
+    const proposal = await tx.proposal.create({ data: { bookingId: created.id, amount, message: detail || null, estimatedDays, expiresAt: new Date(Date.now() + PROPOSAL_TTL_MS) } });
+    await tx.message.create({ data: { conversationId: conversation.id, sender: "profesional", proposalId: proposal.id, text: `💰 PROPUESTA · $${amount.toLocaleString("es-AR")} · ${estimatedDays} ${estimatedDays === 1 ? "día" : "días"} de trabajo · Vence en ${PROPOSAL_TTL_LABEL}${detail ? ` · ${detail}` : ""}` } });
     await tx.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
     await notificar(tx, conversation.userId, {
       kind: "propuesta",
@@ -60,7 +72,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       groupKey: `prop:${created.id}`,
     });
     return created;
-  });
+  }).catch((error) => { if (error instanceof Error && error.message === "ACUERDO_DUPLICADO") return null; throw error; });
+  if (!booking) return NextResponse.json({ error: "Ya hay un acuerdo activo en esta conversación." }, { status: 409 });
   after(async () => {
     const pro = await prisma.professional.findUnique({ where: { id: conversation.professionalId }, select: { name: true } });
     const nombre = pro?.name ?? "Un profesional";
