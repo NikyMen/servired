@@ -31,6 +31,14 @@ La 8 se puede hacer en paralelo con la 7.
 | --- | --- | --- | --- | --- | --- | --- |
 | 9 | [Presupuesto del chat](presupuesto-chat/SPEC.md) | El presupuesto dentro del chat no se ve bien en el celular ([propuesta](presupuesto-chat/propuesta.html)) | M | Primero en servired.consultoriadigital.io (entorno de prueba aparte); servired.ar cuando se apruebe | Aprobada | [Plan](presupuesto-chat/PLAN.md) · [Tareas](presupuesto-chat/TASKS.md) |
 
+**Grupo 9, estado (21/10/2026):** implementado en la rama `presupuesto-chat` y
+andando en `servired.consultoriadigital.io` (copia de prueba aparte, con clave;
+ver [TASKS](presupuesto-chat/TASKS.md)). En la misma rama van dos pedidos
+sueltos: casilla obligatoria de términos al enviar el alta de oferente y la
+"Muestra" del perfil con portada y visor de fotos. **servired.ar no cambió.**
+Para pasarlo a producción hace falta otra aprobación; el deploy suma
+`npx tsx prisma/vincular-presupuestos.ts` después del `db push`.
+
 ## Autorizaciones
 
 - 2026-09-18: el usuario aprobó el plan del grupo 4 y autorizó seguir **sin
