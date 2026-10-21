@@ -119,7 +119,6 @@ function Visor({ muestra, foto, onFoto, onCerrar, puedeDenunciar, volverA }: { m
       >
         <div className="relative max-h-full">
           <img key={imagen.id} src={imagen.url} alt={`${muestra.title} ${foto + 1}`} className="max-h-[calc(100dvh-13rem)] max-w-full rounded-lg object-contain" />
-          <DenunciarImagen key={`denunciar-${imagen.id}`} targetType="work_sample_image" targetId={imagen.id} puedeDenunciar={puedeDenunciar} volverA={volverA} />
         </div>
         {total > 1 && (
           <>
@@ -140,6 +139,9 @@ function Visor({ muestra, foto, onFoto, onCerrar, puedeDenunciar, volverA }: { m
             {muestra.address && <p className="text-xs text-white/50">📍 {muestra.address}</p>}
           </div>
         )}
+        <div className="mx-auto flex max-w-2xl justify-center">
+          <DenunciarImagen key={`denunciar-${imagen.id}`} targetType="work_sample_image" targetId={imagen.id} puedeDenunciar={puedeDenunciar} volverA={volverA} />
+        </div>
         {total > 1 && (
           <div className="flex justify-center gap-1.5 overflow-x-auto pb-1">
             {muestra.images.map((img, i) => (

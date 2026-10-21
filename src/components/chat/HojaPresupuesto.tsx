@@ -172,6 +172,9 @@ export function HojaPresupuesto({ conversationId, bookingId, para, onCerrar, onE
           <fieldset className="space-y-1.5">
             <legend className="text-sm font-semibold text-slate-900">¿En cuántos días lo terminás?</legend>
             <div className="flex flex-wrap gap-2 pt-1.5">
+              <button type="button" aria-pressed={!b.otro && b.dias === 1} onClick={() => cambiar({ dias: 1, otro: false })} className={`h-11 rounded-xl border-[1.5px] px-3 text-sm font-semibold transition-colors ${!b.otro && b.dias === 1 ? "border-pro bg-emerald-50 text-pro-dark" : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50"}`}>
+                Lo termino en el día
+              </button>
               {DIAS_RAPIDOS.map((n) => (
                 <button key={n} type="button" aria-pressed={!b.otro && b.dias === n} onClick={() => cambiar({ dias: n, otro: false })} className={`h-11 min-w-12 rounded-xl border-[1.5px] px-3 text-sm font-semibold transition-colors ${!b.otro && b.dias === n ? "border-pro bg-emerald-50 text-pro-dark" : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50"}`}>
                   {n}

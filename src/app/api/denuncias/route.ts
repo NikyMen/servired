@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     objetivo = { url: null, userId: soyCliente ? conversation.professional.userId : conversation.userId, context };
   } else if (targetType === "work_sample_image" || targetType === "work_photo") {
     if (!REPORT_REASONS.includes(reason as (typeof REPORT_REASONS)[number])) return NextResponse.json({ error: "Elegí un motivo." }, { status: 422 });
-    if (reason === "otro" && !detail) return NextResponse.json({ error: "Contanos brevemente qué pasa con la imagen." }, { status: 422 });
+    if (!detail) return NextResponse.json({ error: "Contanos brevemente qué pasa con la imagen." }, { status: 422 });
 
     // La URL se guarda congelada en la denuncia: si después borran la muestra,
     // administración todavía tiene que poder ver qué fue lo que se denunció.

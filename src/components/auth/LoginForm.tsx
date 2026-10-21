@@ -61,7 +61,7 @@ export function LoginForm({ next, aviso }: { next?: string; aviso?: string }) {
               href={next ? `/crear-cuenta?next=${encodeURIComponent(next)}` : "/crear-cuenta"}
               className="font-semibold text-cliente-dark hover:underline"
             >
-              Creá una gratis
+              Registrate gratis
             </Link>
           </p>
         </div>

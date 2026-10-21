@@ -12,10 +12,8 @@ const MOTIVOS = [
 ] as const;
 
 /**
- * Botón de denuncia sobre una imagen de muestra.
- *
- * Discreto y en una esquina: está para el caso raro, no para competir con la
- * foto. Sin sesión manda a entrar, porque la denuncia queda a nombre de alguien.
+ * Denuncia de una imagen de muestra. Sin sesión manda a entrar, porque la
+ * denuncia queda a nombre de alguien.
  */
 export function DenunciarImagen({ targetType, targetId, puedeDenunciar, volverA }: { targetType: "work_sample_image" | "work_photo"; targetId: string; puedeDenunciar: boolean; volverA: string }) {
   const [open, setOpen] = useState(false);
@@ -45,7 +43,7 @@ export function DenunciarImagen({ targetType, targetId, puedeDenunciar, volverA 
       aria-label="Denunciar esta imagen"
       title="Denunciar esta imagen"
       onClick={() => setOpen(true)}
-      className="absolute top-1.5 right-1.5 rounded-full bg-slate-950/45 px-2 py-1 text-[11px] font-semibold text-white opacity-70 backdrop-blur-sm transition-opacity hover:opacity-100"
+      className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/20"
     >
       Denunciar
     </button>
@@ -79,9 +77,9 @@ export function DenunciarImagen({ targetType, targetId, puedeDenunciar, volverA 
                   </label>
                 ))}
               </fieldset>
-              <textarea rows={3} value={detail} onChange={(event) => setDetail(event.target.value)} maxLength={1000} placeholder={reason === "otro" ? "Contanos qué pasa (obligatorio)" : "Algo más que quieras contar (opcional)"} className="glass-field w-full resize-none px-3 py-2.5 text-sm" />
+              <textarea rows={3} required value={detail} onChange={(event) => setDetail(event.target.value)} maxLength={1000} placeholder="Contanos qué pasa (obligatorio)" className="glass-field w-full resize-none px-3 py-2.5 text-sm" />
               {error && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
-              <button type="button" disabled={busy} onClick={enviar} className="w-full rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
+              <button type="button" disabled={busy || !detail.trim()} onClick={enviar} className="w-full rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
                 {busy ? "Enviando…" : "Enviar denuncia"}
               </button>
             </div>

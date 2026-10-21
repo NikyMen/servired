@@ -22,6 +22,21 @@ type Initial = {
 
 const FIELD = "glass-field mt-1 w-full px-3 py-2.5 text-sm";
 
+// Los archivos no entran en localStorage. IndexedDB los conserva sólo en este
+// navegador y origen; nunca se suben hasta que la persona envía el trámite.
+function archivoBorrador(key: string, file?: File | null): Promise<File | null> {
+  return new Promise((resolve) => {
+    const request = indexedDB.open("servired-onboarding", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("files");
+    request.onerror = () => resolve(null);
+    request.onsuccess = () => {
+      const tx = request.result.transaction("files", "readwrite"); const store = tx.objectStore("files");
+      if (arguments.length > 1) { if (file) store.put(file, key); else store.delete(key); tx.oncomplete = () => resolve(null); return; }
+      const get = store.get(key); get.onsuccess = () => resolve(get.result instanceof File ? get.result : null); get.onerror = () => resolve(null);
+    };
+  });
+}
+
 export function ProfessionalOnboardingForm({ categories, localities, initial }: { categories: Category[]; localities: Locality[]; initial: Initial }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -92,19 +107,31 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
     try {
       const raw = localStorage.getItem(draftKey);
       if (raw) {
-        const draft = JSON.parse(raw) as { values?: Partial<typeof values>; providerType?: ProviderType; categoryIds?: string[] };
-        if (draft.values) setValues((current) => ({ ...current, headline: current.headline || draft.values?.headline || "", bio: current.bio || draft.values?.bio || "" }));
+        const draft = JSON.parse(raw) as { values?: Partial<typeof values>; providerType?: ProviderType; categoryIds?: string[]; step?: number; ofertasDependencia?: boolean; urgencias24?: boolean; zona?: Punto | null };
+        if (draft.values) setValues((current) => ({ ...current, ...Object.fromEntries(Object.entries(draft.values ?? {}).filter(([, value]) => typeof value === "string" && value)) }));
         if (!initial.providerType && (draft.providerType === "profesional" || draft.providerType === "oficio")) setProviderType(draft.providerType);
         if (!initial.categoryIds?.length && Array.isArray(draft.categoryIds)) setCategoryIds(draft.categoryIds.filter((id) => typeof id === "string"));
+        if (typeof draft.step === "number") setStep(Math.max(1, Math.min(4, draft.step)));
+        if (typeof draft.ofertasDependencia === "boolean") setOfertasDependencia(draft.ofertasDependencia);
+        if (typeof draft.urgencias24 === "boolean") setUrgencias24(draft.urgencias24);
+        if (draft.zona && Number.isFinite(draft.zona.lat) && Number.isFinite(draft.zona.lng)) setZona(draft.zona);
       }
     } catch { /* Un borrador inválido no debe bloquear el alta. */ }
+    void Promise.all([archivoBorrador(`${draftKey}:avatar`), archivoBorrador(`${draftKey}:dni-front`), archivoBorrador(`${draftKey}:dni-back`), archivoBorrador(`${draftKey}:video`)]).then(([savedAvatar, savedFront, savedBack, savedVideo]) => {
+      if (savedAvatar) setAvatar(savedAvatar); if (savedFront) setDniFront(savedFront); if (savedBack) setDniBack(savedBack); if (savedVideo) setVideo(savedVideo);
+    });
     setDraftReady(true);
   }, [draftKey]);
 
   useEffect(() => {
     if (!draftReady) return;
-    localStorage.setItem(draftKey, JSON.stringify({ values: { headline: values.headline, bio: values.bio }, providerType, categoryIds }));
-  }, [draftReady, draftKey, values, providerType, categoryIds]);
+    localStorage.setItem(draftKey, JSON.stringify({ values, providerType, categoryIds, step, ofertasDependencia, urgencias24, zona }));
+  }, [draftReady, draftKey, values, providerType, categoryIds, step, ofertasDependencia, urgencias24, zona]);
+
+  useEffect(() => { if (draftReady) void archivoBorrador(`${draftKey}:avatar`, avatar); }, [draftReady, draftKey, avatar]);
+  useEffect(() => { if (draftReady) void archivoBorrador(`${draftKey}:dni-front`, dniFront); }, [draftReady, draftKey, dniFront]);
+  useEffect(() => { if (draftReady) void archivoBorrador(`${draftKey}:dni-back`, dniBack); }, [draftReady, draftKey, dniBack]);
+  useEffect(() => { if (draftReady) void archivoBorrador(`${draftKey}:video`, video); }, [draftReady, draftKey, video]);
 
   useEffect(() => () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -193,7 +220,7 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
       const response = await fetch("/api/onboarding", { method: "POST", body: form });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) setError(data.error || "No pudimos enviar la verificación.");
-      else { localStorage.removeItem(draftKey); router.refresh(); }
+      else { localStorage.removeItem(draftKey); void Promise.all([archivoBorrador(`${draftKey}:avatar`, null), archivoBorrador(`${draftKey}:dni-front`, null), archivoBorrador(`${draftKey}:dni-back`, null), archivoBorrador(`${draftKey}:video`, null)]); router.refresh(); }
     } catch {
       setError("Se cortó la conexión mientras se subían los archivos. Probá de nuevo, mejor con wifi.");
     } finally {
@@ -231,8 +258,8 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
         <ZonaTrabajo zona={zona} centro={selectedLocality ? { lat: selectedLocality.latitude, lng: selectedLocality.longitude } : { lat: -27.4692, lng: -58.8306 }} onChange={setZona} />
       </>}
       {step === 3 && <>
-        <p className="text-sm text-slate-600">Los documentos y el video son privados: solo administración puede verlos.</p>
-        <div className="grid gap-4 sm:grid-cols-3"><FileField label="Foto de perfil" accept="image/jpeg,image/png,image/webp" capture="user" current={initial.avatarUrl ? "Ya tenés una foto cargada" : null} onChange={setAvatar} /><FileField label="DNI frente" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={setDniFront} /><FileField label="DNI dorso" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={setDniBack} /></div>
+        <p className="text-sm text-slate-600">Los documentos y el video son privados: solo administración puede verlos. Encuadrá el DNI: la cámara lo captura sola cuando queda quieto.</p>
+        <div className="grid gap-4 sm:grid-cols-3"><FileField label="Foto de perfil" accept="image/jpeg,image/png,image/webp" capture="user" current={initial.avatarUrl ? "Ya tenés una foto cargada" : null} onChange={setAvatar} /><FileField label="DNI frente" accept="image/jpeg,image/png,image/webp" capture="environment" current={dniFront ? "DNI frente cargado" : null} autoCapture onChange={setDniFront} /><FileField label="DNI dorso" accept="image/jpeg,image/png,image/webp" capture="environment" current={dniBack ? "DNI dorso cargado" : null} autoCapture onChange={setDniBack} /></div>
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"><h2 className="font-bold text-slate-900">Video de identidad</h2><p className="mt-1 text-sm text-slate-600">Mostrá tu cara y el DNI, y leé en voz alta la frase que aparece. Máximo 30 segundos.</p>{challenge && <p className="mt-3 rounded-xl bg-white p-4 text-center text-base leading-relaxed font-bold text-pro-dark sm:text-lg">{challenge}</p>}<video ref={liveVideoRef} autoPlay muted playsInline className={`${recording ? "block" : "hidden"} mt-3 max-h-72 w-full scale-x-[-1] rounded-xl bg-black`} /><div className="mt-3 flex flex-wrap gap-2">{recording ? <button type="button" onClick={stopRecording} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Detener ({seconds}s)</button> : <button type="button" onClick={startRecording} className="glass-btn px-4 py-2 text-sm">{video ? "Volver a grabar" : "Grabar video"}</button>}</div>{videoUrl && !recording && <video src={videoUrl} controls playsInline className="mt-3 max-h-72 w-full rounded-xl bg-black" />}</section>
       </>}
       {step === 4 && <section className="space-y-3"><h2 className="text-xl font-bold text-slate-900">Revisá antes de enviar</h2><dl className="grid gap-3 text-sm sm:grid-cols-2"><Summary label="Tipo" value={providerType} /><Summary label="Actividad" value={values.headline} /><Summary label="Rubros" value={String(categoryIds.length)} /><Summary label={rotuloAnios(providerType)} value={values.yearsExperience || "0"} /><Summary label="Urgencias 24 hs" value={urgencias24 ? "Sí, las atiendo" : "No"} /><Summary label="Ubicación" value={selectedLocality ? `${selectedLocality.name}, ${selectedLocality.province}, Argentina` : "-"} /><Summary label="Cobro" value="Mercado Pago: se vincula después de la aprobación" /><Summary label="Zona de trabajo" value={zona ? "Marcada en el mapa (unas 3 cuadras)" : "Sin marcar: un lugar aproximado de tu localidad"} /><Summary label="Identidad" value="DNI frente, dorso y video listos" /></dl><label className="flex items-start gap-3 rounded-xl bg-white/70 p-3 text-sm text-slate-700"><input type="checkbox" checked={ofertasDependencia} onChange={(e) => setOfertasDependencia(e.target.checked)} className="mt-0.5 size-5 shrink-0" /><span>¿Además de las oportunidades vinculadas a tu oficio, te gustaría recibir ofertas laborales en relación de dependencia?</span></label><p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">El perfil quedará pendiente hasta que administración revise la documentación.</p><label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white/70 p-3 text-sm text-slate-700"><input type="checkbox" required checked={aceptaTerminos} onChange={(e) => { setAceptaTerminos(e.target.checked); setError(null); }} aria-describedby="terminos-obligatorio" className="mt-0.5 size-5 shrink-0 accent-[var(--color-pro)]" /><span>Leí y acepto los <Link href="/terminos" target="_blank" className="font-semibold text-pro-dark underline">términos y condiciones</Link> de ServiRed.<span id="terminos-obligatorio" className="block text-xs text-slate-500">Obligatorio para enviar.</span></span></label></section>}
@@ -244,31 +271,56 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
 
 /* Dos botones en vez del input nativo ("Seleccionar archivo Sin arc…nados"):
    uno abre la cámara directo (capture) y el otro la galería. */
-function FileField({ label, accept, capture, current, onChange }: { label: string; accept: string; capture: "user" | "environment"; current?: string | null; onChange: (file: File | null) => void }) {
+function FileField({ label, accept, capture, current, autoCapture = false, onChange }: { label: string; accept: string; capture: "user" | "environment"; current?: string | null; autoCapture?: boolean; onChange: (file: File | null) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [scanning, setScanning] = useState(false);
 
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); streamRef.current?.getTracks().forEach((track) => track.stop()); }, [preview]);
+
+  function useFile(picked: File) {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(picked); onChange(picked); setPreview(URL.createObjectURL(picked));
+  }
 
   function pick(e: ChangeEvent<HTMLInputElement>) {
     const picked = e.target.files?.[0] || null;
     e.target.value = "";
     if (!picked) return;
-    setFile(picked); onChange(picked);
-    setPreview(URL.createObjectURL(picked));
+    useFile(picked);
+  }
+
+  async function scan() {
+    if (!navigator.mediaDevices?.getUserMedia) return cameraRef.current?.click();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } });
+      streamRef.current = stream; setScanning(true);
+      if (videoRef.current) videoRef.current.srcObject = stream;
+      window.setTimeout(() => {
+        const video = videoRef.current; const canvas = canvasRef.current;
+        if (!video || !canvas || video.videoWidth < 1) return;
+        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+        canvas.getContext("2d")?.drawImage(video, 0, 0);
+        canvas.toBlob((blob) => { if (blob) useFile(new File([blob], `${label.toLowerCase().replace(/\s+/g, "-")}.jpg`, { type: "image/jpeg" })); }, "image/jpeg", 0.92);
+        stream.getTracks().forEach((track) => track.stop()); streamRef.current = null; setScanning(false);
+      }, 1800);
+    } catch { cameraRef.current?.click(); }
   }
 
   return <div className="flex flex-col rounded-2xl bg-white/70 p-3 text-sm">
     <p className="font-semibold text-slate-900">{label}</p>
     <div className="mt-2 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-dashed border-emerald-300 bg-emerald-50/60">
-      {preview ? <img src={preview} alt={label} className="size-full object-cover" /> : <span className="px-3 text-center text-xs text-slate-500">{current || "Todavía no cargaste la foto"}</span>}
+      {scanning ? <div className="relative size-full"><video ref={videoRef} autoPlay playsInline className="size-full object-cover" /><span className="absolute inset-[12%] rounded-xl border-2 border-white shadow-[0_0_0_999px_rgb(0_0_0_/_0.22)]" /><span className="absolute right-2 bottom-2 rounded bg-slate-950/70 px-2 py-1 text-[11px] text-white">Capturando…</span></div> : preview ? <img src={preview} alt={label} className="size-full object-cover" /> : <span className="px-3 text-center text-xs text-slate-500">{current || "Todavía no cargaste la foto"}</span>}
     </div>
     <div className="mt-3 grid grid-cols-2 gap-2">
-      <button type="button" onClick={() => cameraRef.current?.click()} className="glass-btn flex items-center justify-center gap-1.5 px-2 py-2.5 text-xs">
+      <button type="button" onClick={autoCapture ? scan : () => cameraRef.current?.click()} disabled={scanning} className="glass-btn flex items-center justify-center gap-1.5 px-2 py-2.5 text-xs disabled:opacity-60">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4 shrink-0" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
-        Sacar foto
+        {autoCapture ? "Escanear" : "Sacar foto"}
       </button>
       <button type="button" onClick={() => galleryRef.current?.click()} className="glass-btn glass-btn-ghost flex items-center justify-center gap-1.5 px-2 py-2.5 text-xs">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4 shrink-0" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" /></svg>
@@ -277,6 +329,7 @@ function FileField({ label, accept, capture, current, onChange }: { label: strin
     </div>
     <input ref={cameraRef} type="file" accept={accept} capture={capture} onChange={pick} className="hidden" />
     <input ref={galleryRef} type="file" accept={accept} onChange={pick} className="hidden" />
+    <canvas ref={canvasRef} className="hidden" />
     {file && <span className="mt-2 block truncate text-xs text-emerald-700">✓ Foto cargada</span>}
   </div>;
 }

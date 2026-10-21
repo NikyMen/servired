@@ -60,6 +60,17 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
           className="min-w-0 max-w-full justify-self-start md:mr-2 md:shrink-0"
         />
 
+        {!user && mode === "cliente" && (
+          <div className="flex flex-col gap-1.5 justify-self-end md:order-none md:shrink-0">
+            <Link href="/entrar" className="glass-btn glass-btn-ghost px-3 py-1.5 text-center text-xs whitespace-nowrap sm:px-3.5">
+              Entrar
+            </Link>
+            <Link href="/crear-cuenta" className="glass-btn bg-cliente px-3 py-1.5 text-center text-xs font-semibold whitespace-nowrap text-white hover:bg-cliente-dark sm:px-3.5">
+              Crear cuenta
+            </Link>
+          </div>
+        )}
+
         {mode === "cliente" && (
           <div className="col-span-2 row-start-2 md:max-w-xs md:flex-1">
             <SearchBox key={`${searchType || "todos"}:${searchCategory || "todos"}:${searchQuery}`} variant="nav" defaultQuery={searchQuery} categoria={searchCategory} tipo={searchType} />
@@ -104,7 +115,7 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
               navegación de texto, para verse igual en el celular y en la compu. */}
           {user && <MensajesBoton mode={mode} />}
           {user && <Campanita />}
-          <UserMenu user={user} mode={mode} />
+          {(user || mode === "pro") && <UserMenu user={user} mode={mode} />}
         </div>
       </div>
     </header>
