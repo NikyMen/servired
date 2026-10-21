@@ -77,6 +77,10 @@ Los pidió el usuario en medio de la tanda; van en la misma rama y salen juntos 
   - CA-18: `POST` sin clave a `servired.consultoriadigital.io/api/mercadopago/webhook` lo contesta la app ("Firma inválida."), no el 401 de Traefik: entra por la ruta de producción.
   - Monitoreo: `check-endpoints.sh` vigila `servired-prueba-3656` (200) y `servired-demo-mp` (webhook por el dominio de prueba, 405). Copia previa: `check-endpoints.sh.bak-20261021-prueba`.
 
+## Producción
+
+- [x] **Publicado en servired.ar (21/10/2026, 10:54)**, con aprobación del usuario. `servired.ar` 200, `www` 308, sin la marca de prueba, webhook de MP contestando, sin errores nuevos en el log después del restart.
+
 ## Lo que falta (lo hace el usuario)
 
 1. **Clave de la prueba.** En el VPS (pide la clave dos veces y no queda en el historial):

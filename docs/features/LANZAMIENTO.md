@@ -36,8 +36,12 @@ andando en `servired.consultoriadigital.io` (copia de prueba aparte, con clave;
 ver [TASKS](presupuesto-chat/TASKS.md)). En la misma rama van dos pedidos
 sueltos: casilla obligatoria de términos al enviar el alta de oferente y la
 "Muestra" del perfil con portada y visor de fotos. **servired.ar no cambió.**
-Para pasarlo a producción hace falta otra aprobación; el deploy suma
-`npx tsx prisma/vincular-presupuestos.ts` después del `db push`.
+**Publicado en servired.ar el 21/10/2026 a las 10:54** (pedido del usuario:
+"publicá todo en la página principal"): merge a `main` (`7a0978d`), backup
+`prisma/dev.db.backup-20261021-1054-presupuesto` y `.env.backup-deploy-20261021-1054`,
+`db push` (solo agrega `Message.proposalId`), 5 de 5 presupuestos viejos
+vinculados, build y `pm2 restart servired`. La prueba en consultoriadigital.io
+sigue aparte.
 
 ## Autorizaciones
 
