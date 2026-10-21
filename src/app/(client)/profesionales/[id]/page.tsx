@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatDate, formatMonthYear } from "@/lib/format";
+import { aniosDeExperiencia, formatDate, formatMonthYear, rotuloAnios } from "@/lib/format";
 import { getSessionUser } from "@/lib/auth";
 import { Avatar, MatriculadoBadge, Rating, UrgenciasBadge, VerifiedBadge } from "@/components/ui";
 import { ContratarBox } from "@/components/ContratarBox";
@@ -131,8 +131,8 @@ export default async function ProfesionalPage({
                 </span>
                 <span>En ServiRed desde {formatMonthYear(pro.createdAt)}</span>
                 {pro.yearsExperience > 0 && (
-                  <span title="Años en el oficio declarados por la persona. ServiRed no los verifica.">
-                    {pro.yearsExperience} años en el oficio
+                  <span title={`${rotuloAnios(pro.providerType)} declarados por la persona. ServiRed no los verifica.`}>
+                    {aniosDeExperiencia(pro.yearsExperience, pro.providerType)}
                   </span>
                 )}
               </div>

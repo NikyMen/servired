@@ -5,6 +5,7 @@ import { UPLOAD_URL } from "@/lib/uploads";
 import { validPhone } from "@/lib/kyc";
 import { zonaDe } from "@/lib/localidades";
 import { leerZona } from "@/lib/geo";
+import { rotuloAnios } from "@/lib/format";
 
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
@@ -58,7 +59,7 @@ export async function PATCH(req: NextRequest) {
   const phone = String(body.phone ?? "").trim().slice(0, 40);
   if (!validPhone(phone)) return NextResponse.json({ error: "Ingresá un teléfono de contacto válido." }, { status: 422 });
   const yearsExperience = Math.trunc(Number(body.yearsExperience ?? 0));
-  if (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 60) return NextResponse.json({ error: "Los años en el oficio tienen que estar entre 0 y 60." }, { status: 422 });
+  if (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 60) return NextResponse.json({ error: `Los ${rotuloAnios(professional.providerType).toLowerCase()} tienen que estar entre 0 y 60.` }, { status: 422 });
   const localidad = user.localityId ? await prisma.locality.findUnique({ where: { id: user.localityId }, select: { name: true, province: true } }) : null;
   await prisma.$transaction(async (tx) => {
     await tx.professional.update({ where: { id: user.professionalId! }, data: {

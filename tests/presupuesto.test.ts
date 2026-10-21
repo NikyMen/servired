@@ -95,3 +95,13 @@ test("en prueba los correos van a la casilla del equipo y, sin ella, no salen", 
   assert.deepEqual(destinoReal("ana@x.com", "Hola", { ENTORNO_PRUEBA: "1", MAIL_REDIRIGIR_A: "equipo@x.com" }), { to: "equipo@x.com", subject: "[Prueba → ana@x.com] Hola" });
   assert.equal(destinoReal("ana@x.com", "Hola", { ENTORNO_PRUEBA: "1" }), null);
 });
+
+test("años de experiencia: 'de profesión' para profesionales, 'en el oficio' para oficios", async () => {
+  const { aniosDeExperiencia, rotuloAnios } = await import("../src/lib/format");
+  assert.equal(aniosDeExperiencia(27, "profesional"), "27 años de profesión");
+  assert.equal(aniosDeExperiencia(27, "oficio"), "27 años en el oficio");
+  assert.equal(aniosDeExperiencia(1, "profesional"), "1 año de profesión");
+  assert.equal(aniosDeExperiencia(5, null), "5 años en el oficio");
+  assert.equal(rotuloAnios("profesional"), "Años de profesión");
+  assert.equal(rotuloAnios("oficio"), "Años en el oficio");
+});

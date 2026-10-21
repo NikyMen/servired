@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { saveUpload } from "@/lib/uploads";
 import { dniFromCuil, encryptKyc, lookupKyc, normalizeDigits, removeKycDocument, saveKycDocument, validCuil, validPhone, videoChallengeExpiry } from "@/lib/kyc";
 import { ACTIVE_JOB_STATUSES } from "@/lib/workflow";
-import { slugify } from "@/lib/format";
+import { rotuloAnios, slugify } from "@/lib/format";
 import { resolverLocalidad, zonaDe } from "@/lib/localidades";
 import { leerZona } from "@/lib/geo";
 import { notificar } from "@/lib/notificaciones";
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   if (!validCuil(cuil)) return NextResponse.json({ error: "El CUIL no es válido." }, { status: 422 });
   const dni = dniFromCuil(cuil);
   if (headline.length < 3 || bio.length < 20 || bio.length > 1000) return NextResponse.json({ error: "Completá actividad y descripción." }, { status: 422 });
-  if (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 60) return NextResponse.json({ error: "Los años en el oficio tienen que estar entre 0 y 60." }, { status: 422 });
+  if (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 60) return NextResponse.json({ error: `Los ${rotuloAnios(providerType).toLowerCase()} tienen que estar entre 0 y 60.` }, { status: 422 });
   if (customCategory && (customCategory.length < 3 || !slugify(customCategory))) return NextResponse.json({ error: "El rubro que escribiste es muy corto o no tiene letras." }, { status: 422 });
   if (!categoryIds.length && !customCategory) return NextResponse.json({ error: "Elegí al menos un rubro." }, { status: 422 });
 

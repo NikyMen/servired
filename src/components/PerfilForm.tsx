@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ZonaTrabajo } from "@/components/pro/ZonaTrabajo";
 import type { Punto } from "@/lib/geo";
+import { rotuloAnios } from "@/lib/format";
 
 type Perfil = {
   name: string;
@@ -144,7 +145,7 @@ export function PerfilForm({ perfil, categories = [], centroZona = { lat: -27.46
             <input required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} type="tel" placeholder="+54 9 379 412-3456" className={`${field} mt-1`} />
             <span className="mt-1 block text-xs font-normal text-slate-500">Lo ven en tu perfil las personas con cuenta verificada.</span>
           </label>
-          <label className="text-sm font-medium text-slate-900">Años en el oficio
+          <label className="text-sm font-medium text-slate-900">{rotuloAnios(perfil.providerType)}
             <input value={form.yearsExperience} onChange={(e) => setForm({ ...form, yearsExperience: Number(e.target.value.replace(/\D/g, "").slice(0, 2) || 0) })} inputMode="numeric" className={`${field} mt-1`} />
             <span className="mt-1 block text-xs font-normal text-slate-500">Aparte de tu antigüedad en ServiRed, que se calcula sola.</span>
           </label>

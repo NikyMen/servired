@@ -71,3 +71,13 @@ export function initials(name: string): string {
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
 }
+
+/** "27 años en el oficio" para un oficio, "27 años de profesión" para un profesional. */
+export function aniosDeExperiencia(anios: number, providerType?: string | null): string {
+  return `${anios} ${anios === 1 ? "año" : "años"} ${providerType === "profesional" ? "de profesión" : "en el oficio"}`;
+}
+
+/** El rótulo del campo: "Años de profesión" o "Años en el oficio". */
+export function rotuloAnios(providerType?: string | null): string {
+  return providerType === "profesional" ? "Años de profesión" : "Años en el oficio";
+}
