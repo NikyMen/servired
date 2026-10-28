@@ -9,6 +9,7 @@ import { InvitadoAviso } from "@/components/InvitadoAviso";
 import { ChatIcon, CheckCircleIcon, ChevronLeftIcon } from "@/components/icons";
 import { expirePendingProposals } from "@/lib/workflow";
 import { mercadoPagoConfigured } from "@/lib/mercadopago";
+import { canRevealPaymentDetails, datosTransferencia, estadoDelPago, etiquetaMedioDePago } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Mis propuestas" };
@@ -83,9 +84,9 @@ export default async function ContratacionesPage({
                   <div><p className="text-xs font-semibold text-slate-500">Detalle del pedido</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{b.note || "Sin descripción adicional."}</p></div>
                   <p className="text-xs text-slate-400">Creada el {formatDateTime(b.createdAt)}</p>
                   {b.workSummary && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-pro-dark">{b.workSummary}</p>}
-                  {b.payments.map((payment) => <p key={payment.id} className={`rounded-xl px-3 py-2 text-xs font-semibold ${payment.status === "pagado" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>Pago {payment.status}: {formatARS(payment.amount)}</p>)}
+                  {b.payments.map((payment) => <p key={payment.id} className={`rounded-xl px-3 py-2 text-xs font-semibold ${payment.status === "pagado" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>Pago por {etiquetaMedioDePago(payment.provider)} {estadoDelPago(payment.status)}: {formatARS(payment.amount)}</p>)}
                   {b.attachments.length > 0 && <div className="flex flex-wrap gap-2">{b.attachments.map((attachment) => <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer"><img src={attachment.url} alt={attachment.name} className="size-20 rounded-xl object-cover ring-1 ring-slate-200" /></a>)}</div>}
-                  <div className="flex flex-wrap items-center justify-between gap-3">{conversationId ? <Link href={`/mensajes?conversacion=${conversationId}`} className="inline-flex items-center gap-2 rounded-xl bg-cliente px-4 py-2 text-sm font-semibold text-white"><ChatIcon width={17} height={17} />Chatear</Link> : <span />}<BookingActions bookingId={b.id} status={b.status} viewer="cliente" proposal={b.proposals[0] ?? null} finalPrice={b.finalPrice} paidPaymentId={b.payments.find((payment) => payment.status === "pagado")?.id} mercadoPagoAvailable={mercadoPagoConfigured() && Boolean(b.professional.mercadoPago)} /></div>
+                  <div className="flex flex-wrap items-center justify-between gap-3">{conversationId ? <Link href={`/mensajes?conversacion=${conversationId}`} className="inline-flex items-center gap-2 rounded-xl bg-cliente px-4 py-2 text-sm font-semibold text-white"><ChatIcon width={17} height={17} />Chatear</Link> : <span />}<BookingActions bookingId={b.id} status={b.status} viewer="cliente" proposal={b.proposals[0] ?? null} finalPrice={b.finalPrice} paidPaymentId={b.payments.find((payment) => payment.status === "pagado")?.id} mercadoPagoAvailable={mercadoPagoConfigured() && Boolean(b.professional.mercadoPago)} transferenciaAvailable={Boolean(datosTransferencia(b.professional))} transferencia={canRevealPaymentDetails(b.status) ? datosTransferencia(b.professional) : null} pagoInformado={b.payments.find((payment) => payment.status === "reported") ?? null} /></div>
                 </div>
               </details>
             </li>;

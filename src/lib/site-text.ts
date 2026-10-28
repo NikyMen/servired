@@ -21,7 +21,7 @@ export const TERMS_DEFAULT = {
 - Verificamos la identidad de quienes ofrecen servicios antes de publicarlos.
 - Damos el lugar para acordar el trabajo, el monto y el plazo, y para dejar una opinión al terminar.
 - No ejecutamos los trabajos ni respondemos por su resultado, sus materiales o sus plazos.
-- Los pagos de trabajos terminados se procesan mediante Mercado Pago en la cuenta vinculada de quien ofrece el servicio. ServiRed muestra y registra el estado del pago.
+- Los pagos de trabajos terminados se hacen por Mercado Pago, en la cuenta vinculada de quien ofrece el servicio, o por transferencia directa al CVU, CBU o alias que esa persona informe. En las transferencias el dinero va de una persona a la otra: ServiRed no lo recibe ni lo retiene, y solo registra lo que informan las partes.
 
 ## Tu cuenta
 - Los datos que cargás tienen que ser verdaderos y actualizados.

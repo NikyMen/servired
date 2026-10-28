@@ -7,12 +7,13 @@ import { XIcon } from "@/components/icons";
 import { StatusPill } from "@/components/ui";
 import { jobProgress } from "@/lib/trabajo";
 import { type PropuestaVista, estadoAcuerdo } from "@/lib/presupuesto";
+import type { DatosTransferencia } from "@/lib/payments";
 
 export { estadoAcuerdo } from "@/lib/presupuesto";
 
 type Proposal = { id: string; amount: number; status: string; expiresAt: string; message?: string | null; estimatedDays?: number | null };
-type Payment = { id: string; status: string };
-export type Booking = { id: string; note: string | null; status: string; finalPrice: number | null; workSummary: string | null; startedAt: string | null; dueAt: string | null; mercadoPagoAvailable: boolean; proposals: Proposal[]; payments: Payment[] };
+type Payment = { id: string; status: string; provider: string; amount: number; reference: string | null; receiptUrl: string | null; reportedAt: string | null };
+export type Booking = { id: string; note: string | null; status: string; finalPrice: number | null; workSummary: string | null; startedAt: string | null; dueAt: string | null; mercadoPagoAvailable: boolean; transferenciaAvailable: boolean; transferencia: DatosTransferencia | null; proposals: Proposal[]; payments: Payment[] };
 type Viewer = "cliente" | "profesional";
 
 /**
@@ -68,12 +69,13 @@ export function PanelAcuerdo({ open, onClose, viewer, booking, onDone, inicial =
   if (!open || typeof document === "undefined") return null;
   const activeProposal = booking?.proposals.find((proposal) => proposal.status === "pending") ?? null;
   const paidPaymentId = booking?.payments.find((payment) => payment.status === "pagado")?.id;
+  const pagoInformado = booking?.payments.find((payment) => payment.status === "reported") ?? null;
   const estado = estadoAcuerdo(booking, viewer);
   return createPortal(<div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/30 sm:items-center sm:p-3" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section role="dialog" aria-modal="true" aria-label="Trabajo, presupuesto y pago" className="glass glass-solid animate-sheet-up max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-left shadow-2xl sm:rounded-3xl">
       <header className="mb-4 flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-lg font-bold text-slate-900">{booking ? estado.label : "Trabajo, presupuesto y pago"}</p><p className="text-xs text-slate-500">Todo el acuerdo queda asociado a este hilo.</p></div><button type="button" autoFocus onClick={onClose} aria-label="Cerrar" className="grid size-11 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-white"><XIcon width={18} height={18} /></button></header>
       {!booking && <p className="rounded-2xl border border-dashed border-slate-200 bg-white/45 p-5 text-center text-sm text-slate-500">{viewer === "cliente" ? "El oferente todavía no te envió un presupuesto." : "Todavía no mandaste un presupuesto."}</p>}
-      {booking && <div className="space-y-4"><div className="rounded-2xl bg-white/65 p-4"><div className="flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Trabajo</p><StatusPill status={booking.status} /></div><p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{booking.note || "Servicio a convenir"}</p>{booking.workSummary && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{booking.workSummary}</p>}{booking.status === "in_progress" && booking.startedAt && booking.dueAt && <BarraDePlazo startedAt={booking.startedAt} dueAt={booking.dueAt} />}</div><BookingActions key={`${booking.id}:${booking.status}:${inicial ?? ""}`} bookingId={booking.id} status={booking.status} viewer={viewer} proposal={activeProposal} finalPrice={booking.finalPrice} paidPaymentId={paidPaymentId} mercadoPagoAvailable={booking.mercadoPagoAvailable} onDone={onDone} inicial={inicial} /></div>}
+      {booking && <div className="space-y-4"><div className="rounded-2xl bg-white/65 p-4"><div className="flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Trabajo</p><StatusPill status={booking.status} /></div><p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{booking.note || "Servicio a convenir"}</p>{booking.workSummary && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{booking.workSummary}</p>}{booking.status === "in_progress" && booking.startedAt && booking.dueAt && <BarraDePlazo startedAt={booking.startedAt} dueAt={booking.dueAt} />}</div><BookingActions key={`${booking.id}:${booking.status}:${inicial ?? ""}`} bookingId={booking.id} status={booking.status} viewer={viewer} proposal={activeProposal} finalPrice={booking.finalPrice} paidPaymentId={paidPaymentId} mercadoPagoAvailable={booking.mercadoPagoAvailable} transferenciaAvailable={booking.transferenciaAvailable} transferencia={booking.transferencia} pagoInformado={pagoInformado} onDone={onDone} inicial={inicial} /></div>}
     </section>
   </div>, document.body);
 }

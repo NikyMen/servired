@@ -17,6 +17,7 @@ import { redirect } from "next/navigation";
 import { decryptKyc } from "@/lib/kyc";
 import { getLocalidades } from "@/lib/localidades";
 import { estadoMercadoPago } from "@/lib/mercadopago";
+import { datosTransferencia, estadoDelPago, etiquetaMedioDePago } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Panel del profesional" };
@@ -83,6 +84,7 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
 
   const pendientes = bookings.filter((b) => b.status === "requested").length;
   const mpEstado = pro ? await estadoMercadoPago(pro.id) : null;
+  const transferencia = pro ? datosTransferencia(pro) : null;
 
   return (
     <div className="space-y-8">
@@ -119,13 +121,13 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
         </section>
       )}
 
-      {/* La vinculación vive en Mi perfil; acá solo se avisa si falta o se cortó. */}
-      {(mpEstado?.estado === "sin_vincular" || mpEstado?.estado === "revincular") && (
-        <Link href="/pro/mi-perfil#mercado-pago" className="flex items-center gap-3 rounded-2xl bg-[#009EE3] p-4 text-white shadow-md shadow-[#009EE3]/25 transition hover:bg-[#0087c2]">
+      {/* La vinculación vive en Mi perfil; acá solo se avisa si falta o se cortó y no hay otra forma de cobrar. */}
+      {(mpEstado?.estado === "sin_vincular" || mpEstado?.estado === "revincular") && !transferencia && (
+        <Link href="/pro/mi-perfil#cobros" className="flex items-center gap-3 rounded-2xl bg-[#009EE3] p-4 text-white shadow-md shadow-[#009EE3]/25 transition hover:bg-[#0087c2]">
           <MercadoPagoIcon width={30} height={30} className="shrink-0" />
           <span className="min-w-0 flex-1">
             <span className="block font-bold">{mpEstado.estado === "revincular" ? "Se cortó la conexión con Mercado Pago" : "Vinculá Mercado Pago para cobrar"}</span>
-            <span className="block text-sm text-white/85">Lo hacés desde Mi perfil, en un minuto.</span>
+            <span className="block text-sm text-white/85">O cargá tu CVU o alias para cobrar por transferencia. Lo hacés desde Mi perfil, en un minuto.</span>
           </span>
           <span aria-hidden className="text-xl">→</span>
         </Link>
@@ -173,9 +175,9 @@ export default async function ProPanelPage({ searchParams }: { searchParams: Pro
                     <div><p className="text-xs font-semibold text-slate-500">Detalle del pedido</p><p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{b.note || "Sin descripción adicional."}</p></div>
                     <p className="text-xs text-slate-400">Recibida el {formatDateTime(b.createdAt)}</p>
                     {b.workSummary && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-pro-dark">{b.workSummary}</p>}
-                    {b.payments.map((payment) => <p key={payment.id} className={`rounded-xl px-3 py-2 text-sm font-semibold ${payment.status === "pagado" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>Pago {payment.provider === "mercadopago" ? "por Mercado Pago" : "por alias"}: {formatARS(payment.amount)}{payment.commission > 0 && ` (recibís ${formatARS(payment.netAmount)} · comisión ServiRed ${formatARS(payment.commission)})`} · {payment.status}</p>)}
+                    {b.payments.map((payment) => <p key={payment.id} className={`rounded-xl px-3 py-2 text-sm font-semibold ${payment.status === "pagado" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>Pago por {etiquetaMedioDePago(payment.provider)}: {formatARS(payment.amount)}{payment.commission > 0 && ` (recibís ${formatARS(payment.netAmount)} · comisión ServiRed ${formatARS(payment.commission)})`} · {estadoDelPago(payment.status)}</p>)}
                     {b.attachments.length > 0 && <div className="flex flex-wrap gap-2">{b.attachments.map((attachment) => <a key={attachment.id} href={attachment.url} target="_blank" rel="noopener noreferrer"><img src={attachment.url} alt={attachment.name} className="size-20 rounded-xl object-cover ring-1 ring-slate-200" /></a>)}</div>}
-                    <div className="flex flex-wrap items-center justify-between gap-3">{conversationId ? <Link href={`/pro/mensajes?conversacion=${conversationId}`} className="inline-flex items-center gap-2 rounded-xl bg-pro px-4 py-2 text-sm font-semibold text-white"><ChatIcon width={17} height={17} />Chatear</Link> : <span />}<BookingActions bookingId={b.id} status={b.status} viewer="profesional" proposal={b.proposals[0] ?? null} finalPrice={b.finalPrice} paidPaymentId={b.payments.find((payment) => payment.status === "pagado")?.id} mercadoPagoAvailable={mpEstado?.estado === "vinculada"} /></div>
+                    <div className="flex flex-wrap items-center justify-between gap-3">{conversationId ? <Link href={`/pro/mensajes?conversacion=${conversationId}`} className="inline-flex items-center gap-2 rounded-xl bg-pro px-4 py-2 text-sm font-semibold text-white"><ChatIcon width={17} height={17} />Chatear</Link> : <span />}<BookingActions bookingId={b.id} status={b.status} viewer="profesional" proposal={b.proposals[0] ?? null} finalPrice={b.finalPrice} paidPaymentId={b.payments.find((payment) => payment.status === "pagado")?.id} mercadoPagoAvailable={mpEstado?.estado === "vinculada"} transferenciaAvailable={Boolean(transferencia)} pagoInformado={b.payments.find((payment) => payment.status === "reported") ?? null} /></div>
                   </div>
                 </details>
               </li>;

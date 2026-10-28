@@ -334,6 +334,7 @@ async function main() {
         profileStatus: "approved",
         paymentHandle: `${slug(p.name)}.servired`,
         paymentHandleKind: "alias",
+        paymentHolder: p.name,
         providerType: categories.find((category) => category.slug === p.categorySlug)?.kind || "oficio",
         featured: p.featured,
         yearsExperience: p.yearsExperience,

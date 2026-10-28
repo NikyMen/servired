@@ -4,13 +4,14 @@ import { participantIn } from "@/lib/mensajes-server";
 import { pendienteDeAlta } from "@/lib/auth";
 import { OPEN_BOOKING_STATUSES, PROPOSAL_TTL_MS, expirePendingProposals } from "@/lib/workflow";
 import { mercadoPagoConfigured } from "@/lib/mercadopago";
+import { canRevealPaymentDetails, datosTransferencia } from "@/lib/payments";
 import { PROPOSAL_TTL_LABEL, validEstimatedDays } from "@/lib/trabajo";
 import { notificar } from "@/lib/notificaciones";
 import { mandarAviso } from "@/lib/avisos-correo";
 
 async function currentBooking(userId: string, professionalId: string) {
   await expirePendingProposals();
-  return prisma.booking.findFirst({ where: { userId, professionalId, status: { in: OPEN_BOOKING_STATUSES } }, orderBy: { updatedAt: "desc" }, include: { proposals: { orderBy: { createdAt: "desc" } }, payments: { orderBy: { createdAt: "desc" }, select: { id: true, status: true } }, professional: { select: { mercadoPago: { select: { professionalId: true } } } } } });
+  return prisma.booking.findFirst({ where: { userId, professionalId, status: { in: OPEN_BOOKING_STATUSES } }, orderBy: { updatedAt: "desc" }, include: { proposals: { orderBy: { createdAt: "desc" } }, payments: { orderBy: { createdAt: "desc" }, select: { id: true, status: true, provider: true, amount: true, reference: true, receiptUrl: true, reportedAt: true } }, professional: { select: { paymentHandle: true, paymentHandleKind: true, paymentHolder: true, mercadoPago: { select: { professionalId: true } } } } } });
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,7 +30,17 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   });
   if (!booking) return NextResponse.json({ booking: null, propuestas });
   const { professional, ...safeBooking } = booking;
-  return NextResponse.json({ booking: { ...safeBooking, mercadoPagoAvailable: mercadoPagoConfigured() && Boolean(professional.mercadoPago) }, propuestas });
+  const transferencia = datosTransferencia(professional);
+  return NextResponse.json({
+    booking: {
+      ...safeBooking,
+      mercadoPagoAvailable: mercadoPagoConfigured() && Boolean(professional.mercadoPago),
+      transferenciaAvailable: Boolean(transferencia),
+      // El CVU o alias se muestra recién con el trabajo terminado.
+      transferencia: canRevealPaymentDetails(booking.status) ? transferencia : null,
+    },
+    propuestas,
+  });
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

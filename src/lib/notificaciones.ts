@@ -12,6 +12,7 @@ export type AvisoKind =
   | "mensaje"
   | "propuesta"
   | "propuesta_resuelta"
+  | "pago"
   | "solicitud"
   | "solicitud_por_vencer"
   | "kyc"

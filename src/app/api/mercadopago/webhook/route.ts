@@ -21,7 +21,9 @@ export async function POST(req: NextRequest) {
       await prisma.$transaction(async (tx) => {
         const updated = await tx.payment.updateMany({ where: { id: payment.id, status: "pendiente" }, data: { status: "pagado", providerPaymentId: dataId, paidAt: new Date(), confirmedAt: new Date() } });
         if (!updated.count) return;
-        await tx.booking.updateMany({ where: { id: payment.bookingId!, status: "finished" }, data: { status: "paid_awaiting_review", paidAt: new Date() } });
+        // También desde "pago informado": si informó una transferencia y al final pagó acá, vale esta.
+        await tx.booking.updateMany({ where: { id: payment.bookingId!, status: { in: ["finished", "payment_reported"] } }, data: { status: "paid_awaiting_review", paidAt: new Date() } });
+        await tx.payment.updateMany({ where: { bookingId: payment.bookingId!, provider: "manual_alias", status: "reported" }, data: { status: "cancelado" } });
         await tx.message.create({ data: { conversationId: payment.conversationId, sender: "profesional", text: "✅ PAGO CONFIRMADO POR MERCADO PAGO · El cliente ya puede calificar el trabajo." } });
       });
     }

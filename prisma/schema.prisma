@@ -412,9 +412,11 @@ model Professional {
   dismissals    RequestDismissal[]
   credentials   Credential[]
 
-  /// Datos históricos de cobro manual. Los cobros nuevos usan Mercado Pago.
+  /// Cobro por transferencia, la otra vía además de Mercado Pago: un CVU/CBU
+  /// o alias y el titular, que el cliente ve recién con el trabajo terminado.
   paymentHandle     String?
-  paymentHandleKind String?
+  paymentHandleKind String? // cvu | alias
+  paymentHolder     String?
 
   /// Reemplazados por `paymentHandle`. Se borran en un push posterior, cuando
   /// el build nuevo ya esté sirviendo: sacarlos ahora tira 500 en el viejo.
@@ -689,12 +691,16 @@ model Payment {
   commission    Int
   netAmount     Int
   currency      String    @default("ARS")
-  status        String    @default("pendiente") // pendiente | pagado | cancelado
-  provider      String    @default("mercadopago-demo")
+  status        String    @default("pendiente") // pendiente | reported | pagado | cancelado
+  provider      String    @default("mercadopago-demo") // mercadopago | manual_alias (transferencia)
   checkoutToken String    @unique @default(cuid())
   providerPaymentId String? @unique
   providerPreferenceId String?
   checkoutUrl String?
+  /// Transferencia: lo que carga el cliente al informarla. El oferente lo mira
+  /// antes de confirmar que le llegó.
+  receiptUrl    String?
+  reference     String?
   paidAt        DateTime?
   reportedAt    DateTime?
   confirmedAt   DateTime?

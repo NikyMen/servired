@@ -27,6 +27,8 @@ export type AcuerdoVista = {
   startedAt: string | null;
   dueAt: string | null;
   mercadoPagoAvailable: boolean;
+  /** El oferente cargó CVU o alias: se le puede transferir directo. */
+  transferenciaAvailable: boolean;
   /** Las del acuerdo, la más nueva primero. */
   proposals: PropuestaVista[];
 };
@@ -125,20 +127,23 @@ export function estadoAcuerdo(acuerdo: AcuerdoVista | null, viewer: Viewer, ahor
       return {
         label: plazo ? `Trabajo en curso · día ${plazo.elapsedDays} de ${plazo.totalDays}${plazo.overdue ? " · pasó el plazo" : ""}` : "Trabajo en curso",
         tono: plazo?.overdue ? ROJO : VERDE,
-        franja: !pro ? base : acuerdo.mercadoPagoAvailable ? { ...base, accion: "terminar", boton: "Terminé" } : { ...base, accion: "vincular", boton: "Vincular MP", detalle: "Vinculá Mercado Pago para cerrar y cobrar." },
+        franja: !pro ? base : acuerdo.mercadoPagoAvailable || acuerdo.transferenciaAvailable ? { ...base, accion: "terminar", boton: "Terminé" } : { ...base, accion: "vincular", boton: "Cómo cobro", detalle: "Vinculá Mercado Pago o cargá tu CVU o alias para cerrar y cobrar." },
       };
     }
     case "finished": {
       const total = ars(acuerdo.finalPrice ?? 0);
-      if (pro) return { label: "Trabajo terminado · falta el pago", tono: AMBAR, franja: { tono: "slate", titulo: "Esperando el pago", detalle: `Total ${total}` } };
+      const label = "Trabajo terminado · falta el pago";
+      if (pro) return { label, tono: AMBAR, franja: { tono: "slate", titulo: "Esperando el pago", detalle: `Total ${total}` } };
+      // Con transferencia se abre el panel, que muestra los datos y (si está) también Mercado Pago.
+      if (acuerdo.transferenciaAvailable) return { label, tono: AMBAR, franja: { tono: acuerdo.mercadoPagoAvailable ? "mp" : "blue", titulo: `Total ${total}`, detalle: acuerdo.mercadoPagoAvailable ? "Pagá con Mercado Pago o por transferencia." : "Transferile y cargá el comprobante.", accion: "panel", boton: "Pagar" } };
       return acuerdo.mercadoPagoAvailable
-        ? { label: "Trabajo terminado · falta el pago", tono: AMBAR, franja: { tono: "mp", titulo: `Total ${total}`, detalle: "El trabajo está terminado.", accion: "pagar", boton: "Pagar" } }
-        : { label: "Trabajo terminado · falta el pago", tono: AMBAR, franja: { tono: "slate", titulo: `Total ${total}`, detalle: "El oferente tiene que vincular Mercado Pago para cobrar." } };
+        ? { label, tono: AMBAR, franja: { tono: "mp", titulo: `Total ${total}`, detalle: "El trabajo está terminado.", accion: "pagar", boton: "Pagar" } }
+        : { label, tono: AMBAR, franja: { tono: "slate", titulo: `Total ${total}`, detalle: "El oferente tiene que cargar cómo cobrar." } };
     }
     case "payment_reported":
       return pro
-        ? { label: "Pago informado", tono: AMBAR, franja: { tono: "amber", titulo: "Te informaron el pago", detalle: "Confirmá cuando lo recibas.", accion: "panel", boton: "Confirmar" } }
-        : { label: "Pago informado", tono: AMBAR, franja: { tono: "slate", titulo: "Pago informado", detalle: "Esperando que lo confirme." } };
+        ? { label: "Transferencia informada", tono: AMBAR, franja: { tono: "amber", titulo: "Te informaron una transferencia", detalle: "Fijate en tu cuenta y confirmá que llegó.", accion: "panel", boton: "Revisar" } }
+        : { label: "Transferencia informada", tono: AMBAR, franja: { tono: "slate", titulo: "Transferencia informada", detalle: "Esperando que confirme que le llegó." } };
     case "paid_awaiting_review":
       return pro
         ? { label: "Pagado · falta la calificación", tono: VERDE, franja: { tono: "blue", titulo: "Pagado", detalle: "Falta que te califique." } }
@@ -157,8 +162,8 @@ export function motivoSinPresupuesto(acuerdo: AcuerdoVista | null, ahora = new D
 
 /** Los mensajes 💰/📋 se pintan como tarjeta. */
 export const esMensajeDePresupuesto = (texto: string) => /^(💰|📋)/u.test(texto);
-/** ✅ ❌ 🏁 ⌛: avisos del acuerdo, centrados como los del sistema. */
-export const esAvisoDelAcuerdo = (texto: string) => /^(✅|❌|🏁|⌛)/u.test(texto);
+/** ✅ ❌ 🏁 ⌛ 💸 🏦: avisos del acuerdo, centrados como los del sistema. */
+export const esAvisoDelAcuerdo = (texto: string) => /^(✅|❌|🏁|⌛|💸|🏦)/u.test(texto);
 
 /** "150.000" o "$ 150000" → 150000. Vacío → 0. */
 export function montoDesdeTexto(texto: string) {

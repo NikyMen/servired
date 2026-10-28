@@ -10,6 +10,7 @@ export const ICONOS_AVISO: Record<string, string> = {
   mensaje: "💬",
   propuesta: "💰",
   propuesta_resuelta: "✅",
+  pago: "💸",
   solicitud: "📋",
   solicitud_por_vencer: "⏳",
   kyc: "🪪",

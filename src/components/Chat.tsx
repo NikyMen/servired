@@ -274,7 +274,7 @@ export function Chat({
       const pendiente = propuestaPendiente(booking);
       if (!pendiente || !irATarjeta(pendiente.id)) setPanel({ inicial: null });
     } else if (accion === "pagar") void pagar();
-    else if (accion === "vincular") window.location.assign("/pro/mi-perfil#mercado-pago");
+    else if (accion === "vincular") window.location.assign("/pro/mi-perfil#cobros");
     else if (accion === "terminar") setPanel({ inicial: "finish" });
     else if (accion === "calificar") setPanel({ inicial: "review" });
     else setPanel({ inicial: null });
@@ -685,7 +685,7 @@ export function Chat({
                         </p>
                       ) : null}
                     </div>
-                    <p className="text-sm text-slate-600">El plazo arranca hoy. Le avisamos a {selected.withName} para que empiece. El pago se hace cuando termine, por Mercado Pago.</p>
+                    <p className="text-sm text-slate-600">El plazo arranca hoy. Le avisamos a {selected.withName} para que empiece. El pago se hace cuando termine el trabajo.</p>
                   </>
                 ) : (
                   <p className="text-sm text-slate-600">Le avisamos a {selected.withName}. Te puede mandar uno nuevo y pueden seguir charlando por acá.</p>

@@ -5,7 +5,7 @@ import { type AcuerdoVista, esAvisoDelAcuerdo, esMensajeDePresupuesto, estadoAcu
 const AHORA = new Date("2026-10-21T13:00:00Z");
 const enDias = (n: number) => new Date(AHORA.getTime() + n * 86_400_000).toISOString();
 const propuesta = (status: string, expiresAt = enDias(5)) => ({ id: "p1", amount: 150000, status, expiresAt, estimatedDays: 2, message: null });
-const acuerdo = (status: string, proposals = [propuesta("pending")], extra: Partial<AcuerdoVista> = {}): AcuerdoVista => ({ id: "b1", status, finalPrice: null, startedAt: null, dueAt: null, mercadoPagoAvailable: true, proposals, ...extra });
+const acuerdo = (status: string, proposals = [propuesta("pending")], extra: Partial<AcuerdoVista> = {}): AcuerdoVista => ({ id: "b1", status, finalPrice: null, startedAt: null, dueAt: null, mercadoPagoAvailable: true, transferenciaAvailable: false, proposals, ...extra });
 
 test("estado de la tarjeta: pendiente, aceptado, rechazado y vencido (también por fecha)", () => {
   assert.equal(estadoPropuesta(propuesta("pending"), AHORA), "pendiente");
@@ -61,6 +61,21 @@ test("terminado: el cliente paga con MP; pagado: el cliente califica", () => {
   assert.equal(estadoAcuerdo(acuerdo("finished", [], { finalPrice: 1, mercadoPagoAvailable: false }), "cliente", AHORA).franja?.accion, undefined);
   assert.equal(estadoAcuerdo(acuerdo("paid_awaiting_review", []), "cliente", AHORA).franja?.accion, "calificar");
   assert.equal(estadoAcuerdo(acuerdo("paid_awaiting_review", []), "profesional", AHORA).franja?.accion, undefined);
+});
+
+test("transferencia: alcanza para cerrar sin MP y el cliente paga desde el panel", () => {
+  const extra = { startedAt: AHORA.toISOString(), dueAt: enDias(2), mercadoPagoAvailable: false, transferenciaAvailable: true };
+  assert.equal(estadoAcuerdo(acuerdo("in_progress", [propuesta("accepted")], extra), "profesional", AHORA).franja?.accion, "terminar");
+  const soloTransferencia = estadoAcuerdo(acuerdo("finished", [], { finalPrice: 150000, mercadoPagoAvailable: false, transferenciaAvailable: true }), "cliente", AHORA);
+  assert.equal(soloTransferencia.franja?.accion, "panel");
+  assert.match(soloTransferencia.franja!.detalle!, /comprobante/);
+  const lasDos = estadoAcuerdo(acuerdo("finished", [], { finalPrice: 150000, transferenciaAvailable: true }), "cliente", AHORA);
+  assert.equal(lasDos.franja?.accion, "panel");
+  assert.equal(lasDos.franja?.tono, "mp");
+  // Informada: el oferente la revisa; el cliente espera.
+  assert.equal(estadoAcuerdo(acuerdo("payment_reported", []), "profesional", AHORA).franja?.accion, "panel");
+  assert.equal(estadoAcuerdo(acuerdo("payment_reported", []), "cliente", AHORA).franja?.accion, undefined);
+  assert.equal(esAvisoDelAcuerdo("💸 TRANSFERENCIA INFORMADA · $150.000"), true);
 });
 
 test("el + dice por qué no se puede mandar otro presupuesto", () => {

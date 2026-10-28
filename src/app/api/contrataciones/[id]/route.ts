@@ -6,6 +6,8 @@ import { PROPOSAL_TTL_MS, expirePendingProposals, proposalIsActive } from "@/lib
 import { mercadoPagoConfigured } from "@/lib/mercadopago";
 import { notificar } from "@/lib/notificaciones";
 import { mandarAviso } from "@/lib/avisos-correo";
+import { datosTransferencia, manualAliasProvider, referenciaTransferencia } from "@/lib/payments";
+import { UPLOAD_URL } from "@/lib/uploads";
 
 function messageText(amount: number) { return `$${amount.toLocaleString("es-AR")}`; }
 
@@ -87,18 +89,71 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const finalPrice = Math.round(Number(body?.finalPrice));
     const workSummary = typeof body?.workSummary === "string" ? body.workSummary.trim().slice(0, 1200) : "";
     if (!Number.isFinite(finalPrice) || finalPrice <= 0 || workSummary.length < 8) return NextResponse.json({ error: "Ingresá monto final y una explicación del trabajo." }, { status: 422 });
-    if (!mercadoPagoConfigured() || !await prisma.mercadoPagoAccount.findUnique({ where: { professionalId: booking.professionalId } })) return NextResponse.json({ error: "Vinculá Mercado Pago desde tu panel profesional antes de terminar el trabajo." }, { status: 422 });
+    const conMercadoPago = mercadoPagoConfigured() && Boolean(await prisma.mercadoPagoAccount.findUnique({ where: { professionalId: booking.professionalId } }));
+    if (!conMercadoPago && !datosTransferencia(booking.professional)) return NextResponse.json({ error: "Vinculá Mercado Pago o cargá tu CVU o alias en Mi perfil antes de terminar el trabajo." }, { status: 422 });
     const updated = await prisma.booking.update({ where: { id }, data: { status: "finished", finalPrice, workSummary, finishedAt: new Date() } });
     if (conversation) await prisma.message.create({ data: { conversationId: conversation.id, sender: "profesional", text: `🏁 TRABAJO TERMINADO · ${messageText(finalPrice)} · ${workSummary}` } });
+    await notificar(prisma, booking.userId, { kind: "pago", title: `${booking.professional.name} terminó el trabajo`, body: `Total ${messageText(finalPrice)}. Ya podés pagarlo.`, url: conversation ? `/mensajes?conversacion=${conversation.id}` : "/contrataciones", groupKey: `pago:${booking.id}` });
     return NextResponse.json(updated);
+  }
+
+  // Transferencia directa (P2P): el cliente paga fuera de ServiRed, la informa
+  // con el comprobante y el oferente confirma que le llegó. Recién ahí se califica.
+  if (action === "report_payment") {
+    if (viewer !== "cliente" || booking.status !== "finished" || !booking.finalPrice) return NextResponse.json({ error: "El pago todavía no está habilitado." }, { status: 409 });
+    if (!datosTransferencia(booking.professional)) return NextResponse.json({ error: "El oferente no tiene cargado un CVU o alias para transferir." }, { status: 409 });
+    if (!conversation) return NextResponse.json({ error: "No encontramos el hilo de esta contratación." }, { status: 409 });
+    const reference = referenciaTransferencia(body?.reference);
+    const receiptUrl = typeof body?.receiptUrl === "string" && UPLOAD_URL.test(body.receiptUrl) ? body.receiptUrl : null;
+    if (!receiptUrl && reference.length < 4) return NextResponse.json({ error: "Subí el comprobante o escribí el número de operación." }, { status: 422 });
+    const finalPrice = booking.finalPrice;
+    const payment = await prisma.$transaction(async (tx) => {
+      // Solo desde "finished": con dos toques el segundo no cambia ninguna fila.
+      const avanzo = await tx.booking.updateMany({ where: { id, status: "finished" }, data: { status: "payment_reported", paymentReportedAt: new Date() } });
+      if (avanzo.count === 0) return null;
+      return tx.payment.create({ data: { amount: finalPrice, commission: 0, netAmount: finalPrice, provider: manualAliasProvider.key, status: "reported", reportedAt: new Date(), receiptUrl, reference: reference || null, userId: booking.userId, professionalId: booking.professionalId, conversationId: conversation.id, bookingId: booking.id } });
+    });
+    if (!payment) return NextResponse.json({ error: "Ese pago ya fue informado." }, { status: 409 });
+    await prisma.$transaction([prisma.message.create({ data: { conversationId: conversation.id, sender: "cliente", text: `💸 TRANSFERENCIA INFORMADA · ${messageText(finalPrice)}${reference ? ` · Operación ${reference}` : ""}${receiptUrl ? " · Con comprobante" : ""} · Falta que el oferente confirme que le llegó.` } }), prisma.conversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } })]);
+    if (booking.professional.userId) {
+      const proUserId = booking.professional.userId;
+      await notificar(prisma, proUserId, { kind: "pago", title: "Te informaron una transferencia", body: `${booking.clientName} dice que te transfirió ${messageText(finalPrice)}. Confirmá cuando la veas en tu cuenta.`, url: `/pro/mensajes?conversacion=${conversation.id}`, groupKey: `pago:${booking.id}` });
+      after(() => mandarAviso(proUserId, "propuestas", { asunto: `${booking.clientName} te informó una transferencia`, titulo: "Te informaron una transferencia", texto: `${booking.clientName} dice que te transfirió ${messageText(finalPrice)}. Revisá tu cuenta y confirmalo en ServiRed para que pueda calificarte.`, url: `/pro/mensajes?conversacion=${conversation.id}`, boton: "Confirmar el pago" }));
+    }
+    return NextResponse.json(payment, { status: 201 });
   }
 
   if (action === "confirm_payment") {
     if (viewer !== "profesional" || booking.status !== "payment_reported") return NextResponse.json({ error: "No hay un pago informado para confirmar." }, { status: 409 });
     const payment = booking.payments.find((item) => item.status === "reported");
     if (!payment) return NextResponse.json({ error: "No hay un pago informado." }, { status: 409 });
-    await prisma.$transaction([prisma.payment.update({ where: { id: payment.id }, data: { status: "pagado", paidAt: new Date(), confirmedAt: new Date() } }), prisma.booking.update({ where: { id }, data: { status: "paid_awaiting_review", paidAt: new Date() } })]);
+    const confirmado = await prisma.$transaction(async (tx) => {
+      const pagado = await tx.payment.updateMany({ where: { id: payment.id, status: "reported" }, data: { status: "pagado", paidAt: new Date(), confirmedAt: new Date() } });
+      if (pagado.count === 0) return false;
+      await tx.booking.update({ where: { id }, data: { status: "paid_awaiting_review", paidAt: new Date() } });
+      return true;
+    });
+    if (!confirmado) return NextResponse.json({ error: "Ese pago ya fue confirmado." }, { status: 409 });
     if (conversation) await prisma.message.create({ data: { conversationId: conversation.id, sender: "profesional", text: "✅ PAGO CONFIRMADO · El cliente ya puede calificar el trabajo." } });
+    await notificar(prisma, booking.userId, { kind: "pago", title: "Confirmaron tu pago", body: `${booking.professional.name} recibió la transferencia. Ya podés calificar el trabajo.`, url: conversation ? `/mensajes?conversacion=${conversation.id}` : "/contrataciones", groupKey: `pago:${booking.id}` });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "reject_payment") {
+    if (viewer !== "profesional" || booking.status !== "payment_reported") return NextResponse.json({ error: "No hay un pago informado." }, { status: 409 });
+    const payment = booking.payments.find((item) => item.status === "reported");
+    if (!payment) return NextResponse.json({ error: "No hay un pago informado." }, { status: 409 });
+    const motivo = referenciaTransferencia(body?.reason);
+    const rechazado = await prisma.$transaction(async (tx) => {
+      const cancelado = await tx.payment.updateMany({ where: { id: payment.id, status: "reported" }, data: { status: "cancelado" } });
+      if (cancelado.count === 0) return false;
+      // Vuelve a "terminado": el cliente revisa y la informa de nuevo, o paga por Mercado Pago.
+      await tx.booking.update({ where: { id }, data: { status: "finished", paymentReportedAt: null } });
+      return true;
+    });
+    if (!rechazado) return NextResponse.json({ error: "Ese pago ya fue resuelto." }, { status: 409 });
+    if (conversation) await prisma.message.create({ data: { conversationId: conversation.id, sender: "profesional", text: `❌ TRANSFERENCIA NO RECIBIDA · ${motivo || "Todavía no la veo en mi cuenta."} Revisá el comprobante y volvé a informarla.` } });
+    await notificar(prisma, booking.userId, { kind: "pago", title: "No le llegó tu transferencia", body: `${booking.professional.name} todavía no la ve en su cuenta. Revisá los datos y volvé a informarla.`, url: conversation ? `/mensajes?conversacion=${conversation.id}` : "/contrataciones", groupKey: `pago:${booking.id}` });
     return NextResponse.json({ ok: true });
   }
 
