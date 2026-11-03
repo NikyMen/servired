@@ -41,7 +41,9 @@ export function AnalyticsTracker() {
     };
 
     send(true);
-    const timer = window.setInterval(send, 15_000);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible" && navigator.onLine) send();
+    }, 15_000);
     const onVisibility = () => { if (document.visibilityState === "hidden") send(); };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {

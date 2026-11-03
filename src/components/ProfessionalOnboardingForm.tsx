@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { DocumentCamera } from "@/components/DocumentCamera";
+import dynamic from "next/dynamic";
+
+const DocumentCamera = dynamic(() => import("@/components/DocumentCamera").then((mod) => mod.DocumentCamera), { ssr: false });
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { idPorDefecto } from "@/lib/localidad-defecto";

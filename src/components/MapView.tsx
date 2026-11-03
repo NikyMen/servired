@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useRef, useState } from "react";
 
 export type MapPoint = {
   id: string;
@@ -26,6 +27,19 @@ const MapInner = dynamic(() => import("@/components/MapInner"), {
 });
 
 export function MapView({ points, className = "h-[430px]", centro, radioKm, enVivo, editarZona, zonas, encuadre }: { points: MapPoint[]; className?: string; centro?: { lat: number; lng: number } | null; radioKm?: number; enVivo?: boolean; editarZona?: boolean; zonas?: boolean; encuadre?: Encuadre | null }) {
-  return <MapInner points={points} className={className} centro={centro} radioKm={radioKm} enVivo={enVivo} editarZona={editarZona} zonas={zonas} encuadre={encuadre} />;
+  const contenedor = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!contenedor.current) return;
+    if (typeof IntersectionObserver === "undefined") { setVisible(true); return; }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setVisible(true); observer.disconnect(); }
+    }, { rootMargin: "250px" });
+    observer.observe(contenedor.current);
+    return () => observer.disconnect();
+  }, []);
+  return <div ref={contenedor}>{visible
+    ? <MapInner points={points} className={className} centro={centro} radioKm={radioKm} enVivo={enVivo} editarZona={editarZona} zonas={zonas} encuadre={encuadre} />
+    : <div aria-label="Cargando mapa" className={`rounded-2xl bg-slate-200/70 ${className}`} />}</div>;
 }
 

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 type Ad = { slot: string; title: string; imageUrl: string | null; whatsappPhone: string | null; whatsappMessage: string | null; enabled: boolean } | null;
@@ -21,7 +22,7 @@ function Disponible() {
  * Sin aviso cargado la placa queda libre: con `invitarHref` invita a contratarla
  * por WhatsApp, y sin él (no hay número de soporte) muestra el "ADS" de antes.
  */
-export function AdPlate({ ad, label, className = "", lazy = false, invitarHref = null }: { ad: Ad; label: string; className?: string; lazy?: boolean; invitarHref?: string | null }) {
+export function AdPlate({ ad, label, className = "", lazy = true, invitarHref = null }: { ad: Ad; label: string; className?: string; lazy?: boolean; invitarHref?: string | null }) {
   const activa = Boolean(ad?.enabled);
   const conAviso = activa && ad && (Boolean(ad.imageUrl) || Boolean(ad.title));
   const libre = !conAviso;
@@ -29,7 +30,7 @@ export function AdPlate({ ad, label, className = "", lazy = false, invitarHref =
 
   const content = conAviso ? (
     <>
-      {ad!.imageUrl ? <img src={ad!.imageUrl} alt={ad!.title || label} loading={lazy ? "lazy" : undefined} className="absolute inset-0 size-full object-cover" /> : null}
+      {ad!.imageUrl ? <Image src={ad!.imageUrl} unoptimized={!ad!.imageUrl.startsWith("/uploads/")} fill sizes="(min-width: 1280px) 170px, (min-width: 640px) 160px, 30vw" alt={ad!.title || label} loading={lazy ? "lazy" : "eager"} decoding="async" className="absolute inset-0 size-full object-cover" /> : null}
       {ad!.title ? <span className={`relative z-10 px-3 text-center text-xs font-semibold ${ad!.imageUrl ? "rounded bg-black/55 py-1 text-white" : "text-slate-500"}`}>{ad!.title}</span> : null}
     </>
   ) : vacia;

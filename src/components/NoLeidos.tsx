@@ -136,16 +136,24 @@ export function NoLeidosProvider({
       return;
     }
     let cancelado = false;
+    let consultando = false;
+    const controller = new AbortController();
 
     async function consultar() {
+      if (cancelado || consultando || document.hidden || !navigator.onLine) return;
+      consultando = true;
       try {
         const res = await fetch(`/api/conversaciones/no-leidos${esPro ? "?como=pro" : ""}`, {
           cache: "no-store",
+          signal: controller.signal,
         });
         if (!res.ok || cancelado) return;
-        aplicar(await res.json());
+        const data = await res.json();
+        if (!cancelado) aplicar(data);
       } catch {
         // Se cayó la red un segundo: el próximo tick reintenta solo.
+      } finally {
+        consultando = false;
       }
     }
 
@@ -156,6 +164,7 @@ export function NoLeidosProvider({
     window.addEventListener("focus", consultar);
     return () => {
       cancelado = true;
+      controller.abort();
       clearInterval(timer);
       document.removeEventListener("visibilitychange", consultar);
       window.removeEventListener("focus", consultar);

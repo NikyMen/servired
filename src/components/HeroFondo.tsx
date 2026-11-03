@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { WelderScene } from "@/components/WelderScene";
+import dynamic from "next/dynamic";
+
+const WelderScene = dynamic(() => import("@/components/WelderScene").then((mod) => mod.WelderScene), { ssr: false });
 
 /** Dónde va la foto del hero. Un solo lugar: si cambia el archivo, cambia acá. */
-export const HERO_FOTO = "/servired-panel-entrada2.jpeg";
+export const HERO_FOTO = "/servired-panel-entrada2.webp";
 
 /**
  * El fondo del banner de inicio.

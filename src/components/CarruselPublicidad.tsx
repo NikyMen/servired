@@ -59,6 +59,7 @@ export function CarruselPublicidad({ titulo, tono, sentido, items, invitarHref =
     let ultimoT = 0;
     let antes = performance.now();
     let cuadro = 0;
+    let visible = false;
 
     // Siempre dentro de (-ancho, 0]: la segunda vuelta tapa el hueco.
     const envolver = () => {
@@ -69,6 +70,7 @@ export function CarruselPublicidad({ titulo, tono, sentido, items, invitarHref =
     };
 
     const andar = (ahora: number) => {
+      cuadro = 0;
       // Tope por si la pestaña estuvo en segundo plano: que no pegue un salto.
       const dt = Math.min(0.05, (ahora - antes) / 1000);
       antes = ahora;
@@ -84,7 +86,18 @@ export function CarruselPublicidad({ titulo, tono, sentido, items, invitarHref =
         envolver();
         pintar();
       }
-      cuadro = requestAnimationFrame(andar);
+      if (visible && !document.hidden && (!quieta || Math.abs(envion) > 5)) cuadro = requestAnimationFrame(andar);
+    };
+    const actualizar = () => {
+      if (visible && !document.hidden) {
+        if (!cuadro && (!quieta || Math.abs(envion) > 5)) {
+          antes = performance.now();
+          cuadro = requestAnimationFrame(andar);
+        }
+      } else {
+        cancelAnimationFrame(cuadro);
+        cuadro = 0;
+      }
     };
 
     const agarrar = (e: PointerEvent) => {
@@ -123,6 +136,7 @@ export function CarruselPublicidad({ titulo, tono, sentido, items, invitarHref =
       envion = arrastrado && e.timeStamp - ultimoT < 100 ? Math.max(-ENVION_MAX, Math.min(ENVION_MAX, envion)) : 0;
       // Con el reloj de los cuadros (el mismo que compara andar()).
       pausaHasta = antes + PAUSA_MS;
+      actualizar();
     };
     // Después de arrastrar, soltar sobre una placa no la abre.
     const clic = (e: MouseEvent) => {
@@ -145,10 +159,18 @@ export function CarruselPublicidad({ titulo, tono, sentido, items, invitarHref =
       pintar();
     });
     observador?.observe(vueltaEl);
-    cuadro = requestAnimationFrame(andar);
+    const visibilidad = typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      actualizar();
+    });
+    visibilidad?.observe(cajaEl);
+    if (!visibilidad) { visible = cajaEl.getClientRects().length > 0; actualizar(); }
+    document.addEventListener("visibilitychange", actualizar);
 
     return () => {
       cancelAnimationFrame(cuadro);
+      visibilidad?.disconnect();
+      document.removeEventListener("visibilitychange", actualizar);
       observador?.disconnect();
       cajaEl.removeEventListener("pointerdown", agarrar);
       cajaEl.removeEventListener("pointermove", mover);

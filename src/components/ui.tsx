@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { StarIcon, VerifiedIcon } from "@/components/icons";
 import { initials } from "@/lib/format";
 
@@ -69,8 +70,10 @@ export function Avatar({
 
   if (src) {
     return (
-      <img
+      <Image
         src={src}
+        unoptimized={!src.startsWith("/uploads/")}
+        sizes={`${size}px`}
         alt=""
         width={size}
         height={size}

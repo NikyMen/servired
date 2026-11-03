@@ -7,6 +7,7 @@ export function ProfessionalCard({ pro }: { pro: ProCard }) {
   return (
     <Link
       href={`/profesionales/${pro.id}`}
+      prefetch={false}
       className="glass glass-card group flex flex-col rounded-[1.5rem] p-4"
     >
       <div className="flex items-center gap-3">

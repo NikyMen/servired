@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    unoptimized: true,
+    minimumCacheTTL: 3600,
   },
   experimental: {
     serverActions: {

@@ -6,7 +6,7 @@ import type { Mode } from "@/lib/types";
 export function LogoMark({ size = 32, className = "" }: { size?: number; className?: string }) {
   return (
     <Image
-      src="/logo-mark.png"
+      src="/logo-mark.webp"
       alt=""
       width={size}
       height={size}
@@ -53,7 +53,7 @@ export function Logo({
       >
         <LogoMark size={Math.min(height, 32)} className="min-[340px]:hidden" />
         <Image
-          src="/logo-horizontal.png"
+          src="/logo-horizontal.webp"
           alt="ServiRed — servicios profesionales conectados"
           width={width}
           height={height}
@@ -73,7 +73,7 @@ export function Logo({
     >
       {compactOnMobile && <LogoMark size={height} className="sm:hidden" />}
       <Image
-        src="/logo-horizontal.png"
+        src="/logo-horizontal.webp"
         alt="ServiRed — servicios profesionales conectados"
         width={width}
         height={height}
