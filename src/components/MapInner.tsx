@@ -1,19 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { divIcon, latLng, latLngBounds, type Map as LeafletMap } from "leaflet";
-import { Circle, MapContainer, Marker, Popup, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { Circle, MapContainer, Marker, Popup, TileLayer, Tooltip } from "react-leaflet";
 import type { Encuadre, MapPoint } from "@/components/MapView";
 import { Avatar } from "@/components/ui";
 import { BotonUbicarme, Yo } from "@/components/mapa/Yo";
 import { BotonMiZona } from "@/components/mapa/BotonMiZona";
 import { DIAMETRO_ZONA_M } from "@/lib/geo";
+import { useVistaMapa } from "@/components/mapa/useVistaMapa";
 
 const COLORS = { profesional: "#059669", solicitud: "#2563eb", trabajo: "#f59e0b" };
-
-/** Desde este zoom las zonas de los profesionales llevan su etiqueta fija; más lejos se pisarían. */
-const ZOOM_ETIQUETAS = 13;
 
 function markerIcon(type: MapPoint["type"]) {
   return divIcon({
@@ -59,50 +57,50 @@ function Popupcito({ point }: { point: MapPoint }) {
  * un toque (en la zona o en la etiqueta) lleva a su perfil. Las solicitudes y
  * los trabajos siguen abriendo su ficha chica.
  */
-function Zonas({ points }: { points: MapPoint[] }) {
+const Zona = memo(function Zona({ point, fijas }: { point: MapPoint; fijas: boolean }) {
   const router = useRouter();
-  const map = useMap();
-  const [zoom, setZoom] = useState(() => map.getZoom());
-  useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
-  const fijas = zoom >= ZOOM_ETIQUETAS;
-
-  return points.map((point) => {
-    const center: [number, number] = [point.latitude, point.longitude];
-    const color = COLORS[point.type];
-    const key = `${point.type}-${point.id}`;
-    // Punteada y más tenue: es una zona aproximada, no la que marcó.
-    const trazo = point.aproximado ? { color, weight: 2, fillOpacity: 0.1, dashArray: "4 5" } : { color, weight: 2, fillOpacity: 0.22 };
-    if (point.type !== "profesional") {
-      return (
-        <Circle key={key} center={center} radius={DIAMETRO_ZONA_M / 2} pathOptions={trazo}>
-          <Popupcito point={point} />
-        </Circle>
-      );
-    }
-    const irAlPerfil = () => point.href && router.push(point.href);
+  const center: [number, number] = [point.latitude, point.longitude];
+  const color = COLORS[point.type];
+  const key = `${point.type}-${point.id}`;
+  // Punteada y más tenue: es una zona aproximada, no la que marcó.
+  const trazo = point.aproximado ? { color, weight: 2, fillOpacity: 0.1, dashArray: "4 5" } : { color, weight: 2, fillOpacity: 0.22 };
+  if (point.type !== "profesional") {
     return (
-      <Circle key={key} center={center} radius={DIAMETRO_ZONA_M / 2} pathOptions={trazo} eventHandlers={{ click: irAlPerfil }}>
-        {/* permanent solo se lee al crear el tooltip: la key lo rearma al cruzar el zoom. */}
-        <Tooltip key={fijas ? "fija" : "hover"} permanent={fijas} interactive direction="top" offset={[0, -6]} className="servired-zona-label">
-          <a
-            href={point.href}
-            onClick={(e) => {
-              e.preventDefault();
-              irAlPerfil();
-            }}
-            className="flex items-center gap-1.5"
-            title={point.subtitle ?? undefined}
-          >
-            <Avatar name={point.title} color={point.avatar?.color} src={point.avatar?.url} size={22} />
-            <span className="max-w-32 truncate text-xs font-semibold text-slate-800">{point.title}</span>
-          </a>
-        </Tooltip>
+      <Circle key={key} center={center} radius={point.radioM ?? DIAMETRO_ZONA_M / 2} pathOptions={trazo}>
+        <Popupcito point={point} />
       </Circle>
     );
-  });
+  }
+  const irAlPerfil = () => point.href && router.push(point.href);
+  return (
+    <Circle key={key} center={center} radius={point.radioM ?? DIAMETRO_ZONA_M / 2} pathOptions={trazo} eventHandlers={{ click: irAlPerfil }}>
+      {/* permanent solo se lee al crear el tooltip: la key lo rearma al cruzar el zoom. */}
+      <Tooltip key={fijas ? "fija" : "hover"} permanent={fijas} interactive direction="top" offset={[0, -6]} className="servired-zona-label">
+        <a
+          href={point.href}
+          onClick={(e) => {
+            e.preventDefault();
+            irAlPerfil();
+          }}
+          className="flex items-center gap-1.5"
+          title={point.subtitle ?? undefined}
+        >
+          <Avatar name={point.title} color={point.avatar?.color} src={point.avatar?.url} size={22} />
+          <span className="max-w-32 truncate text-xs font-semibold text-slate-800">{point.title}</span>
+        </a>
+      </Tooltip>
+    </Circle>
+  );
+});
+
+function Zonas({ points }: { points: MapPoint[] }) {
+  const { bounds, etiquetas } = useVistaMapa();
+  return points.filter((point) => bounds.contains([point.latitude, point.longitude])).map((point) => (
+    <Zona key={`${point.type}-${point.id}`} point={point} fijas={etiquetas} />
+  ));
 }
 
-export default function MapInner({ points, className, centro, radioKm, enVivo = false, editarZona = false, zonas = false, encuadre }: Props) {
+export default function MapInner({ points, className, centro, radioKm, enVivo = false, editarZona = false, zonas = true, encuadre }: Props) {
   const [map, setMap] = useState<LeafletMap | null>(null);
   const center: [number, number] = centro
     ? [centro.lat, centro.lng]
@@ -124,10 +122,13 @@ export default function MapInner({ points, className, centro, radioKm, enVivo = 
     // isolate: los paneles de Leaflet (z 400+) y el botón de ubicarme (z 500)
     // quedan adentro del mapa y no pasan por encima del encabezado al scrollear.
     <div className="relative isolate">
-      <MapContainer ref={setMap} {...inicio} scrollWheelZoom className={`z-0 w-full rounded-2xl ${className}`}>
+      <MapContainer ref={setMap} {...inicio} preferCanvas scrollWheelZoom className={`z-0 w-full rounded-2xl ${className}`}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          updateWhenIdle
+          updateWhenZooming={false}
+          keepBuffer={1}
         />
         {centro && radioKm && <Circle center={[centro.lat, centro.lng]} radius={radioKm * 1000} pathOptions={{ color: "#2563eb", weight: 1, fillOpacity: 0.04 }} />}
         {zonas ? (

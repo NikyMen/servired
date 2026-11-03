@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getSessionUser } from "@/lib/auth";
-import { buscarProfesionales } from "@/lib/cercanos";
+import { buscarProfesionalesMapa } from "@/lib/cercanos";
 import { formatoDistancia } from "@/lib/geo";
 import { resolverUbicacion } from "@/lib/ubicacion";
 import { AvisoUbicacion } from "@/components/AvisoUbicacion";
@@ -20,7 +20,7 @@ export default async function MapaPage({ searchParams }: { searchParams: Promise
   if (!user) return <MapaBloqueado className="h-[calc(100dvh-15.5rem)] min-h-[440px] md:h-[calc(100dvh-11rem)]" />;
   const { q = "" } = await searchParams;
   const ubicacion = await resolverUbicacion(user);
-  const pros = await buscarProfesionales({ q }, ubicacion.punto);
+  const pros = await buscarProfesionalesMapa({ q }, ubicacion.punto);
 
   return (
     // Ocupa el alto disponible entre el header y la barra inferior del celu.

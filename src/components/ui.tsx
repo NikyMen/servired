@@ -74,6 +74,8 @@ export function Avatar({
         alt=""
         width={size}
         height={size}
+        loading="lazy"
+        decoding="async"
         className={`inline-block shrink-0 rounded-full object-cover ${box}`}
         style={{ width: size, height: size, backgroundColor: color }}
       />

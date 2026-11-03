@@ -85,3 +85,18 @@ test("un reintento del mismo guardado es seguro y se puede volver todo a automá
   assert.equal((await guardar({ ids: [], anteriores: ["c", "a"] })).ok, true);
   assert.ok((await posiciones()).every((row) => row.posicionFija === null));
 });
+
+test("la consulta liviana del mapa conserva búsqueda, orden y radio", async () => {
+  const { buscarProfesionales, buscarProfesionalesMapa } = await import("../src/lib/cercanos");
+  const centro = { lat: -27.4692, lng: -58.8306 };
+  await prisma.professional.update({ where: { id: "a" }, data: { bio: "Impermeabilización especializada", latitude: centro.lat, longitude: centro.lng } });
+  await prisma.professional.update({ where: { id: "b" }, data: { latitude: -34.6037, longitude: -58.3816 } });
+  await prisma.service.create({ data: { professionalId: "c", title: "Restauración", description: "Restauración de muebles", categoryLabel: "Carpintería", priceFrom: 0 } });
+  for (const q of ["", "necesito", "impermeabilizacion", "restauracion", "carpinteria", "inexistente"]) {
+    const [completa, mapa] = await Promise.all([buscarProfesionales({ q }, centro), buscarProfesionalesMapa({ q }, centro)]);
+    assert.deepEqual(mapa.map((pro) => ({ id: pro.id, punto: pro.punto, distancia: pro.distanciaKm })), completa.map((pro) => ({ id: pro.id, punto: pro.punto, distancia: pro.distanciaKm })), q);
+    assert.ok(mapa.every((pro) => pro.id !== "b" && pro.id !== "rechazado"));
+  }
+  assert.deepEqual((await buscarProfesionalesMapa({ q: "impermeabilizacion" }, centro)).map((pro) => pro.id), ["a"]);
+  assert.deepEqual((await buscarProfesionalesMapa({ q: "restauracion" }, centro)).map((pro) => pro.id), ["c"]);
+});

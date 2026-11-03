@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Avatar, MatriculadoBadge, VerifiedBadge } from "@/components/ui";
@@ -28,21 +28,21 @@ const Inner = dynamic(() => import("@/components/mapa/MapaCompletoInner"), {
 /**
  * La sección Mapa: el mapa ocupa todo el alto y encima va la hoja
  * "Profesionales cerca tuyo" (abajo en el celular, al costado en la compu).
- * Tocar un pin o un ítem muestra el resumen con el acceso al perfil.
+ * Tocar una zona o un ítem muestra el resumen con el acceso al perfil.
  */
 export function MapaCompleto({ items, centro, editarZona = false }: { items: ItemMapa[]; centro: Punto; editarZona?: boolean }) {
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [hojaAbierta, setHojaAbierta] = useState(false);
   const elegido = items.find((i) => i.id === seleccionado) ?? null;
 
-  const elegir = (id: string) => { setSeleccionado(id); setHojaAbierta(false); };
+  const elegir = useCallback((id: string) => { setSeleccionado(id); setHojaAbierta(false); }, []);
 
   return (
     // isolate: la hoja (z 600) y la tarjeta (z 650) no tapan el encabezado ni la barra de abajo.
-    <div className="relative isolate h-full overflow-hidden rounded-2xl md:grid md:grid-cols-[340px_1fr] md:rounded-2xl">
+    <div className="relative isolate h-full overflow-hidden rounded-2xl md:grid md:grid-cols-[340px_1fr] md:grid-rows-[minmax(0,1fr)] md:rounded-2xl">
       <aside
         aria-label="Profesionales cerca tuyo"
-        className={`glass glass-solid absolute inset-x-0 bottom-0 z-[600] flex flex-col rounded-t-3xl transition-[max-height] md:static md:max-h-none md:rounded-none md:rounded-l-2xl ${hojaAbierta ? "max-h-[65%]" : "max-h-[68px]"}`}
+        className={`glass glass-solid absolute inset-x-0 bottom-0 z-[600] flex min-h-0 flex-col rounded-t-3xl transition-[max-height] md:static md:max-h-none md:rounded-none md:rounded-l-2xl ${hojaAbierta ? "max-h-[65%]" : "max-h-[68px]"}`}
       >
         <button type="button" onClick={() => setHojaAbierta((v) => !v)} aria-expanded={hojaAbierta} className="flex shrink-0 flex-col items-center gap-1 px-4 pt-2 pb-3 md:pointer-events-none md:items-start md:pt-4">
           <span aria-hidden className="h-1 w-10 rounded-full bg-slate-300 md:hidden" />

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DocumentCamera } from "@/components/DocumentCamera";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { idPorDefecto } from "@/lib/localidad-defecto";
@@ -276,12 +277,9 @@ function FileField({ label, accept, capture, current, autoCapture = false, onCha
   const [preview, setPreview] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const [scanning, setScanning] = useState(false);
 
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); streamRef.current?.getTracks().forEach((track) => track.stop()); }, [preview]);
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   function useFile(picked: File) {
     if (preview) URL.revokeObjectURL(preview);
@@ -295,30 +293,13 @@ function FileField({ label, accept, capture, current, autoCapture = false, onCha
     useFile(picked);
   }
 
-  async function scan() {
-    if (!navigator.mediaDevices?.getUserMedia) return cameraRef.current?.click();
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } } });
-      streamRef.current = stream; setScanning(true);
-      if (videoRef.current) videoRef.current.srcObject = stream;
-      window.setTimeout(() => {
-        const video = videoRef.current; const canvas = canvasRef.current;
-        if (!video || !canvas || video.videoWidth < 1) return;
-        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-        canvas.getContext("2d")?.drawImage(video, 0, 0);
-        canvas.toBlob((blob) => { if (blob) useFile(new File([blob], `${label.toLowerCase().replace(/\s+/g, "-")}.jpg`, { type: "image/jpeg" })); }, "image/jpeg", 0.92);
-        stream.getTracks().forEach((track) => track.stop()); streamRef.current = null; setScanning(false);
-      }, 1800);
-    } catch { cameraRef.current?.click(); }
-  }
-
   return <div className="flex flex-col rounded-2xl bg-white/70 p-3 text-sm">
     <p className="font-semibold text-slate-900">{label}</p>
     <div className="mt-2 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-dashed border-emerald-300 bg-emerald-50/60">
-      {scanning ? <div className="relative size-full"><video ref={videoRef} autoPlay playsInline className="size-full object-cover" /><span className="absolute inset-[12%] rounded-xl border-2 border-white shadow-[0_0_0_999px_rgb(0_0_0_/_0.22)]" /><span className="absolute right-2 bottom-2 rounded bg-slate-950/70 px-2 py-1 text-[11px] text-white">Capturando…</span></div> : preview ? <img src={preview} alt={label} className="size-full object-cover" /> : <span className="px-3 text-center text-xs text-slate-500">{current || "Todavía no cargaste la foto"}</span>}
+      {preview ? <img src={preview} alt={label} className="size-full object-contain" /> : <span className="px-3 text-center text-xs text-slate-500">{current || "Todavía no cargaste la foto"}</span>}
     </div>
     <div className="mt-3 grid grid-cols-2 gap-2">
-      <button type="button" onClick={autoCapture ? scan : () => cameraRef.current?.click()} disabled={scanning} className="glass-btn flex items-center justify-center gap-1.5 px-2 py-2.5 text-xs disabled:opacity-60">
+      <button type="button" onClick={autoCapture ? () => setScanning(true) : () => cameraRef.current?.click()} disabled={scanning} className="glass-btn flex items-center justify-center gap-1.5 px-2 py-2.5 text-xs disabled:opacity-60">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4 shrink-0" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
         {autoCapture ? "Escanear" : "Sacar foto"}
       </button>
@@ -329,8 +310,8 @@ function FileField({ label, accept, capture, current, autoCapture = false, onCha
     </div>
     <input ref={cameraRef} type="file" accept={accept} capture={capture} onChange={pick} className="hidden" />
     <input ref={galleryRef} type="file" accept={accept} onChange={pick} className="hidden" />
-    <canvas ref={canvasRef} className="hidden" />
-    {file && <span className="mt-2 block truncate text-xs text-emerald-700">✓ Foto cargada</span>}
+    {scanning && <DocumentCamera label={label} onCapture={useFile} onClose={() => setScanning(false)} />}
+    {file && <span className="mt-2 block truncate text-xs text-emerald-700">✓ Foto cargada. Revisá que se lea bien; podés volver a escanearla.</span>}
   </div>;
 }
 
