@@ -87,7 +87,7 @@ export function BookingActions({ bookingId, status, viewer, proposal, finalPrice
   if (viewer === "profesional" && status === "in_progress") content = !mercadoPagoAvailable && !transferenciaAvailable ? <a href="/pro/mi-perfil#cobros" className="text-sm font-semibold text-pro-dark underline">Vinculá Mercado Pago o cargá tu CVU o alias para cerrar y cobrar el trabajo</a> : open === "finish" ? <div className={`${FORM} bg-emerald-50`}><input type="number" min="1" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Monto final" aria-label="Monto final" className={CAMPO} /><textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Qué trabajo realizaste" aria-label="Qué trabajo realizaste" className={`${CAMPO} resize-none`} /><Button variant="pro" disabled={busy} onClick={() => action("finish", { finalPrice: amount, workSummary: summary })} className="min-h-11 w-full !text-sm">{busy ? "Enviando…" : "Marcar como trabajo terminado"}</Button></div> : <Button variant="pro" onClick={() => setOpen("finish")} className={BTN}>Marcar como trabajo terminado</Button>;
   if (viewer === "cliente" && status === "finished") content = verTransferencia && transferencia
     ? <Transferir datos={transferencia} total={finalPrice || 0} busy={busy} onInformar={(datos) => action("report_payment", datos)} onVolver={soloTransferencia ? undefined : () => setOpen(null)} onError={setError} />
-    : <div className="space-y-2 sm:text-right"><p className="text-sm text-slate-600">Total: <b className="text-slate-900">{formatARS(finalPrice || 0)}</b></p>{mercadoPagoAvailable && <button type="button" disabled={busy} onClick={checkout} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#009EE3] px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#0087c2] disabled:opacity-60 sm:w-auto"><MercadoPagoIcon width={20} height={20} />{busy ? "Abriendo Mercado Pago…" : "Pagar con Mercado Pago"}</button>}{transferencia && <Button variant="outline" disabled={busy} onClick={() => { setError(null); setOpen("transfer"); }} className={`${BTN} sm:ml-2`}>Pagar por transferencia</Button>}{!mercadoPagoAvailable && !transferencia && <p className="text-xs text-amber-700">El profesional tiene que cargar cómo cobrar.</p>}</div>;
+    : <div className="space-y-2 sm:text-right"><p className="text-sm text-slate-600">Total: <b className="text-slate-900">{formatARS(finalPrice || 0)}</b></p>{mercadoPagoAvailable && <button type="button" disabled={busy} onClick={checkout} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#009EE3] px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#0087c2] disabled:opacity-60 sm:w-auto"><MercadoPagoIcon width={20} height={20} />{busy ? "Abriendo Mercado Pago…" : "Pagar con Mercado Pago"}</button>}{transferencia && <Button variant="outline" disabled={busy} onClick={() => { setError(null); setOpen("transfer"); }} className={`${BTN} sm:ml-2`}>Otro medio de pago</Button>}{!mercadoPagoAvailable && !transferencia && <p className="text-xs text-amber-700">El profesional tiene que cargar cómo cobrar.</p>}</div>;
   if (viewer === "cliente" && status === "payment_reported") content = <p className="rounded-2xl bg-amber-50 p-3 text-sm text-amber-900 sm:max-w-72 sm:text-right">Informaste la transferencia{pagoInformado ? ` de ${formatARS(pagoInformado.amount)}` : ""}. Falta que el oferente confirme que le llegó; después vas a poder calificarlo.</p>;
   if (viewer === "profesional" && status === "payment_reported") content = open === "rejectPay"
     ? <div className={`${FORM} bg-red-50`}><p className="text-sm font-bold text-slate-900">¿No te llegó la transferencia?</p><p className="text-xs text-slate-600">El trabajo vuelve a «falta el pago» y le avisamos para que lo revise.</p><textarea value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={80} placeholder="Qué pasó (opcional)" aria-label="Qué pasó" className={`${CAMPO} resize-none`} /><button type="button" disabled={busy} onClick={() => action("reject_payment", { reason: summary })} className="min-h-11 w-full rounded-xl bg-red-600 px-4 text-sm font-semibold text-white disabled:opacity-60">{busy ? "Enviando…" : "No me llegó"}</button><Button variant="outline" disabled={busy} onClick={() => setOpen(null)} className="min-h-11 w-full !text-sm">Volver</Button></div>
@@ -98,13 +98,11 @@ export function BookingActions({ bookingId, status, viewer, proposal, finalPrice
 
 /**
  * Pago directo (P2P): el cliente ve a quién transferir, lo hace desde su banco
- * o billetera y vuelve a cargar el comprobante o el número de operación.
+ * o billetera y vuelve a cargar el comprobante.
  */
-function Transferir({ datos, total, busy, onInformar, onVolver, onError }: { datos: DatosTransferencia; total: number; busy: boolean; onInformar: (datos: { receiptUrl: string | null; reference: string }) => void; onVolver?: () => void; onError: (error: string | null) => void }) {
+function Transferir({ datos, total, busy, onInformar, onVolver, onError }: { datos: DatosTransferencia; total: number; busy: boolean; onInformar: (datos: { receiptUrl: string }) => void; onVolver?: () => void; onError: (error: string | null) => void }) {
   const [comprobante, setComprobante] = useState<{ url: string; name: string } | null>(null);
   const [subiendo, setSubiendo] = useState(false);
-  const [reference, setReference] = useState("");
-  const listo = Boolean(comprobante) || reference.trim().length >= 4;
 
   async function subir(file: File | undefined) {
     if (!file) return;
@@ -129,14 +127,13 @@ function Transferir({ datos, total, busy, onInformar, onVolver, onError }: { dat
         <div><p className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">Titular</p><p className="text-sm font-semibold text-slate-900">{datos.holder}</p></div>
       </div>
       <p className="text-xs text-slate-600">Antes de confirmar en tu banco, chequeá que el titular coincida. La plata va directo al oferente.</p>
-      <p className="pt-1 text-sm font-semibold text-slate-900">Después, cargá la transferencia</p>
+      <p className="pt-1 text-sm font-semibold text-slate-900">Después, subí el comprobante</p>
       <label className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-dashed px-3 py-2 text-sm ${comprobante ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"}`}>
         {comprobante ? <CheckCircleIcon width={18} height={18} className="shrink-0" /> : <PaperclipIcon width={18} height={18} className="shrink-0" />}
         <span className="min-w-0 flex-1 truncate">{subiendo ? "Subiendo…" : comprobante ? comprobante.name : "Subir comprobante (foto o PDF)"}</span>
         <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="sr-only" disabled={subiendo || busy} onChange={(e) => { void subir(e.target.files?.[0]); e.target.value = ""; }} />
       </label>
-      <input value={reference} onChange={(e) => setReference(e.target.value)} maxLength={80} placeholder={comprobante ? "N.º de operación (opcional)" : "N.º de operación"} aria-label="Número de operación" className={CAMPO} />
-      <Button variant="cliente" disabled={busy || subiendo || !listo} onClick={() => onInformar({ receiptUrl: comprobante?.url ?? null, reference })} className="min-h-11 w-full !text-sm">{busy ? "Enviando…" : listo ? "Ya transferí, avisarle" : "Subí el comprobante o el n.º"}</Button>
+      <Button variant="cliente" disabled={busy || subiendo || !comprobante} onClick={() => comprobante && onInformar({ receiptUrl: comprobante.url })} className="min-h-11 w-full !text-sm">{busy ? "Enviando…" : comprobante ? "Ya transferí, avisarle" : "Subí el comprobante"}</Button>
       {onVolver && <Button variant="outline" disabled={busy} onClick={onVolver} className="min-h-11 w-full !text-sm">Volver</Button>}
     </div>
   );
