@@ -9,14 +9,46 @@ type Fila = { id: string; name: string; province: string; latitude: number; long
 /** El mapa arranca en Capital: es donde están casi todas. */
 const CENTRO = { latitude: -27.4692, longitude: -58.8306 };
 
+/** Son miles (todo el país): se muestran de a tandas, filtradas. */
+const POR_PAGINA = 60;
+
+/** Sin tildes ni mayúsculas, para que "cordoba" encuentre "Córdoba". */
+function clave(texto: string) {
+  return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
 export function AdminLocalidades({ rows }: { rows: Fila[] }) {
+  const [texto, setTexto] = useState("");
+  const [provincia, setProvincia] = useState("");
+  const [visibles, setVisibles] = useState(POR_PAGINA);
+  const provincias = [...new Set(rows.map((r) => r.province))].sort((a, b) => a.localeCompare(b, "es"));
+  const buscado = clave(texto.trim());
+  const filtradas = rows.filter((r) => (!provincia || r.province === provincia) && (!buscado || clave(r.name).includes(buscado)));
+
   return (
     <div className="space-y-4">
       <NuevaLocalidad />
+      <div className="adm-card grid gap-3 p-4 sm:grid-cols-[1fr_16rem]">
+        <label className="adm-label">Buscar
+          <input value={texto} onChange={(e) => { setTexto(e.target.value); setVisibles(POR_PAGINA); }} placeholder="Nombre de la localidad" className="adm-field mt-1" />
+        </label>
+        <label className="adm-label">Provincia
+          <select value={provincia} onChange={(e) => { setProvincia(e.target.value); setVisibles(POR_PAGINA); }} className="adm-field mt-1">
+            <option value="">Todas</option>
+            {provincias.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </label>
+        <p className="text-xs text-slate-500 sm:col-span-2">{filtradas.length} {filtradas.length === 1 ? "localidad" : "localidades"}{filtradas.length > visibles ? `, se ven las primeras ${visibles}` : ""}.</p>
+      </div>
       <div className="adm-card overflow-hidden">
         <ul className="divide-y divide-slate-100">
-          {rows.map((row) => <FilaLocalidad key={row.id} row={row} />)}
+          {filtradas.slice(0, visibles).map((row) => <FilaLocalidad key={row.id} row={row} />)}
         </ul>
+        {filtradas.length > visibles && (
+          <div className="border-t border-slate-100 p-3 text-center">
+            <button type="button" onClick={() => setVisibles((v) => v + POR_PAGINA)} className="adm-btn adm-btn-ghost adm-btn-sm">Ver más</button>
+          </div>
+        )}
       </div>
     </div>
   );

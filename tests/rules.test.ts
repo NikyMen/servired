@@ -7,7 +7,7 @@ import { MAX_REPUBLISH, REQUEST_TTL_MS, requestDaysLeft, requestIsLastDay } from
 import { PROPOSAL_TTL_LABEL, jobProgress, validEstimatedDays } from "../src/lib/trabajo";
 import { parseTexto } from "../src/lib/site-text";
 import { AYUDA_DEFAULT, saludoPerfil, validSupportPhone, waLink } from "../src/lib/whatsapp";
-import { CAPITAL, LOCALIDADES_BASE, canonizar, validarLocalidad, validarPunto, zonaDe } from "../src/lib/localidades";
+import { CAPITAL, LOCALIDADES_BASE, canonizar, claveNombre, validarLocalidad, validarPunto, zonaDe } from "../src/lib/localidades";
 import { idPorDefecto } from "../src/lib/localidad-defecto";
 import { pendienteDeAlta } from "../src/lib/auth";
 import { PLAZO_MENSAJES_MS, debeAvisarMensaje, firmaBaja, firmaValida, puedeRecibir } from "../src/lib/avisos-correo";
@@ -160,15 +160,20 @@ test("el número de soporte son 10 dígitos sin 0 ni 15 adelante", () => {
   assert.equal(validSupportPhone("abc"), null);
 });
 
-test("la lista base de localidades arranca por Capital, sin repetidos y con puntos en la zona", () => {
+test("la lista base de localidades arranca por Capital, sin repetidos y cubre todo el país", () => {
   assert.deepEqual({ name: LOCALIDADES_BASE[0].name, province: LOCALIDADES_BASE[0].province }, CAPITAL);
-  const claves = LOCALIDADES_BASE.map((l) => `${l.name}|${l.province}`);
+  // Sin repetidos ni escritos distinto: la base de datos compara así.
+  const claves = LOCALIDADES_BASE.map((l) => `${claveNombre(l.name)}|${l.province}`);
   assert.equal(new Set(claves).size, claves.length);
-  assert.deepEqual([...new Set(LOCALIDADES_BASE.map((l) => l.province))].sort(), ["Chaco", "Corrientes", "Entre Ríos"]);
+  const provincias = [...new Set(LOCALIDADES_BASE.map((l) => l.province))];
+  assert.equal(provincias.length, 24);
+  for (const p of provincias) assert.equal(canonizar({ name: "x", province: p }).province, p, p);
   for (const l of LOCALIDADES_BASE) {
-    assert.ok(l.latitude < -24 && l.latitude > -34, l.name);
-    assert.ok(l.longitude < -55.6 && l.longitude > -63.5, l.name);
+    const valida = validarLocalidad(l);
+    assert.ok("data" in valida && valida.data.name === l.name && valida.data.province === l.province, `${l.name}, ${l.province}`);
   }
+  assert.ok(LOCALIDADES_BASE.some((l) => l.name === "Córdoba" && l.province === "Córdoba"));
+  assert.ok(LOCALIDADES_BASE.some((l) => l.name === "Ushuaia" && l.province === "Tierra del Fuego"));
   assert.equal(zonaDe(CAPITAL), "Corrientes Capital, Corrientes");
 });
 

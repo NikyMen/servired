@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { LOCALIDADES_CHACO } from "@/lib/localidades-chaco";
 import { LOCALIDADES_CORRIENTES } from "@/lib/localidades-corrientes";
 import { LOCALIDADES_ENTRE_RIOS } from "@/lib/localidades-entre-rios";
+import { LOCALIDADES_ARGENTINA } from "@/lib/localidades-argentina";
 
 type Punto = { name: string; province: string; latitude: number; longitude: number };
 type Resultado<T> = { error: string } | { data: T };
@@ -50,6 +51,7 @@ export const LOCALIDADES_BASE: Punto[] = [
   ...LOCALIDADES_CORRIENTES,
   ...LOCALIDADES_CHACO,
   ...LOCALIDADES_ENTRE_RIOS,
+  ...LOCALIDADES_ARGENTINA,
 ];
 
 /** Todos los oferentes se dieron de alta acá cuando era la única opción. */
@@ -111,15 +113,20 @@ export async function asegurarLocalidades() {
   let existentes = await prisma.locality.findMany({ select: { id: true, name: true, province: true } });
   if (await unificarLocalidades(existentes)) existentes = await prisma.locality.findMany({ select: { id: true, name: true, province: true } });
   const claves = new Set(existentes.map((l) => `${claveNombre(l.name)}|${l.province}`));
-  for (const [index, localidad] of LOCALIDADES_BASE.entries()) {
-    if (claves.has(`${claveNombre(localidad.name)}|${localidad.province}`)) continue;
-    // Capital primero y el resto por nombre.
-    const sortOrder = index === 0 ? 0 : 10;
-    await prisma.locality.upsert({
-      where: { name_province: { name: localidad.name, province: localidad.province } },
-      create: { ...localidad, sortOrder },
-      update: {},
-    });
+  // Capital primero y el resto por nombre.
+  const faltan = LOCALIDADES_BASE
+    .map((localidad, index) => ({ ...localidad, sortOrder: index === 0 ? 0 : 10 }))
+    .filter((l) => !claves.has(`${claveNombre(l.name)}|${l.province}`));
+  if (!faltan.length) return;
+  // Son miles la primera vez: de a una dejaría colgado el pedido que las carga.
+  try {
+    await prisma.locality.createMany({ data: faltan });
+  } catch (error) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) throw error;
+    // Otro pedido las cargó a la vez: se completan las que todavía falten, sin duplicar.
+    for (const localidad of faltan) {
+      await prisma.locality.upsert({ where: { name_province: { name: localidad.name, province: localidad.province } }, create: localidad, update: {} });
+    }
   }
 }
 
