@@ -58,7 +58,7 @@ export const PLANES_DEFAULT: PlanesConfig = {
   aviso: "Vista previa. Precios y beneficios tentativos. Las suscripciones todavía no están disponibles.",
   encabezado: {
     etiqueta: "Planes para profesionales y oferentes",
-    titulo: "Tu oficio.",
+    titulo: "Tu oficio o profesión.",
     tituloDestacado: "Más oportunidades.",
     bajada: "Empezá gratis. Sumá contacto directo, visibilidad y herramientas para tu negocio cuando las necesites.",
     nota: "Para quienes buscan profesionales, ServiRed sigue siendo gratis.",
@@ -199,7 +199,9 @@ export function sanearPlanes(crudo: unknown): PlanesConfig {
     aviso: str(c.aviso, 300),
     encabezado: {
       etiqueta: str(enc.etiqueta, 80),
-      titulo: str(enc.titulo, 80) || d.encabezado.titulo,
+      // "Tu oficio." era el título viejo: deja afuera a los profesionales. Lo
+      // guardado tal cual se lee como el nuevo; un texto editado a mano se respeta.
+      titulo: (str(enc.titulo, 80) === "Tu oficio." ? "" : str(enc.titulo, 80)) || d.encabezado.titulo,
       tituloDestacado: str(enc.tituloDestacado, 80),
       bajada: str(enc.bajada, 300),
       nota: str(enc.nota, 200),

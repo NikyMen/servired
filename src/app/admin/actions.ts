@@ -507,3 +507,16 @@ export async function enLineaAction(): Promise<EnLinea> {
   await requireAdmin();
   return enLineaAhora();
 }
+
+/** Borra una muestra de trabajos (por ejemplo, una foto inapropiada cargada en el alta) y sus archivos. */
+export async function borrarMuestraAction(formData: FormData) {
+  await requireAdmin();
+  const id = text(formData, "id");
+  if (!id) return;
+  const muestra = await prisma.workSample.findUnique({ where: { id }, include: { images: { select: { url: true } } } });
+  if (!muestra) return;
+  await prisma.workSample.delete({ where: { id } });
+  await Promise.all(muestra.images.map((image) => removeUpload(image.url)));
+  revalidatePath("/admin");
+  revalidatePath(`/profesionales/${muestra.professionalId}`);
+}

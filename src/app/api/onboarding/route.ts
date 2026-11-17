@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { saveUpload } from "@/lib/uploads";
+import { UPLOAD_URL, saveUpload } from "@/lib/uploads";
+import { leerMuestrasAlta } from "@/lib/muestras-alta";
 import { dniFromCuil, encryptKyc, lookupKyc, normalizeDigits, removeKycDocument, saveKycDocument, validCuil, validPhone, videoChallengeExpiry } from "@/lib/kyc";
 import { ACTIVE_JOB_STATUSES } from "@/lib/workflow";
 import { rotuloAnios, slugify } from "@/lib/format";
@@ -55,6 +56,10 @@ export async function POST(req: NextRequest) {
   if (!Number.isFinite(yearsExperience) || yearsExperience < 0 || yearsExperience > 60) return NextResponse.json({ error: `Los ${rotuloAnios(providerType).toLowerCase()} tienen que estar entre 0 y 60.` }, { status: 422 });
   if (customCategory && (customCategory.length < 3 || !slugify(customCategory))) return NextResponse.json({ error: "El rubro que escribiste es muy corto o no tiene letras." }, { status: 422 });
   if (!categoryIds.length && !customCategory) return NextResponse.json({ error: "Elegí al menos un rubro." }, { status: 422 });
+  // Muestras de trabajos: opcionales. Las fotos ya están en /uploads.
+  const lecturaMuestras = leerMuestrasAlta(form.get("muestras"), UPLOAD_URL);
+  if ("error" in lecturaMuestras) return NextResponse.json({ error: lecturaMuestras.error }, { status: 422 });
+  const muestras = lecturaMuestras.muestras;
 
   const avatar = form.get("avatar");
   const hasNewAvatar = avatar instanceof File && avatar.size > 0;
@@ -124,6 +129,15 @@ export async function POST(req: NextRequest) {
       });
       await tx.professionalCategory.deleteMany({ where: { professionalId: professional.id } });
       await tx.professionalCategory.createMany({ data: linkedCategoryIds.map((categoryId, index) => ({ professionalId: professional.id, categoryId, isPrimary: index === 0 })) });
+      /* Se suman a las que ya tuviera (un reenvío tras "pedir cambios"), sin
+         pasar el tope de 24 de Mi perfil. No se ven en público hasta que el
+         perfil esté aprobado: la página pública filtra por profileStatus. */
+      if (muestras.length) {
+        const yaTiene = await tx.workSample.count({ where: { professionalId: professional.id } });
+        for (const muestra of muestras.slice(0, Math.max(0, 24 - yaTiene))) {
+          await tx.workSample.create({ data: { professionalId: professional.id, title: muestra.title, description: muestra.description || null, images: { create: muestra.urls.map((url, position) => ({ url, position })) } } });
+        }
+      }
       await tx.user.update({ where: { id: session.id }, data: { name: legalName, avatarUrl, localityId: localidad.id, ofertasDependencia, ofertasDependenciaAt: ofertasDependencia ? new Date() : null } });
       // Mismo groupKey que la respuesta de administración: la aprobación lo reemplaza.
       await notificar(tx, session.id, {

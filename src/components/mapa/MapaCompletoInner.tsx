@@ -21,9 +21,12 @@ const Zona = memo(function Zona({ item, elegida, etiquetas, onSeleccionar }: { i
       eventHandlers={{ click: () => onSeleccionar(item.id) }}
     >
       <Tooltip key={etiquetas || elegida ? "fija" : "hover"} permanent={etiquetas || elegida} interactive direction="top" offset={[0, -6]} className="servired-zona-label">
-        <button type="button" onClick={() => onSeleccionar(item.id)} className="flex items-center gap-1.5" aria-label={`Ver ${item.nombre}`}>
+        <button type="button" onClick={() => onSeleccionar(item.id)} className="flex items-center gap-1.5 text-left" aria-label={item.oficio ? `Ver ${item.nombre}, ${item.oficio}` : `Ver ${item.nombre}`}>
           <Avatar name={item.nombre} color={item.avatarColor} src={item.avatarUrl} size={22} />
-          <span className="max-w-32 truncate text-xs font-semibold text-slate-800">{item.nombre}</span>
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="max-w-32 truncate text-xs font-semibold text-slate-800">{item.nombre}</span>
+            {item.oficio && <span className="max-w-32 truncate text-[10px] font-medium text-pro-dark">{item.oficio}</span>}
+          </span>
         </button>
       </Tooltip>
     </Circle>

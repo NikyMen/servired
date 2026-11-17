@@ -11,6 +11,11 @@ import { LocalidadSelect } from "@/components/LocalidadSelect";
 import { ZonaTrabajo } from "@/components/pro/ZonaTrabajo";
 import type { Punto } from "@/lib/geo";
 import { rotuloAnios } from "@/lib/format";
+import { MuestrasAlta } from "@/components/pro/MuestrasAlta";
+import { MAX_MUESTRAS_ALTA, type MuestraAlta } from "@/lib/muestras-alta";
+
+/** Pasos del alta: actividad, muestras (opcional), datos, identidad y revisión. */
+const PASOS = 5;
 
 type ProviderType = "profesional" | "oficio";
 type Category = { id: string; name: string; icon: string; kind: string; parent: { name: string } | null };
@@ -61,6 +66,11 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
   const [urgencias24, setUrgencias24] = useState(initial.urgencias24 ?? false);
   const [zona, setZona] = useState<Punto | null>(initial.zona ?? null);
+  const [muestras, setMuestras] = useState<MuestraAlta[]>([]);
+  // Hay fotos o título cargados en una muestra que todavía no se agregó.
+  const [muestraEnCurso, setMuestraEnCurso] = useState(false);
+  // Al agregar o descartar la muestra pendiente, el aviso de "muestra sin terminar" ya no aplica.
+  useEffect(() => { if (!muestraEnCurso) setError(null); }, [muestraEnCurso]);
   const [avatar, setAvatar] = useState<File | null>(null);
   const [dniFront, setDniFront] = useState<File | null>(null);
   const [dniBack, setDniBack] = useState<File | null>(null);
@@ -110,11 +120,12 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
     try {
       const raw = localStorage.getItem(draftKey);
       if (raw) {
-        const draft = JSON.parse(raw) as { values?: Partial<typeof values>; providerType?: ProviderType; categoryIds?: string[]; step?: number; ofertasDependencia?: boolean; urgencias24?: boolean; zona?: Punto | null };
+        const draft = JSON.parse(raw) as { values?: Partial<typeof values>; providerType?: ProviderType; categoryIds?: string[]; step?: number; ofertasDependencia?: boolean; urgencias24?: boolean; zona?: Punto | null; muestras?: MuestraAlta[] };
         if (draft.values) setValues((current) => ({ ...current, ...Object.fromEntries(Object.entries(draft.values ?? {}).filter(([, value]) => typeof value === "string" && value)) }));
         if (!initial.providerType && (draft.providerType === "profesional" || draft.providerType === "oficio")) setProviderType(draft.providerType);
         if (!initial.categoryIds?.length && Array.isArray(draft.categoryIds)) setCategoryIds(draft.categoryIds.filter((id) => typeof id === "string"));
-        if (typeof draft.step === "number") setStep(Math.max(1, Math.min(4, draft.step)));
+        if (typeof draft.step === "number") setStep(Math.max(1, Math.min(PASOS, draft.step)));
+        if (Array.isArray(draft.muestras)) setMuestras(draft.muestras.filter((m) => m && typeof m.title === "string" && Array.isArray(m.urls) && m.urls.length > 0).slice(0, MAX_MUESTRAS_ALTA));
         if (typeof draft.ofertasDependencia === "boolean") setOfertasDependencia(draft.ofertasDependencia);
         if (typeof draft.urgencias24 === "boolean") setUrgencias24(draft.urgencias24);
         if (draft.zona && Number.isFinite(draft.zona.lat) && Number.isFinite(draft.zona.lng)) setZona(draft.zona);
@@ -128,8 +139,8 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
 
   useEffect(() => {
     if (!draftReady) return;
-    localStorage.setItem(draftKey, JSON.stringify({ values, providerType, categoryIds, step, ofertasDependencia, urgencias24, zona }));
-  }, [draftReady, draftKey, values, providerType, categoryIds, step, ofertasDependencia, urgencias24, zona]);
+    localStorage.setItem(draftKey, JSON.stringify({ values, providerType, categoryIds, step, ofertasDependencia, urgencias24, zona, muestras }));
+  }, [draftReady, draftKey, values, providerType, categoryIds, step, ofertasDependencia, urgencias24, zona, muestras]);
 
   useEffect(() => { if (draftReady) void archivoBorrador(`${draftKey}:avatar`, avatar); }, [draftReady, draftKey, avatar]);
   useEffect(() => { if (draftReady) void archivoBorrador(`${draftKey}:dni-front`, dniFront); }, [draftReady, draftKey, dniFront]);
@@ -146,18 +157,19 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
     if (step === 1 && (!values.headline.trim() || values.bio.trim().length < 20)) return "Completá a qué te dedicás y la descripción.";
     if (step === 1 && oficio === "otra" && values.headline.trim().length < 3) return "Escribí a qué te dedicás.";
     if (step === 1 && categoryIds.length === 0 && oficio !== "otra") return "Elegí al menos un rubro.";
+    if (step === 2 && muestraEnCurso) return "Tenés una muestra sin terminar: tocá «Agregar muestra» o «Descartar» antes de seguir.";
     const legalParts = values.legalName.trim().split(/\s+/).map((part) => part.replace(/[^\p{L}]/gu, ""));
-    if (step === 2 && (legalParts.length < 2 || legalParts.some((part) => part.length < 2) || values.phone.replace(/\D/g, "").length < 8 || !values.birthDate || values.address.trim().length < 5)) return "Ingresá nombre y apellido completos y revisá tus datos personales.";
-    if (step === 2 && values.cuil.replace(/\D/g, "").length !== 11) return "El CUIL debe tener 11 dígitos.";
-    if (step === 3 && !initial.avatarUrl && !avatar) return "Subí una foto de perfil donde se vea tu cara.";
-    if (step === 3 && (!dniFront || !dniBack || !video || !challengeToken)) return "Completá las dos fotos del DNI y el video guiado.";
+    if (step === 3 && (legalParts.length < 2 || legalParts.some((part) => part.length < 2) || values.phone.replace(/\D/g, "").length < 8 || !values.birthDate || values.address.trim().length < 5)) return "Ingresá nombre y apellido completos y revisá tus datos personales.";
+    if (step === 3 && values.cuil.replace(/\D/g, "").length !== 11) return "El CUIL debe tener 11 dígitos.";
+    if (step === 4 && !initial.avatarUrl && !avatar) return "Subí una foto de perfil donde se vea tu cara.";
+    if (step === 4 && (!dniFront || !dniBack || !video || !challengeToken)) return "Completá las dos fotos del DNI y el video guiado.";
     return null;
   }
 
   function next() {
     const issue = validateStep();
     if (issue) return setError(issue);
-    setError(null); setStep((current) => Math.min(4, current + 1)); window.scrollTo({ top: 0, behavior: "smooth" });
+    setError(null); setStep((current) => Math.min(PASOS, current + 1)); window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function startRecording() {
@@ -212,6 +224,7 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
     form.set("aceptaTerminos", aceptaTerminos ? "on" : "");
     if (zona) { form.set("latitude", String(zona.lat)); form.set("longitude", String(zona.lng)); }
     categoryIds.forEach((id) => form.append("categoryIds", id));
+    if (muestras.length) form.set("muestras", JSON.stringify(muestras));
     if (avatar) form.set("avatar", avatar); else form.set("confirmProfilePhoto", "yes");
     form.set("dni_front", dniFront!); form.set("dni_back", dniBack!); form.set("identity_video", video!);
     form.set("videoChallenge", challenge); form.set("videoChallengeToken", challengeToken);
@@ -232,7 +245,7 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
   }
 
   return <div className="mx-auto max-w-3xl space-y-5">
-    <div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-bold text-slate-900">Activá tu perfil en Ofrezco</h1><p className="mt-1 text-sm text-slate-500">Podés volver a Busco: guardamos rubros y descripción; los datos sensibles y archivos no quedan en el navegador.</p></div><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-pro-dark">Paso {step} de 4</span></div>
+    <div className="flex items-start justify-between gap-3"><div><h1 className="text-2xl font-bold text-slate-900">Activá tu perfil en Ofrezco</h1><p className="mt-1 text-sm text-slate-500">Podés volver a Busco: guardamos rubros y descripción; los datos sensibles y archivos no quedan en el navegador.</p></div><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-pro-dark">Paso {step} de {PASOS}</span></div>
     {initial.reason && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800"><strong>Cambios solicitados:</strong> {initial.reason}</p>}
     <div className="glass glass-solid space-y-5 rounded-2xl p-5 sm:p-6">
       {step === 1 && <>
@@ -255,19 +268,20 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
         <fieldset><legend className="text-sm font-semibold">Rubros de {providerType}</legend><div className="mt-2 max-h-72 space-y-3 overflow-y-auto rounded-2xl bg-white/40 p-3">{groupedCategories.map(([group, items]) => <section key={group}><h3 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">{group}</h3><div className="grid gap-2 sm:grid-cols-2">{items.map((category) => <label key={category.id} className="rounded-xl bg-white/80 p-3 text-sm"><input type="checkbox" checked={categoryIds.includes(category.id)} onChange={(e) => setCategoryIds((current) => e.target.checked ? [...current, category.id] : current.filter((id) => id !== category.id))} className="mr-2" />{category.icon} {category.name}</label>)}</div></section>)}</div></fieldset>
         <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800">Cuando aprueben tu perfil, vinculá tu cuenta de Mercado Pago o cargá tu CVU o alias desde Mi perfil para cobrar tus trabajos.</p>
       </>}
-      {step === 2 && <>
+      {step === 2 && <MuestrasAlta muestras={muestras} onChange={setMuestras} onEnCurso={setMuestraEnCurso} />}
+      {step === 3 && <>
         <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Nombre legal<input value={values.legalName} onChange={(e) => update("legalName", e.target.value)} className={FIELD} /></label><label className="text-sm font-medium">Email verificado<input value={initial.email} disabled className={`${FIELD} opacity-70`} /></label><label className="text-sm font-medium">Teléfono<input value={values.phone} onChange={(e) => update("phone", e.target.value)} type="tel" className={FIELD} /></label><label className="text-sm font-medium">Fecha de nacimiento<input value={values.birthDate} onChange={(e) => update("birthDate", e.target.value)} type="date" className={FIELD} /></label><label className="text-sm font-medium">CUIL<input value={values.cuil} onChange={(e) => update("cuil", e.target.value)} inputMode="numeric" placeholder="20-12345678-6" className={FIELD} /></label><label className="text-sm font-medium sm:col-span-2">Domicilio<input value={values.address} onChange={(e) => update("address", e.target.value)} className={FIELD} /></label></div>
         <div className="grid gap-3 sm:grid-cols-3"><div className="sm:col-span-2"><LocalidadSelect localities={localities} value={values.localityId} onChange={(id) => { update("localityId", id); setZona(null); }} className={FIELD} /></div><label className="text-sm font-medium">País<input value="Argentina" disabled className={`${FIELD} opacity-70`} /></label></div>
         <ZonaTrabajo zona={zona} centro={selectedLocality ? { lat: selectedLocality.latitude, lng: selectedLocality.longitude } : { lat: -27.4692, lng: -58.8306 }} onChange={setZona} />
       </>}
-      {step === 3 && <>
+      {step === 4 && <>
         <p className="text-sm text-slate-600">Los documentos y el video son privados: solo administración puede verlos. Encuadrá el DNI: la cámara lo captura sola cuando queda quieto.</p>
         <div className="grid gap-4 sm:grid-cols-3"><FileField label="Foto de perfil" accept="image/jpeg,image/png,image/webp" capture="user" current={initial.avatarUrl ? "Ya tenés una foto cargada" : null} onChange={setAvatar} /><FileField label="DNI frente" accept="image/jpeg,image/png,image/webp" capture="environment" current={dniFront ? "DNI frente cargado" : null} autoCapture onChange={setDniFront} /><FileField label="DNI dorso" accept="image/jpeg,image/png,image/webp" capture="environment" current={dniBack ? "DNI dorso cargado" : null} autoCapture onChange={setDniBack} /></div>
         <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"><h2 className="font-bold text-slate-900">Video de identidad</h2><p className="mt-1 text-sm text-slate-600">Mostrá tu cara y el DNI, y leé en voz alta la frase que aparece. Máximo 30 segundos.</p>{challenge && <p className="mt-3 rounded-xl bg-white p-4 text-center text-base leading-relaxed font-bold text-pro-dark sm:text-lg">{challenge}</p>}<video ref={liveVideoRef} autoPlay muted playsInline className={`${recording ? "block" : "hidden"} mt-3 max-h-72 w-full scale-x-[-1] rounded-xl bg-black`} /><div className="mt-3 flex flex-wrap gap-2">{recording ? <button type="button" onClick={stopRecording} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Detener ({seconds}s)</button> : <button type="button" onClick={startRecording} className="glass-btn px-4 py-2 text-sm">{video ? "Volver a grabar" : "Grabar video"}</button>}</div>{videoUrl && !recording && <video src={videoUrl} controls playsInline className="mt-3 max-h-72 w-full rounded-xl bg-black" />}</section>
       </>}
-      {step === 4 && <section className="space-y-3"><h2 className="text-xl font-bold text-slate-900">Revisá antes de enviar</h2><dl className="grid gap-3 text-sm sm:grid-cols-2"><Summary label="Tipo" value={providerType} /><Summary label="Actividad" value={values.headline} /><Summary label="Rubros" value={String(categoryIds.length)} /><Summary label={rotuloAnios(providerType)} value={values.yearsExperience || "0"} /><Summary label="Urgencias 24 hs" value={urgencias24 ? "Sí, las atiendo" : "No"} /><Summary label="Ubicación" value={selectedLocality ? `${selectedLocality.name}, ${selectedLocality.province}, Argentina` : "-"} /><Summary label="Cobro" value="Mercado Pago o transferencia: se configura después de la aprobación" /><Summary label="Zona de trabajo" value={zona ? "Marcada en el mapa (unas 3 cuadras)" : "Sin marcar: un lugar aproximado de tu localidad"} /><Summary label="Identidad" value="DNI frente, dorso y video listos" /></dl><label className="flex items-start gap-3 rounded-xl bg-white/70 p-3 text-sm text-slate-700"><input type="checkbox" checked={ofertasDependencia} onChange={(e) => setOfertasDependencia(e.target.checked)} className="mt-0.5 size-5 shrink-0" /><span>¿Además de las oportunidades vinculadas a tu oficio, te gustaría recibir ofertas laborales en relación de dependencia?</span></label><p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">El perfil quedará pendiente hasta que administración revise la documentación.</p><label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white/70 p-3 text-sm text-slate-700"><input type="checkbox" required checked={aceptaTerminos} onChange={(e) => { setAceptaTerminos(e.target.checked); setError(null); }} aria-describedby="terminos-obligatorio" className="mt-0.5 size-5 shrink-0 accent-[var(--color-pro)]" /><span>Leí y acepto los <Link href="/terminos" target="_blank" className="font-semibold text-pro-dark underline">términos y condiciones</Link> de ServiRed.<span id="terminos-obligatorio" className="block text-xs text-slate-500">Obligatorio para enviar.</span></span></label></section>}
+      {step === 5 && <section className="space-y-3"><h2 className="text-xl font-bold text-slate-900">Revisá antes de enviar</h2><dl className="grid gap-3 text-sm sm:grid-cols-2"><Summary label="Tipo" value={providerType} /><Summary label="Actividad" value={values.headline} /><Summary label="Rubros" value={String(categoryIds.length)} /><Summary label={rotuloAnios(providerType)} value={values.yearsExperience || "0"} /><Summary label="Urgencias 24 hs" value={urgencias24 ? "Sí, las atiendo" : "No"} /><Summary label="Muestras de trabajos" value={muestras.length ? `${muestras.length} cargada${muestras.length === 1 ? "" : "s"}` : "Sin muestras (podés sumarlas después)"} /><Summary label="Ubicación" value={selectedLocality ? `${selectedLocality.name}, ${selectedLocality.province}, Argentina` : "-"} /><Summary label="Cobro" value="Mercado Pago o transferencia: se configura después de la aprobación" /><Summary label="Zona de trabajo" value={zona ? "Marcada en el mapa (unas 3 cuadras)" : "Sin marcar: un lugar aproximado de tu localidad"} /><Summary label="Identidad" value="DNI frente, dorso y video listos" /></dl><label className="flex items-start gap-3 rounded-xl bg-white/70 p-3 text-sm text-slate-700"><input type="checkbox" checked={ofertasDependencia} onChange={(e) => setOfertasDependencia(e.target.checked)} className="mt-0.5 size-5 shrink-0" /><span>¿Además de las oportunidades vinculadas a tu oficio, te gustaría recibir ofertas laborales en relación de dependencia?</span></label><p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">El perfil quedará pendiente hasta que administración revise la documentación.</p><label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white/70 p-3 text-sm text-slate-700"><input type="checkbox" required checked={aceptaTerminos} onChange={(e) => { setAceptaTerminos(e.target.checked); setError(null); }} aria-describedby="terminos-obligatorio" className="mt-0.5 size-5 shrink-0 accent-[var(--color-pro)]" /><span>Leí y acepto los <Link href="/terminos" target="_blank" className="font-semibold text-pro-dark underline">términos y condiciones</Link> de ServiRed.<span id="terminos-obligatorio" className="block text-xs text-slate-500">Obligatorio para enviar.</span></span></label></section>}
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between"><div className="flex gap-2"><Link href="/" className="glass-btn glass-btn-ghost px-4 py-2.5 text-sm">Volver a Busco</Link>{step > 1 && <button type="button" onClick={() => { setError(null); setStep((current) => current - 1); }} className="glass-btn glass-btn-ghost px-4 py-2.5 text-sm">Atrás</button>}</div>{step < 4 ? <button type="button" onClick={next} className="glass-btn px-5 py-2.5 text-sm">Continuar</button> : <button type="button" disabled={busy || !aceptaTerminos} onClick={submit} className="glass-btn px-5 py-2.5 text-sm disabled:opacity-60">{busy ? "Enviando…" : aceptaTerminos ? "Enviar para aprobación" : "Aceptá los términos para enviar"}</button>}</div>
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between"><div className="flex gap-2"><Link href="/" className="glass-btn glass-btn-ghost px-4 py-2.5 text-sm">Volver a Busco</Link>{step > 1 && <button type="button" onClick={() => { setError(null); setStep((current) => current - 1); }} className="glass-btn glass-btn-ghost px-4 py-2.5 text-sm">Atrás</button>}</div>{step < PASOS ? <button type="button" onClick={next} className="glass-btn px-5 py-2.5 text-sm">{step === 2 && muestras.length === 0 && !muestraEnCurso ? "Saltear este paso" : "Continuar"}</button> : <button type="button" disabled={busy || !aceptaTerminos} onClick={submit} className="glass-btn px-5 py-2.5 text-sm disabled:opacity-60">{busy ? "Enviando…" : aceptaTerminos ? "Enviar para aprobación" : "Aceptá los términos para enviar"}</button>}</div>
     </div>
   </div>;
 }

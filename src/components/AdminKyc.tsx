@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { reviewKycAction } from "@/app/admin/actions";
+import { borrarMuestraAction, reviewKycAction } from "@/app/admin/actions";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 export type AdminKycRow = {
@@ -11,6 +11,7 @@ export type AdminKycRow = {
   submittedAt: string | null;
   reviewReason: string | null; reviewedBy: string | null; reviewedAt: string | null;
   videoChallenge: string | null; documents: { id: string; kind: string }[];
+  muestras: { id: string; title: string; description: string | null; urls: string[] }[];
   accesos: { total: number; ultimos: { at: string; viewer: string; ip: string | null; kind: string }[] };
 };
 
@@ -39,6 +40,7 @@ export function AdminKyc({ rows }: { rows: AdminKycRow[] }) {
     {filtered.length === 0 ? <p className="adm-card p-6 text-center text-sm text-slate-500">No hay expedientes con esos filtros.</p> : <div className="space-y-3">{filtered.map((row) => <details key={row.id} className="adm-card group overflow-hidden"><summary className="flex cursor-pointer list-none flex-wrap items-center gap-3 p-4 marker:hidden"><div className="min-w-0 flex-1"><h3 className="truncate font-bold text-slate-900">{row.legalName}</h3><p className="truncate text-sm text-slate-500">{row.email} · {row.providerType}</p></div><span className="hidden text-xs text-slate-500 sm:block">CUIL •••{row.cuil.slice(-4)} · DNI •••{row.dni.slice(-3)}</span><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${row.status === "pending" ? "bg-amber-100 text-amber-800" : row.status === "approved" ? "bg-emerald-100 text-emerald-800" : row.status === "rejected" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>{statusLabel[row.status] || row.status}</span></summary><div className="space-y-5 border-t border-slate-200 p-4 sm:p-5">
           <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4"><Datum label="Acceso" value={row.provider} /><Datum label="Teléfono" value={row.phone} /><Datum label="CUIL" value={row.cuil} mono /><Datum label="DNI" value={row.dni} mono /><Datum label="Nacimiento" value={formatDate(row.birthDate)} /><Datum label="Domicilio" value={row.address} /><Datum label="Ubicación" value={`${row.locality}, ${row.province}, ${row.country}`} /><Datum label="Presentado" value={row.submittedAt ? formatDateTime(row.submittedAt) : "—"} /></dl>
           <section className="rounded-xl border border-slate-200 bg-slate-50 p-4"><h4 className="font-bold text-slate-900">Perfil a publicar</h4><p className="mt-1 text-sm"><strong>{row.headline || "—"}</strong> · {row.providerType}</p><p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{row.bio || "Sin descripción"}</p><p className="mt-3 text-xs text-slate-500">El profesional configura el cobro (Mercado Pago o transferencia) después de la aprobación.</p></section>
+          <MuestrasPerfil muestras={row.muestras} />
           <section><h4 className="mb-2 font-bold text-slate-900">Documentación privada</h4>{row.videoChallenge && <p className="mb-3 rounded-xl bg-emerald-50 p-3 text-center font-bold tracking-wide text-pro-dark">Frase esperada: {row.videoChallenge}</p>}<div className="grid gap-3 sm:grid-cols-3">{row.documents.map((document) => document.kind === "identity_video" ? <video key={document.id} src={`/api/admin/kyc-documents/${document.id}`} controls preload="none" className="aspect-video w-full rounded-xl bg-black sm:col-span-3" /> : <a key={document.id} href={`/api/admin/kyc-documents/${document.id}`} target="_blank" rel="noopener noreferrer" className="block"><img loading="lazy" src={`/api/admin/kyc-documents/${document.id}`} alt={document.kind === "dni_front" ? "DNI frente" : "DNI dorso"} className="aspect-[1.58] w-full rounded-xl bg-slate-100 object-contain" /><span className="mt-1 block text-center text-xs font-semibold text-indigo-600">{document.kind === "dni_front" ? "DNI frente" : "DNI dorso"}</span></a>)}</div></section>
           <AccesosDocumentos accesos={row.accesos} />
           {row.reviewReason && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800"><strong>Última observación:</strong> {row.reviewReason}</p>}
@@ -56,4 +58,10 @@ function Datum({ label, value, mono = false }: { label: string; value: string; m
 function AccesosDocumentos({ accesos }: { accesos: AdminKycRow["accesos"] }) {
   if (!accesos.total) return <p className="text-xs text-slate-400">Nadie abrió todavía estos documentos.</p>;
   return <details className="text-xs text-slate-500"><summary className="cursor-pointer">Documentos abiertos {accesos.total} {accesos.total === 1 ? "vez" : "veces"} · último {formatDateTime(accesos.ultimos[0].at)}</summary><ul className="mt-2 space-y-1">{accesos.ultimos.map((acceso, index) => <li key={index}>{formatDateTime(acceso.at)} · {kindLabel[acceso.kind] ?? acceso.kind} · {acceso.viewer}{acceso.ip ? ` · IP ${acceso.ip}` : ""}</li>)}</ul></details>;
+}
+
+/** Muestras de trabajos que cargó en el alta: públicas recién cuando se aprueba el perfil. */
+function MuestrasPerfil({ muestras }: { muestras: AdminKycRow["muestras"] }) {
+  if (!muestras.length) return <p className="text-xs text-slate-400">No cargó muestras de trabajos.</p>;
+  return <section><h4 className="mb-2 font-bold text-slate-900">Muestras de trabajos ({muestras.length})</h4><p className="mb-3 text-xs text-slate-500">Se publican con el perfil cuando lo aprobás. Si una no corresponde, borrala antes de aprobar.</p><div className="grid gap-3 sm:grid-cols-2">{muestras.map((muestra) => <div key={muestra.id} className="rounded-xl border border-slate-200 bg-white p-3"><div className="flex items-start justify-between gap-2"><p className="font-semibold text-slate-900">{muestra.title}</p><form action={borrarMuestraAction} onSubmit={(e) => { if (!confirm(`¿Borrar la muestra «${muestra.title}»? No se puede deshacer.`)) e.preventDefault(); }}><input type="hidden" name="id" value={muestra.id} /><button className="text-xs font-semibold text-red-600 hover:underline">Borrar</button></form></div>{muestra.description && <p className="mt-0.5 text-xs text-slate-600">{muestra.description}</p>}<div className="mt-2 grid grid-cols-5 gap-1.5">{muestra.urls.map((url) => <a key={url} href={url} target="_blank" rel="noopener noreferrer"><img loading="lazy" src={url} alt="" className="aspect-square w-full rounded-lg bg-slate-100 object-cover" /></a>)}</div></div>)}</div></section>;
 }

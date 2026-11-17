@@ -39,3 +39,10 @@ test("el anual cobra los meses configurados", () => {
   assert.equal(config.anual.mesesPagos, 12);
   assert.equal(precioAnual(config.planes[1], config), 4900 * 12);
 });
+
+test("el título viejo «Tu oficio.» guardado pasa a incluir a los profesionales", () => {
+  const viejo = { ...PLANES_DEFAULT, encabezado: { ...PLANES_DEFAULT.encabezado, titulo: "Tu oficio." } };
+  assert.equal(sanearPlanes(viejo).encabezado.titulo, "Tu oficio o profesión.");
+  const propio = { ...PLANES_DEFAULT, encabezado: { ...PLANES_DEFAULT.encabezado, titulo: "Tu trabajo." } };
+  assert.equal(sanearPlanes(propio).encabezado.titulo, "Tu trabajo.");
+});
