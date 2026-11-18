@@ -8,6 +8,7 @@ import { formatARS, formatDateTime } from "@/lib/format";
 import { PROPOSAL_TTL_LABEL } from "@/lib/trabajo";
 import { dias, fechaCorta } from "@/lib/presupuesto";
 import type { DatosTransferencia } from "@/lib/payments";
+import { FotoOpinion } from "@/components/FotoOpinion";
 
 type Proposal = { id: string; amount: number; status: string; expiresAt: string | Date; message?: string | null; estimatedDays?: number | null };
 type PagoInformado = { amount: number; reference: string | null; receiptUrl: string | null; reportedAt: string | Date | null };
@@ -45,6 +46,8 @@ export function BookingActions({ bookingId, status, viewer, proposal, finalPrice
   const [days, setDays] = useState("");
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
+  const [foto, setFoto] = useState<string | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Si la única vía es transferir, los datos se ven de entrada.
   const soloTransferencia = transferencia !== null && !mercadoPagoAvailable;
@@ -65,7 +68,7 @@ export function BookingActions({ bookingId, status, viewer, proposal, finalPrice
     if (!paidPaymentId || !rating) return;
     setBusy(true); setError(null);
     try {
-      const res = await fetch(`/api/pagos/${paidPaymentId}/resena`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating, comment }) });
+      const res = await fetch(`/api/pagos/${paidPaymentId}/resena`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating, comment, imageUrl: foto }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) setError(data.error || "No pudimos publicar la reseña."); else await listo();
     } catch { setError("No hay conexión. Probá de nuevo."); }
@@ -92,7 +95,7 @@ export function BookingActions({ bookingId, status, viewer, proposal, finalPrice
   if (viewer === "profesional" && status === "payment_reported") content = open === "rejectPay"
     ? <div className={`${FORM} bg-red-50`}><p className="text-sm font-bold text-slate-900">¿No te llegó la transferencia?</p><p className="text-xs text-slate-600">El trabajo vuelve a «falta el pago» y le avisamos para que lo revise.</p><textarea value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={80} placeholder="Qué pasó (opcional)" aria-label="Qué pasó" className={`${CAMPO} resize-none`} /><button type="button" disabled={busy} onClick={() => action("reject_payment", { reason: summary })} className="min-h-11 w-full rounded-xl bg-red-600 px-4 text-sm font-semibold text-white disabled:opacity-60">{busy ? "Enviando…" : "No me llegó"}</button><Button variant="outline" disabled={busy} onClick={() => setOpen(null)} className="min-h-11 w-full !text-sm">Volver</Button></div>
     : <div className={`${FORM} bg-amber-50`}><p className="text-sm font-bold text-slate-900">Te informaron una transferencia{pagoInformado ? ` de ${formatARS(pagoInformado.amount)}` : ""}</p>{pagoInformado?.reportedAt && <p className="text-xs text-slate-500">El {formatDateTime(pagoInformado.reportedAt)}</p>}{pagoInformado?.reference && <p className="text-sm text-slate-700">Operación: <b className="font-mono">{pagoInformado.reference}</b></p>}{pagoInformado?.receiptUrl && <a href={pagoInformado.receiptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold text-pro-dark underline"><FileIcon width={16} height={16} />Ver comprobante</a>}<p className="text-xs text-slate-600">Fijate en tu cuenta antes de confirmar: el comprobante solo no garantiza que la plata llegó.</p><Button variant="pro" disabled={busy} onClick={() => action("confirm_payment")} className="min-h-11 w-full !text-sm">{busy ? "Enviando…" : "Sí, me llegó"}</Button><Button variant="outline" disabled={busy} onClick={() => { setSummary(""); setOpen("rejectPay"); }} className="min-h-11 w-full !text-sm">No me llegó</Button></div>;
-  if (viewer === "cliente" && status === "paid_awaiting_review" && paidPaymentId) content = open === "review" ? <div className={`${FORM} bg-blue-50`}><div className="flex justify-center gap-1" role="radiogroup" aria-label="Calificación">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={`${n} ${n === 1 ? "estrella" : "estrellas"}`} onClick={() => setRating(n)} className={`grid size-11 place-items-center rounded-xl transition-colors ${n <= rating ? "text-amber-400" : "text-slate-300"} hover:bg-white/70`}><StarIcon width={30} height={30} /></button>)}</div><textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Contá cómo fue el trabajo" aria-label="Contá cómo fue el trabajo" className={`${CAMPO} resize-none`} /><Button variant="cliente" disabled={busy || !rating} onClick={review} className="min-h-11 w-full !text-sm">{busy ? "Enviando…" : rating ? "Publicar opinión y finalizar" : "Elegí las estrellas"}</Button></div> : <Button variant="cliente" onClick={() => setOpen("review")} className={BTN}>Calificar y finalizar</Button>;
+  if (viewer === "cliente" && status === "paid_awaiting_review" && paidPaymentId) content = open === "review" ? <div className={`${FORM} bg-blue-50`}><div className="flex justify-center gap-1" role="radiogroup" aria-label="Calificación">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={`${n} ${n === 1 ? "estrella" : "estrellas"}`} onClick={() => setRating(n)} className={`grid size-11 place-items-center rounded-xl transition-colors ${n <= rating ? "text-amber-400" : "text-slate-300"} hover:bg-white/70`}><StarIcon width={30} height={30} /></button>)}</div><textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Contá cómo fue el trabajo" aria-label="Contá cómo fue el trabajo" className={`${CAMPO} resize-none`} /><FotoOpinion url={foto} onChange={setFoto} onSubiendo={setSubiendoFoto} /><Button variant="cliente" disabled={busy || !rating || subiendoFoto} onClick={review} className="min-h-11 w-full !text-sm">{busy ? "Enviando…" : rating ? "Publicar opinión y finalizar" : "Elegí las estrellas"}</Button></div> : <Button variant="cliente" onClick={() => setOpen("review")} className={BTN}>Calificar y finalizar</Button>;
   return <div className="space-y-2">{content}{error && <p role="alert" className="text-xs text-red-600 sm:max-w-72">{error}</p>}</div>;
 }
 

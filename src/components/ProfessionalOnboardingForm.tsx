@@ -13,6 +13,7 @@ import type { Punto } from "@/lib/geo";
 import { rotuloAnios } from "@/lib/format";
 import { MuestrasAlta } from "@/components/pro/MuestrasAlta";
 import { MAX_MUESTRAS_ALTA, type MuestraAlta } from "@/lib/muestras-alta";
+import { guardarMuestrasRegistro, leerMuestrasRegistro } from "@/lib/muestras-registro";
 
 /** Pasos del alta: actividad, muestras (opcional), datos, identidad y revisión. */
 const PASOS = 5;
@@ -71,6 +72,9 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
   const [muestraEnCurso, setMuestraEnCurso] = useState(false);
   // Al agregar o descartar la muestra pendiente, el aviso de "muestra sin terminar" ya no aplica.
   useEffect(() => { if (!muestraEnCurso) setError(null); }, [muestraEnCurso]);
+  // Muestras elegidas al crear la cuenta: recién ahora hay sesión para subirlas.
+  const [importando, setImportando] = useState(false);
+  const [importadas, setImportadas] = useState(0);
   const [avatar, setAvatar] = useState<File | null>(null);
   const [dniFront, setDniFront] = useState<File | null>(null);
   const [dniBack, setDniBack] = useState<File | null>(null);
@@ -136,6 +140,35 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
     });
     setDraftReady(true);
   }, [draftKey]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    let cancelado = false;
+    void (async () => {
+      const guardadas = await leerMuestrasRegistro();
+      if (!guardadas?.muestras.length || guardadas.email !== initial.email.trim().toLowerCase()) return;
+      setImportando(true);
+      const subidas: MuestraAlta[] = [];
+      for (const muestra of guardadas.muestras) {
+        const urls: string[] = [];
+        for (const file of muestra.files) {
+          try {
+            const fd = new FormData(); fd.append("file", file);
+            const res = await fetch("/api/upload", { method: "POST", body: fd });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && typeof data.url === "string") urls.push(data.url);
+          } catch { /* Una foto que no sube no frena las demás. */ }
+        }
+        if (urls.length) subidas.push({ title: muestra.title, description: muestra.description, urls });
+      }
+      if (cancelado) return;
+      await guardarMuestrasRegistro(null);
+      setMuestras((actuales) => [...actuales, ...subidas].slice(0, MAX_MUESTRAS_ALTA));
+      setImportadas(subidas.length);
+      setImportando(false);
+    })();
+    return () => { cancelado = true; };
+  }, [draftReady, initial.email]);
 
   useEffect(() => {
     if (!draftReady) return;
@@ -268,6 +301,8 @@ export function ProfessionalOnboardingForm({ categories, localities, initial }: 
         <fieldset><legend className="text-sm font-semibold">Rubros de {providerType}</legend><div className="mt-2 max-h-72 space-y-3 overflow-y-auto rounded-2xl bg-white/40 p-3">{groupedCategories.map(([group, items]) => <section key={group}><h3 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">{group}</h3><div className="grid gap-2 sm:grid-cols-2">{items.map((category) => <label key={category.id} className="rounded-xl bg-white/80 p-3 text-sm"><input type="checkbox" checked={categoryIds.includes(category.id)} onChange={(e) => setCategoryIds((current) => e.target.checked ? [...current, category.id] : current.filter((id) => id !== category.id))} className="mr-2" />{category.icon} {category.name}</label>)}</div></section>)}</div></fieldset>
         <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800">Cuando aprueben tu perfil, vinculá tu cuenta de Mercado Pago o cargá tu CVU o alias desde Mi perfil para cobrar tus trabajos.</p>
       </>}
+      {(step === 1 || step === 2) && importando && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-pro-dark">Subiendo las muestras que cargaste al crear la cuenta…</p>}
+      {step === 2 && !importando && importadas > 0 && <p className="rounded-xl bg-emerald-50 p-3 text-sm text-pro-dark">Sumamos {importadas === 1 ? "la muestra" : `las ${importadas} muestras`} que cargaste al crear la cuenta. Podés quitarlas o agregar otras.</p>}
       {step === 2 && <MuestrasAlta muestras={muestras} onChange={setMuestras} onEnCurso={setMuestraEnCurso} />}
       {step === 3 && <>
         <div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Nombre legal<input value={values.legalName} onChange={(e) => update("legalName", e.target.value)} className={FIELD} /></label><label className="text-sm font-medium">Email verificado<input value={initial.email} disabled className={`${FIELD} opacity-70`} /></label><label className="text-sm font-medium">Teléfono<input value={values.phone} onChange={(e) => update("phone", e.target.value)} type="tel" className={FIELD} /></label><label className="text-sm font-medium">Fecha de nacimiento<input value={values.birthDate} onChange={(e) => update("birthDate", e.target.value)} type="date" className={FIELD} /></label><label className="text-sm font-medium">CUIL<input value={values.cuil} onChange={(e) => update("cuil", e.target.value)} inputMode="numeric" placeholder="20-12345678-6" className={FIELD} /></label><label className="text-sm font-medium sm:col-span-2">Domicilio<input value={values.address} onChange={(e) => update("address", e.target.value)} className={FIELD} /></label></div>

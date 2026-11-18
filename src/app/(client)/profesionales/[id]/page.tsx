@@ -27,7 +27,6 @@ async function getPro(id: string, dueño = false) {
       user: { select: { accountStatus: true, perfilOculto: true } },
       category: true,
       services: { where: { status: "activo" }, orderBy: { createdAt: "asc" } },
-      reviews: { orderBy: { createdAt: "desc" } },
       workSamples: { orderBy: { createdAt: "desc" }, include: { images: { orderBy: { position: "asc" } } } },
       // Solo para nombrar los rubros de la insignia: el documento nunca sale de acá.
       credentials: { where: { status: "approved" }, select: { category: { select: { name: true } } } },
@@ -38,7 +37,7 @@ async function getPro(id: string, dueño = false) {
           user: { select: { name: true, avatarColor: true } },
           service: { select: { title: true, description: true } },
           // La calificación de quien contrató: es lo que se muestra del trabajo, no el monto.
-          reviews: { select: { rating: true }, orderBy: { createdAt: "desc" }, take: 1 },
+          reviews: { select: { rating: true, comment: true, imageUrl: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 1 },
         },
       },
     },
@@ -194,7 +193,8 @@ export default async function ProfesionalPage({
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 {pro.bookings.map((booking) => {
-                  const estrellas = booking.reviews[0]?.rating ?? null;
+                  const opinion = booking.reviews[0] ?? null;
+                  const estrellas = opinion?.rating ?? null;
                   return (
                     <article key={booking.id} className="glass glass-thin rounded-2xl border-emerald-300/35 bg-emerald-400/8 p-4">
                       <div className="flex items-start justify-between gap-3">
@@ -219,6 +219,18 @@ export default async function ProfesionalPage({
                           )}
                         </div>
                       </div>
+                      {/* La opinión de quien contrató va con el trabajo: qué se hizo, el comentario y la foto juntos. */}
+                      {opinion && (opinion.comment || opinion.imageUrl) && (
+                        <div className="mt-3 rounded-xl bg-white/70 p-3">
+                          {opinion.comment && <p className="text-sm leading-5 text-slate-700">“{opinion.comment}”</p>}
+                          {opinion.imageUrl && (
+                            <a href={opinion.imageUrl} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                              <img src={opinion.imageUrl} alt={`Foto del trabajo que subió ${booking.user.name ?? booking.clientName}`} loading="lazy" className="max-h-56 w-full rounded-lg object-cover" />
+                            </a>
+                          )}
+                          <p className="mt-1.5 text-[11px] text-slate-400">{formatDate(opinion.createdAt)}</p>
+                        </div>
+                      )}
                       <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-emerald-100 pt-3 text-xs text-slate-500">
                         <span className="inline-flex items-center gap-1.5">
                           <Avatar name={booking.user.name ?? booking.clientName} color={booking.user.avatarColor} size={22} />
@@ -259,41 +271,6 @@ export default async function ProfesionalPage({
             </section>
           )}
 
-          {/* Opiniones */}
-          <section className="glass glass-solid rounded-2xl p-4 sm:p-6">
-            <h2 className="mb-4 text-lg font-bold text-slate-900">
-              Opiniones ({pro.reviews.length})
-            </h2>
-            <ul className="space-y-5">
-              {pro.reviews.length === 0 && <li className="rounded-xl bg-white/60 p-5 text-center text-sm text-slate-500">Todavía no recibió opiniones verificadas.</li>}
-              {pro.reviews.map((r) => (
-                <li key={r.id} className="flex gap-3">
-                  <Avatar name={r.authorName} color="#94a3b8" size={40} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-slate-900">{r.authorName}</p>
-                      <span className="text-xs text-slate-400">
-                        {formatDate(r.createdAt)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-0.5 text-amber-400">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <StarIcon
-                          key={i}
-                          width={14}
-                          height={14}
-                          filled={i < r.rating}
-                          className={i < r.rating ? "" : "text-slate-200"}
-                        />
-                      ))}
-                    </div>
-                    <p className="mt-1 text-sm text-slate-600">{r.comment}</p>
-                    {r.imageUrl && <a href={r.imageUrl} target="_blank" rel="noopener noreferrer"><img src={r.imageUrl} alt="Imagen de la reseña" className="mt-2 max-h-52 rounded-xl object-cover" /></a>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
         </div>
 
         {/* Contratación (desktop: tarjeta fija al costado) */}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { logoutAction } from "@/app/(auth)/actions";
 import { Avatar } from "@/components/ui";
 import { StarIcon } from "@/components/icons";
+import { FotoOpinion } from "@/components/FotoOpinion";
 import type { CalificacionPendiente } from "@/lib/calificacion";
 
 const ETIQUETAS = ["", "Muy malo", "Malo", "Regular", "Bueno", "Excelente"];
@@ -19,6 +20,8 @@ export function CalificarObligatorio({ pendiente }: { pendiente: CalificacionPen
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
+  const [foto, setFoto] = useState<string | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +32,7 @@ export function CalificarObligatorio({ pendiente }: { pendiente: CalificacionPen
     return () => { document.body.style.overflow = anterior; };
   }, []);
 
-  const listo = rating >= 1 && comment.trim().length >= 5;
+  const listo = rating >= 1 && comment.trim().length >= 5 && !subiendoFoto;
   const mostrado = hover || rating;
 
   async function enviar() {
@@ -37,12 +40,13 @@ export function CalificarObligatorio({ pendiente }: { pendiente: CalificacionPen
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/pagos/${pendiente.paymentId}/resena`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating, comment }) });
+      const res = await fetch(`/api/pagos/${pendiente.paymentId}/resena`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating, comment, imageUrl: foto }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "No pudimos guardar tu calificación.");
       // El layout se vuelve a armar: si había otro trabajo sin calificar, aparece ese.
       setRating(0);
       setComment("");
+      setFoto(null);
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No pudimos guardar tu calificación.");
@@ -87,6 +91,8 @@ export function CalificarObligatorio({ pendiente }: { pendiente: CalificacionPen
           placeholder="Contá cómo fue el trabajo (mínimo 5 letras)"
           className="glass-field mt-3 w-full resize-none px-3 py-2.5 text-base sm:text-sm"
         />
+
+        <FotoOpinion url={foto} onChange={setFoto} onSubiendo={setSubiendoFoto} />
 
         {error && <p role="alert" className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
 

@@ -5,6 +5,8 @@ import { useActionState } from "react";
 import { registerAction, type AuthState } from "@/app/(auth)/actions";
 import { FormError, PasswordField, SubmitButton } from "@/components/auth/fields";
 import { LocalidadSelect } from "@/components/LocalidadSelect";
+import { MuestrasRegistroField } from "@/components/auth/MuestrasRegistroField";
+import { atarMuestrasRegistro } from "@/lib/muestras-registro";
 
 const FIELD = "glass-field px-3.5 py-3 text-sm";
 
@@ -21,7 +23,7 @@ export function RegisterForm({ next, providerType, localities }: { next?: string
       {providerType && <p className="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Al verificar tu email continuás el alta como {providerType === "profesional" ? "Profesional" : "Oficio"}.</p>}
 
       {/* key: al volver con error React 19 ya vació el form; remontarlo repone lo escrito. */}
-      <form key={JSON.stringify(state?.values ?? null)} action={formAction} className="glass glass-solid mt-5 space-y-5 rounded-[1.5rem] p-5 sm:p-6">
+      <form key={JSON.stringify(state?.values ?? null)} action={formAction} onSubmit={(e) => { if (paraOfrecer) void atarMuestrasRegistro(String(new FormData(e.currentTarget).get("email") ?? "")); }} className="glass glass-solid mt-5 space-y-5 rounded-[1.5rem] p-5 sm:p-6">
         {next && <input type="hidden" name="next" value={next} />}
         <label className="block space-y-1.5 text-sm font-medium text-slate-700">Nombre y apellido<input name="name" required minLength={3} autoComplete="name" placeholder="María González" defaultValue={values.name} className={FIELD} /></label>
         <label className="block space-y-1.5 text-sm font-medium text-slate-700">Email<input name="email" required type="email" autoComplete="email" placeholder="vos@email.com" defaultValue={values.email} className={FIELD} /></label>
@@ -30,6 +32,7 @@ export function RegisterForm({ next, providerType, localities }: { next?: string
           <LocalidadSelect localities={localities} defaultValue={values.localityId} className={FIELD} />
           <span className="block text-xs text-slate-500">La usamos para mostrarte lo que tenés cerca cuando no compartís tu ubicación.</span>
         </div>
+        {paraOfrecer && <MuestrasRegistroField />}
         {paraOfrecer && (
           <label className="flex items-start gap-3 text-sm text-slate-700">
             <input type="checkbox" name="ofertasDependencia" defaultChecked={values.ofertasDependencia === "on"} className="mt-0.5 size-5 shrink-0" />
