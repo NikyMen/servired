@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorContacto } from "@/lib/contacto";
 import { prisma } from "@/lib/prisma";
 import { interactionAccess } from "@/lib/auth";
 import { OPEN_BOOKING_STATUSES } from "@/lib/workflow";
@@ -29,6 +30,8 @@ export async function POST(req: NextRequest) {
   if (typeof professionalId !== "string" || !professionalId) {
     return NextResponse.json({ error: "Falta el profesional." }, { status: 422 });
   }
+  const contacto = errorContacto(typeof note === "string" ? note : null);
+  if (contacto) return NextResponse.json({ error: contacto }, { status: 422 });
 
   const professional = await prisma.professional.findUnique({ where: { id: professionalId }, include: { user: { select: { accountStatus: true, perfilOculto: true } } } });
   if (!professional || professional.user?.perfilOculto) {

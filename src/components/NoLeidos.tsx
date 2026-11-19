@@ -46,7 +46,16 @@ type NoLeidosCtx = {
   marcarAvisosLeidos: () => void;
   /** Borra un aviso (o todos, sin id). Se ve al instante; el servidor confirma. */
   borrarAvisos: (id?: string) => Promise<void>;
+  /**
+   * Chats sin leer del OTRO lado (en Busco, los de Ofrezco y al revés).
+   * Quien busca y ofrece a la vez tiene que ver que le escribieron sin
+   * cambiar de solapa.
+   */
+  otroModo: OtroModo;
 };
+
+export type OtroModo = { total: number; conversaciones: string[] };
+const OTRO_MODO_VACIO: OtroModo = { total: 0, conversaciones: [] };
 
 // Valores por defecto para que <Chat> siga funcionando fuera del provider
 // (por ejemplo si algún día se lo usa en una pantalla suelta).
@@ -59,6 +68,7 @@ const Ctx = createContext<NoLeidosCtx>({
   avisosSinLeer: 0,
   marcarAvisosLeidos: () => {},
   borrarAvisos: async () => {},
+  otroModo: OTRO_MODO_VACIO,
 });
 
 export const useNoLeidos = () => useContext(Ctx);
@@ -85,6 +95,8 @@ export function NoLeidosProvider({
   const [porConversacion, setPorConversacion] = useState<Record<string, number>>({});
   const [avisos, setAvisos] = useState<Aviso[]>([]);
   const [avisosSinLeer, setAvisosSinLeer] = useState(0);
+  const [otroModo, setOtroModo] = useState<OtroModo>(OTRO_MODO_VACIO);
+  const previoOtro = useRef<number | null>(null);
 
   // El snapshot anterior: el sonido sale de comparar, no de que haya sin leer
   // (si no, sonaría en loop mientras quede algo pendiente).
@@ -94,7 +106,7 @@ export function NoLeidosProvider({
   const ultimaMarca = useRef<Record<string, number>>({});
 
   const aplicar = useCallback(
-    (datos: { porConversacion?: Record<string, number>; avisos?: { total: number; items: Aviso[] } }, silencioso = false) => {
+    (datos: { porConversacion?: Record<string, number>; otroModo?: OtroModo; avisos?: { total: number; items: Aviso[] } }, silencioso = false) => {
       const nuevo = datos.porConversacion ?? {};
       const anterior = previo.current;
 
@@ -109,11 +121,18 @@ export function NoLeidosProvider({
         // Una propuesta o una solicitud por vencer también merecen el sonido,
         // pero uno solo: suena si subió algo, no una vez por cosa que subió.
         const avisoNuevo = datos.avisos != null && previoAvisos.current != null && datos.avisos.total > previoAvisos.current;
-        if (llegoAlgo || avisoNuevo) sonarNotificacion();
+        // Un chat nuevo del otro lado también suena: no se lo está mirando.
+        const otroNuevo = datos.otroModo != null && previoOtro.current != null && datos.otroModo.total > previoOtro.current;
+        if (llegoAlgo || avisoNuevo || otroNuevo) sonarNotificacion();
       }
 
       previo.current = nuevo;
       setPorConversacion(nuevo);
+      // "Marcar leído" no lo trae: se conserva lo último que dijo el poll.
+      if (datos.otroModo) {
+        previoOtro.current = datos.otroModo.total;
+        setOtroModo(datos.otroModo);
+      }
       if (datos.avisos) {
         previoAvisos.current = datos.avisos.total;
         setAvisos(datos.avisos.items);
@@ -130,6 +149,8 @@ export function NoLeidosProvider({
     if (!activo) {
       previo.current = null;
       previoAvisos.current = null;
+      previoOtro.current = null;
+      setOtroModo(OTRO_MODO_VACIO);
       setPorConversacion({});
       setAvisos([]);
       setAvisosSinLeer(0);
@@ -250,8 +271,9 @@ export function NoLeidosProvider({
       avisosSinLeer,
       marcarAvisosLeidos,
       borrarAvisos,
+      otroModo,
     }),
-    [porConversacion, marcarLeida, mirandoHilo, avisos, avisosSinLeer, marcarAvisosLeidos, borrarAvisos]
+    [porConversacion, marcarLeida, mirandoHilo, avisos, avisosSinLeer, marcarAvisosLeidos, borrarAvisos, otroModo]
   );
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;

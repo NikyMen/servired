@@ -113,8 +113,8 @@ export function Header({ mode, user }: { mode: Mode; user: SessionUser | null })
           <ModeSwitch mode={mode} />
           {/* Sin sesión no hay avisos ni bandeja. Mensajes va acá, y no en la
               navegación de texto, para verse igual en el celular y en la compu. */}
-          {user && <MensajesBoton mode={mode} />}
-          {user && <Campanita />}
+          {user && <MensajesBoton mode={mode} puedeOfrecer={user.professionalStatus === "approved"} />}
+          {user && <Campanita mode={mode} />}
           {(user || mode === "pro") && <UserMenu user={user} mode={mode} />}
         </div>
       </div>

@@ -7,6 +7,8 @@ export type MapPoint = {
   id: string;
   type: "profesional" | "solicitud" | "trabajo";
   title: string;
+  /** Oficio o profesión ("Maestro mayor de obras"): va debajo del nombre en la etiqueta. */
+  oficio?: string | null;
   subtitle?: string | null;
   latitude: number;
   longitude: number;

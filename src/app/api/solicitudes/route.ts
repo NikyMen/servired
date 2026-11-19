@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse, after } from "next/server";
+import { errorContacto } from "@/lib/contacto";
 import { prisma } from "@/lib/prisma";
 import { interactionAccess } from "@/lib/auth";
 import { REQUEST_TTL_MS } from "@/lib/solicitudes";
@@ -36,6 +37,9 @@ export async function POST(req: NextRequest) {
   if (errors.length > 0) {
     return NextResponse.json({ error: errors.join(" ") }, { status: 422 });
   }
+  // La solicitud la leen todos los del rubro: un teléfono acá saltea el chat.
+  const contacto = errorContacto(title as string, description as string);
+  if (contacto) return NextResponse.json({ error: contacto }, { status: 422 });
 
   let categoryId: string | null = null;
   if (typeof categorySlug === "string" && categorySlug) {

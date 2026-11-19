@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { AvisoTelefono } from "@/components/AvisoTelefono";
+import { tieneTelefono } from "@/lib/contacto";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import { PaperclipIcon, XIcon } from "@/components/icons";
@@ -126,6 +128,7 @@ export function ContratarBox({
         placeholder="Contale qué necesitás, cuándo y dónde. El profesional te envía un presupuesto."
         className="glass-field resize-none px-3 py-2.5 text-sm"
       />
+      <AvisoTelefono texto={text} />
 
       <input
         ref={fileInput}
@@ -160,7 +163,7 @@ export function ContratarBox({
       {error && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
       <div className="flex flex-col gap-2">
-        <Button variant="cliente" onClick={enviarSolicitud} disabled={sending != null} className="w-full disabled:opacity-60">
+        <Button variant="cliente" onClick={enviarSolicitud} disabled={sending != null || tieneTelefono(text)} className="w-full disabled:opacity-60">
           {sending === "solicitud" ? "Enviando…" : "Enviar solicitud de trabajo"}
         </Button>
       </div>

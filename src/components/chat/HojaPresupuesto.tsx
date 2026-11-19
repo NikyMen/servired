@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AvisoTelefono } from "@/components/AvisoTelefono";
+import { tieneTelefono } from "@/lib/contacto";
 import { createPortal } from "react-dom";
 import { XIcon } from "@/components/icons";
 import { TarjetaPresupuesto } from "@/components/chat/TarjetaPresupuesto";
@@ -209,6 +211,7 @@ export function HojaPresupuesto({ conversationId, bookingId, para, onCerrar, onE
               placeholder="Ej.: cambio de cartucho y flexibles, con materiales"
               className="block w-full resize-none rounded-2xl border-[1.5px] border-slate-300 px-3 py-2.5 text-base text-slate-900 outline-none focus:border-pro focus:ring-4 focus:ring-emerald-600/15"
             />
+            <AvisoTelefono texto={b.detalle} />
           </div>
 
           <div className="space-y-2">
@@ -221,7 +224,7 @@ export function HojaPresupuesto({ conversationId, bookingId, para, onCerrar, onE
 
         <footer className="shrink-0 space-y-2 border-t border-slate-200 bg-white px-4 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-3">
           {error && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <button type="button" disabled={!ok || ocupado} onClick={enviar} className="min-h-12 w-full rounded-xl bg-pro px-4 text-base font-semibold text-white transition-colors hover:bg-pro-dark disabled:opacity-50">
+          <button type="button" disabled={!ok || ocupado || tieneTelefono(b.detalle)} onClick={enviar} className="min-h-12 w-full rounded-xl bg-pro px-4 text-base font-semibold text-white transition-colors hover:bg-pro-dark disabled:opacity-50">
             {ocupado ? "Enviando…" : ok ? `Enviar presupuesto · ${ars(valor)}` : falta}
           </button>
           <p className="text-center text-[11px] leading-snug text-slate-400">Si no responde, vence en {PROPOSAL_TTL_LABEL}. Uno por vez: el siguiente va cuando lo rechace o venza.</p>

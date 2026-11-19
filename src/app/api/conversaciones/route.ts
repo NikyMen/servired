@@ -4,6 +4,7 @@ import { getSessionUser, interactionAccess } from "@/lib/auth";
 import { notificarMensaje } from "@/lib/notificaciones";
 import { CLIENT_BLUE, PRO_GREEN } from "@/lib/brand";
 import { contarNoLeidos } from "@/lib/mensajes";
+import { errorContacto } from "@/lib/contacto";
 import { calificacionPendiente, MENSAJE_CALIFICACION_PENDIENTE } from "@/lib/calificacion";
 
 export const dynamic = "force-dynamic";
@@ -83,6 +84,8 @@ export async function POST(req: NextRequest) {
   if (typeof text !== "string" || text.trim().length < 2) {
     return NextResponse.json({ error: "Escribí un mensaje." }, { status: 422 });
   }
+  const contacto = errorContacto(text);
+  if (contacto) return NextResponse.json({ error: contacto }, { status: 422 });
 
   const professional = await prisma.professional.findUnique({
     where: { id: professionalId },

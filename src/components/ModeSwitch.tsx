@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { MODE_SWITCH_EVENT } from "@/components/ModeTransition";
+import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
 import type { Mode } from "@/lib/types";
 
 /**
@@ -28,6 +29,9 @@ export function ModeSwitch({
   className?: string;
 }) {
   const isPro = mode === "pro";
+  // Chats sin leer del otro lado: el globito va sobre esa mitad del interruptor.
+  const { otroModo } = useNoLeidos();
+  const label = otroModo.total === 1 ? "1 chat sin leer" : `${otroModo.total} chats sin leer`;
   // Cruzar de lado no pide cuenta: el panel profesional se puede mirar como
   // invitado. Antes, sin sesión de pro, esto te desviaba a /crear-cuenta y el
   // interruptor no cambiaba de modo, que era exactamente lo que prometía.
@@ -92,6 +96,7 @@ export function ModeSwitch({
         }`}
       >
         Busco
+        {isPro && <NoLeidosBadge n={otroModo.total} label={`${label} en Busco`} className="absolute -top-2 -right-1" />}
       </span>
       <span
         className={`mode-switch-seg ${pad} font-semibold ${
@@ -99,6 +104,7 @@ export function ModeSwitch({
         }`}
       >
         Ofrezco
+        {!isPro && <NoLeidosBadge n={otroModo.total} label={`${label} en Ofrezco`} className="absolute -top-2 -right-1" />}
       </span>
     </Link>
   );

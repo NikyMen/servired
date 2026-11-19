@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse, after } from "next/server";
+import { errorContacto } from "@/lib/contacto";
 import { prisma } from "@/lib/prisma";
 import { interactionAccess } from "@/lib/auth";
 import { PROPOSAL_TTL_LABEL, validEstimatedDays } from "@/lib/trabajo";
@@ -30,6 +31,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (viewer !== "profesional" || booking.status !== "requested") return NextResponse.json({ error: "No podés presupuestar esta solicitud." }, { status: 409 });
     const amount = Math.round(Number(body?.amount ?? body?.quotedPrice));
     const proposalMessage = typeof body?.message === "string" ? body.message.trim().slice(0, 1000) : null;
+    const contacto = errorContacto(proposalMessage);
+    if (contacto) return NextResponse.json({ error: contacto }, { status: 422 });
     if (!Number.isFinite(amount) || amount < 100 || amount > 100_000_000) return NextResponse.json({ error: "Ingresá un presupuesto válido." }, { status: 422 });
     const estimatedDays = validEstimatedDays(body?.estimatedDays);
     if (!estimatedDays) return NextResponse.json({ error: "Decile en cuántos días lo terminás (entre 1 y 365)." }, { status: 422 });
@@ -88,6 +91,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (viewer !== "profesional" || booking.status !== "in_progress") return NextResponse.json({ error: "Solo el oferente puede terminar un trabajo en curso." }, { status: 409 });
     const finalPrice = Math.round(Number(body?.finalPrice));
     const workSummary = typeof body?.workSummary === "string" ? body.workSummary.trim().slice(0, 1200) : "";
+    const contactoResumen = errorContacto(workSummary);
+    if (contactoResumen) return NextResponse.json({ error: contactoResumen }, { status: 422 });
     if (!Number.isFinite(finalPrice) || finalPrice <= 0 || workSummary.length < 8) return NextResponse.json({ error: "Ingresá monto final y una explicación del trabajo." }, { status: 422 });
     const conMercadoPago = mercadoPagoConfigured() && Boolean(await prisma.mercadoPagoAccount.findUnique({ where: { professionalId: booking.professionalId } }));
     if (!conMercadoPago && !datosTransferencia(booking.professional)) return NextResponse.json({ error: "Vinculá Mercado Pago o cargá tu CVU o alias en Mi perfil antes de terminar el trabajo." }, { status: 422 });

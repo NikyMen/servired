@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { BellIcon, XIcon } from "@/components/icons";
 import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
 import { formatDateTime } from "@/lib/format";
+import { anunciarCruce, modoDeRuta } from "@/components/OtroModoAviso";
+import type { Mode } from "@/lib/types";
 
 export const ICONOS_AVISO: Record<string, string> = {
   mensaje: "💬",
@@ -25,7 +27,7 @@ export const ICONOS_AVISO: Record<string, string> = {
  * el globito de mensajes (`NoLeidosProvider`). Vive en el encabezado, que se ve
  * también en el teléfono, así la barra de abajo no tiene que crecer.
  */
-export function Campanita() {
+export function Campanita({ mode }: { mode: Mode }) {
   const { avisos, avisosSinLeer, marcarAvisosLeidos, borrarAvisos } = useNoLeidos();
   const [open, setOpen] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
@@ -81,7 +83,7 @@ export function Campanita() {
             <ul className="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto overscroll-contain">
               {avisos.map((aviso) => (
                 <li key={aviso.id} className={`group relative ${aviso.readAt ? "" : "bg-[rgb(var(--accent-rgb)/0.07)]"}`}>
-                  <Link href={aviso.url} onClick={() => setOpen(false)} className="flex gap-3 py-3 pr-11 pl-4 transition-colors hover:bg-slate-50">
+                  <Link href={aviso.url} onClick={(e) => { setOpen(false); const destino = modoDeRuta(aviso.url); if (destino !== mode) anunciarCruce(destino, e); }} className="flex gap-3 py-3 pr-11 pl-4 transition-colors hover:bg-slate-50">
                     <span aria-hidden className="text-lg leading-none">{ICONOS_AVISO[aviso.kind] ?? "🔔"}</span>
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold text-slate-900">{aviso.title}</span>

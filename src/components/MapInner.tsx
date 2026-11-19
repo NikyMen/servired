@@ -45,6 +45,7 @@ function Popupcito({ point }: { point: MapPoint }) {
     <Popup>
       <div className="min-w-40">
         <p className="font-semibold">{point.title}</p>
+        {point.oficio && <p className="text-xs font-medium text-pro-dark">{point.oficio}</p>}
         {point.subtitle && <p className="text-xs text-slate-600">{point.subtitle}</p>}
         {point.href && <a href={point.href} className="mt-1 inline-block text-xs font-semibold text-blue-700">Ver ficha</a>}
       </div>
@@ -86,7 +87,10 @@ const Zona = memo(function Zona({ point, fijas }: { point: MapPoint; fijas: bool
           title={point.subtitle ?? undefined}
         >
           <Avatar name={point.title} color={point.avatar?.color} src={point.avatar?.url} size={22} />
-          <span className="max-w-32 truncate text-xs font-semibold text-slate-800">{point.title}</span>
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="max-w-32 truncate text-xs font-semibold text-slate-800">{point.title}</span>
+            {point.oficio && <span className="max-w-32 truncate text-[10px] font-medium text-pro-dark">{point.oficio}</span>}
+          </span>
         </a>
       </Tooltip>
     </Circle>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { AvisoTelefono } from "@/components/AvisoTelefono";
+import { tieneTelefono } from "@/lib/contacto";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 
@@ -62,9 +64,10 @@ export function ResponderSolicitud({
         onChange={(e) => setText(e.target.value)}
         className="glass-field resize-none px-3 py-2 text-sm"
       />
+      <AvisoTelefono texto={text} />
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <Button variant="pro" disabled={sending} onClick={enviar} className="!py-1.5 !text-xs">
+        <Button variant="pro" disabled={sending || tieneTelefono(text)} onClick={enviar} className="!py-1.5 !text-xs">
           {sending ? "Enviando…" : "Enviar"}
         </Button>
         <Button variant="outline" disabled={sending} onClick={() => setOpen(false)} className="!py-1.5 !text-xs">

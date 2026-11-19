@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Chat, type ChatConversation } from "@/components/Chat";
 import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
+import { OtroModoAviso, anunciarCruce, bandejaOtroModo } from "@/components/OtroModoAviso";
 import { BellIcon, BellOffIcon, ChatIcon, XIcon } from "@/components/icons";
 import { guardarSonido, sonarNotificacion, sonidoActivo } from "@/lib/sonido";
 import type { Mode } from "@/lib/types";
@@ -17,14 +18,24 @@ import type { Mode } from "@/lib/types";
  * El panel va por portal al <body>: el encabezado tiene backdrop-filter y eso
  * haría que el `fixed` se posicione respecto de él y no de la pantalla.
  */
-export function MensajesBoton({ mode }: { mode: Mode }) {
+export function MensajesBoton({
+  mode,
+  puedeOfrecer = false,
+}: {
+  mode: Mode;
+  /** Tiene bandeja de Ofrezco (perfil aprobado). Sin eso, el popup no ofrece cruzar. */
+  puedeOfrecer?: boolean;
+}) {
   const pathname = usePathname();
   const isPro = mode === "pro";
 
   const [open, setOpen] = useState(false);
   const [conversations, setConversations] = useState<ChatConversation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { total, porConversacion } = useNoLeidos();
+  const { total, porConversacion, otroModo } = useNoLeidos();
+  // El globito suma los dos lados: quien ofrece y está en Busco igual tiene
+  // que ver que un cliente le escribió en Ofrezco (y al revés).
+  const totalAmbos = total + otroModo.total;
 
   // La preferencia vive en localStorage: se lee después de montar para que el
   // HTML del servidor y el del navegador coincidan.
@@ -75,15 +86,25 @@ export function MensajesBoton({ mode }: { mode: Mode }) {
 
   const bandeja = isPro ? "/pro/mensajes" : "/mensajes";
   const enBandeja = pathname.startsWith(bandeja);
-  const etiqueta = total > 0 ? `Mensajes, ${total} sin leer` : "Mensajes";
+  const etiqueta = totalAmbos > 0 ? `Mensajes, ${totalAmbos} sin leer` : "Mensajes";
   // Mismo molde que la campanita, para que la fila del encabezado no crezca.
   const boton = `relative flex size-9 items-center justify-center rounded-full transition-colors hover:bg-white/70 hover:text-slate-800 ${enBandeja ? "bg-white/70 text-slate-800" : "text-slate-500"}`;
   const icono = (
     <>
       <ChatIcon width={20} height={20} />
-      <NoLeidosBadge n={total} className="absolute -top-0.5 -right-0.5" />
+      <NoLeidosBadge n={totalAmbos} className="absolute -top-0.5 -right-0.5" />
     </>
   );
+
+  // Todo lo pendiente está del otro lado: el botón lleva directo allá, al
+  // chat mismo si es uno solo, en vez de abrir una lista sin nada nuevo.
+  if (total === 0 && otroModo.total > 0) {
+    return (
+      <Link href={bandejaOtroModo(mode, otroModo)} onClick={(e) => anunciarCruce(isPro ? "cliente" : "pro", e)} aria-label={etiqueta} title={`Mensajes en ${isPro ? "Busco" : "Ofrezco"}`} className={boton}>
+        {icono}
+      </Link>
+    );
+  }
 
   // En la bandeja misma el popup no aporta nada: el botón solo marca dónde estás.
   if (enBandeja) {
@@ -123,6 +144,38 @@ export function MensajesBoton({ mode }: { mode: Mode }) {
                   {isPro ? "Tus clientes te esperan" : "Coordiná con los profesionales"}
                 </p>
               </div>
+              {/* Pasar a la bandeja del otro lado sin cerrar y buscar el interruptor.
+                  Desde Busco sólo si tiene perfil de Ofrezco aprobado. */}
+              {(isPro || puedeOfrecer) && (
+                <div className="flex shrink-0 items-center rounded-full bg-white/15 p-0.5 text-[11px] font-semibold sm:text-xs" role="group" aria-label="Bandeja">
+                  {(["cliente", "pro"] as const).map((lado) => {
+                    const actual = lado === mode;
+                    const nombre = lado === "pro" ? "Ofrezco" : "Busco";
+                    if (actual) {
+                      return (
+                        <span key={lado} aria-current="true" className="rounded-full bg-white px-2.5 py-1 text-slate-800 sm:px-3">
+                          {nombre}
+                        </span>
+                      );
+                    }
+                    return (
+                      <Link
+                        key={lado}
+                        href={bandejaOtroModo(mode, otroModo)}
+                        onClick={(e) => {
+                          anunciarCruce(lado, e);
+                          setOpen(false);
+                        }}
+                        title={`Ver los mensajes de ${nombre}`}
+                        className="relative rounded-full px-2.5 py-1 text-white/85 transition-colors hover:bg-white/15 hover:text-white sm:px-3"
+                      >
+                        {nombre}
+                        <NoLeidosBadge n={otroModo.total} label={`${otroModo.total} sin leer en ${nombre}`} className="absolute -top-2 -right-2" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
               <button
                 onClick={() => {
                   const proximo = !conSonido;
@@ -153,6 +206,11 @@ export function MensajesBoton({ mode }: { mode: Mode }) {
             </header>
 
             <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+              {otroModo.total > 0 && (
+                <div className="shrink-0 px-3 pt-3">
+                  <OtroModoAviso mode={mode} onIr={() => setOpen(false)} />
+                </div>
+              )}
               {error ? (
                 <p
                   role="alert"

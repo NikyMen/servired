@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { participantIn } from "@/lib/mensajes-server";
 import { pendienteDeAlta } from "@/lib/auth";
 import { notificarMensaje } from "@/lib/notificaciones";
+import { errorContacto } from "@/lib/contacto";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,9 @@ export async function POST(
     {}) as Record<string, unknown>;
 
   const cleanText = typeof text === "string" ? text.trim().slice(0, 4000) : "";
+  // Ni teléfonos ni links de WhatsApp: el contacto va por ServiRed.
+  const contacto = errorContacto(cleanText);
+  if (contacto) return NextResponse.json({ error: contacto }, { status: 422 });
 
   // El adjunto tiene que venir de nuestro /api/upload: si aceptáramos cualquier
   // URL, el mensaje podría apuntar a un archivo de otro dominio.

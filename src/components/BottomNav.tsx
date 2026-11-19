@@ -44,7 +44,9 @@ const COLUMNAS: Record<number, string> = { 2: "grid-cols-2", 3: "grid-cols-3", 4
 /** Barra de pestañas inferior, solo móvil. En desktop navega el header. */
 export function BottomNav({ mode }: { mode: Mode }) {
   const pathname = usePathname();
-  const { total } = useNoLeidos();
+  const { total, otroModo } = useNoLeidos();
+  // Suma los dos lados; en la bandeja, una franja dice cuáles son del otro.
+  const totalAmbos = total + otroModo.total;
 
   // En el perfil del profesional la reemplaza la barra fija de contratación.
   if (pathname.startsWith("/profesionales/")) return null;
@@ -87,7 +89,7 @@ export function BottomNav({ mode }: { mode: Mode }) {
                 {/* Encimado sobre el ícono: la pestaña ya es angosta, un globito
                     al lado empujaría la etiqueta fuera de la columna. */}
                 {item.noLeidos && (
-                  <NoLeidosBadge n={total} className="absolute top-0 right-1.5" />
+                  <NoLeidosBadge n={totalAmbos} className="absolute top-0 right-1.5" />
                 )}
               </span>
               {item.label}

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse, after } from "next/server";
+import { errorContacto } from "@/lib/contacto";
 import { prisma } from "@/lib/prisma";
 import { participantIn } from "@/lib/mensajes-server";
 import { pendienteDeAlta } from "@/lib/auth";
@@ -61,6 +62,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const amount = Math.round(Number(body.amount));
   if (!Number.isFinite(amount) || amount < 100 || amount > 100_000_000) return NextResponse.json({ error: "Ingresá un monto válido." }, { status: 422 });
   const detail = typeof body.detail === "string" ? body.detail.trim().slice(0, 2000) : "";
+  const contacto = errorContacto(detail);
+  if (contacto) return NextResponse.json({ error: contacto }, { status: 422 });
   const estimatedDays = validEstimatedDays(body.estimatedDays);
   if (!estimatedDays) return NextResponse.json({ error: "Decile en cuántos días lo terminás (entre 1 y 365)." }, { status: 422 });
   // Una sola propuesta activa por conversación: si ya hay un acuerdo abierto, la

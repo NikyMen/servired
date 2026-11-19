@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorContacto } from "@/lib/contacto";
 import { prisma } from "@/lib/prisma";
 import { interactionAccess } from "@/lib/auth";
 import { notificarMensaje } from "@/lib/notificaciones";
@@ -33,6 +34,8 @@ export async function POST(
   if (typeof text !== "string" || text.trim().length < 2) {
     return NextResponse.json({ error: "Escribí un mensaje." }, { status: 422 });
   }
+  const contacto = errorContacto(text);
+  if (contacto) return NextResponse.json({ error: contacto }, { status: 422 });
 
   const request = await prisma.serviceRequest.findUnique({
     where: { id },

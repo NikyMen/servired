@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { Chat } from "@/components/Chat";
+import { OtroModoAviso } from "@/components/OtroModoAviso";
 import { getSessionUser } from "@/lib/auth";
 import { InvitadoAviso } from "@/components/InvitadoAviso";
 import { PRO_GREEN } from "@/lib/brand";
@@ -34,6 +35,8 @@ export default async function MensajesPage({ searchParams }: { searchParams: Pro
         <h1 className="text-2xl font-bold text-cliente-dark">Mensajes · Busco</h1>
         <p className="mt-1 text-slate-500">Coordiná los detalles con los profesionales.</p>
       </div>
+
+      <OtroModoAviso mode="cliente" />
 
       <Chat
         viewer="cliente"

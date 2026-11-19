@@ -287,7 +287,7 @@ export default async function HomePage({
               encuadre={enCorrientesCapital(ubicacion.punto) ? ENCUADRE_CORRIENTES : null}
               points={[
                 ...pros.filter((p) => p.distanciaKm != null && p.distanciaKm <= RADIO_KM).map((p) => ({
-                  id: p.id, type: "profesional" as const, title: p.businessName || p.name,
+                  id: p.id, type: "profesional" as const, title: p.businessName || p.name, oficio: p.headline,
                   subtitle: `${p.urgencias24 ? "🚨 Urgencias 24 hs · " : ""}${p.headline} · ${p.localidadNombre ?? p.zone}${p.punto.aproximado ? " (zona aproximada)" : ""}${p.distanciaKm != null ? ` · ${formatoDistancia(p.distanciaKm)}` : ""}`, latitude: p.punto.lat, longitude: p.punto.lng, href: `/profesionales/${p.id}`,
                   avatar: { url: p.avatarUrl, color: p.avatarColor }, aproximado: p.punto.aproximado,
                 })),

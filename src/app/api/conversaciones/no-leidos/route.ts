@@ -20,11 +20,17 @@ export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   // Sin sesión no hay globito, pero tampoco es un error: se responde en cero
   // para que el poll del cliente no tenga que distinguir casos.
-  if (!user) return NextResponse.json({ total: 0, porConversacion: {}, avisos: { total: 0, items: [] } });
+  if (!user) return NextResponse.json({ total: 0, porConversacion: {}, otroModo: { total: 0, conversaciones: [] }, avisos: { total: 0, items: [] } });
 
   const comoPro = req.nextUrl.searchParams.get("como") === "pro";
-  const [resumen, avisos, sinLeer] = await Promise.all([
-    resumenNoLeidos(comoPro ? "profesional" : "cliente", { userId: user.id, professionalId: user.professionalId }),
+  const ids = { userId: user.id, professionalId: user.professionalId };
+  // El otro lado también cuenta: quien ofrece y está mirando Busco tiene que
+  // enterarse de que un cliente le escribió en Ofrezco sin cambiar de solapa.
+  // Ofrezco sólo si el perfil está aprobado: si no, su bandeja ni abre.
+  const hayOtroLado = comoPro || (!!user.professionalId && user.professionalStatus === "approved");
+  const [resumen, otro, avisos, sinLeer] = await Promise.all([
+    resumenNoLeidos(comoPro ? "profesional" : "cliente", ids),
+    hayOtroLado ? resumenNoLeidos(comoPro ? "cliente" : "profesional", ids) : null,
     prisma.notification.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
@@ -36,6 +42,10 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ...resumen,
+    otroModo: {
+      total: otro?.total ?? 0,
+      conversaciones: otro ? Object.keys(otro.porConversacion).filter((id) => otro.porConversacion[id] > 0) : [],
+    },
     avisos: {
       total: sinLeer,
       items: avisos.map((aviso) => ({ ...aviso, createdAt: aviso.createdAt.toISOString(), readAt: aviso.readAt?.toISOString() ?? null })),

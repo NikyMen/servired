@@ -1,6 +1,8 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { AvisoTelefono } from "@/components/AvisoTelefono";
+import { tieneTelefono } from "@/lib/contacto";
 import Link from "next/link";
 import { Avatar } from "@/components/ui";
 import { NoLeidosBadge, useNoLeidos } from "@/components/NoLeidos";
@@ -318,9 +320,13 @@ export function Chat({
     if (fileInput.current) fileInput.current.value = "";
   }
 
+  // Se avisa mientras escribe, no recién al tocar enviar. El servidor igual lo rechaza.
+  const conTelefono = tieneTelefono(text);
+
   async function send() {
     if (!selected || sending) return;
     if (text.trim().length === 0 && !file) return;
+    if (conTelefono) return;
 
     setSending(true);
     setError(null);
@@ -591,6 +597,8 @@ export function Chat({
               </div>
             )}
 
+            <AvisoTelefono texto={text} className="mx-3 mb-2" />
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -646,7 +654,7 @@ export function Chat({
               />
               <button
                 type="submit"
-                disabled={sending || (text.trim().length === 0 && !file)}
+                disabled={sending || conTelefono || (text.trim().length === 0 && !file)}
                 aria-label="Enviar mensaje"
                 className={`flex size-10 shrink-0 items-center justify-center rounded-xl text-white transition-colors disabled:opacity-40 ${sendBtn}`}
               >
